@@ -1,0 +1,15 @@
+{
+  "app": "npx tsx bin/app.ts",
+  "watch": { "include": ["bin/**", "lib/**"] },
+  "context": {
+    "stage": "prod",
+    "smsEnabled": false,
+    "geminiModel": "gemini-flash-lite-latest",
+    "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
+    "@aws-cdk/core:checkSecretUsage": true,
+    "@aws-cdk/aws-iam:minimizePolicies": true,
+    "@aws-cdk/aws-s3:createDefaultLoggingPolicy": true,
+    "@aws-cdk/aws-lambda-nodejs:useLatestRuntimeVersion": true,
+    "@aws-cdk/aws-cloudfront:defaultSecurityPolicyTLSv1.2_2021": true
+  }
+}

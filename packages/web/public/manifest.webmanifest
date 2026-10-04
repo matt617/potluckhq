@@ -1,0 +1,14 @@
+{
+  "name": "Potluck",
+  "short_name": "Potluck",
+  "description": "Turn cooking videos into a shared recipe book, meal plan and shopping list.",
+  "start_url": "/book",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#fafaf9",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

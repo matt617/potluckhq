@@ -1,0 +1,240 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { tierConfig, type InviteResponse, type Role } from '@potluck/core';
+import { api } from '../api';
+import { ConfirmButton, ErrorNote, Field, Flash, Spinner, useFlash } from '../components/ui';
+import { useAsync } from '../lib/hooks';
+import { canAdmin, useCommunity, useSession } from '../lib/session';
+import { copyText, formatDate } from '../lib/util';
+
+export function CommunitySettings() {
+  const community = useCommunity();
+  const { me, refreshMe } = useSession();
+  const navigate = useNavigate();
+  const detail = useAsync(() => api.community(community.id), [community.id]);
+  const [name, setName] = useState(community.name);
+  const [description, setDescription] = useState(community.description ?? '');
+  const [staples, setStaples] = useState(community.pantryStaples.join('\n'));
+  const [invite, setInvite] = useState<InviteResponse | null>(null);
+  const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
+  const [error, setError] = useState<unknown>();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [flash, setFlash] = useFlash();
+
+  useEffect(() => {
+    const c = detail.data?.community;
+    if (!c) return;
+    setName(c.name);
+    setDescription(c.description ?? '');
+    setStaples(c.pantryStaples.join('\n'));
+  }, [detail.data]);
+
+  useEffect(() => setInvite(null), [community.id]);
+
+  const role = detail.data?.role ?? community.role;
+  const admin = canAdmin(role);
+  const isOwner = role === 'owner';
+  const members = detail.data?.members ?? [];
+  const limits = tierConfig(detail.data?.ownerTier);
+  const full = members.length >= limits.maxMembersPerCommunity;
+
+  async function act(label: string, fn: () => Promise<void>, done?: string) {
+    setBusy(label);
+    setError(undefined);
+    try {
+      await fn();
+      if (done) setFlash(done);
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function shareInvite() {
+    if (!invite) return;
+    const text = `Join ${community.name} on Potluck to share recipes, meal plans and shopping lists.`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Potluck invite', text, url: invite.url });
+        return;
+      } catch {
+        /* cancelled; fall back to copy */
+      }
+    }
+    setFlash((await copyText(invite.url)) ? 'Invite link copied' : 'Copy failed');
+  }
+
+  if (detail.loading && !detail.data) return <Spinner />;
+
+  return (
+    <div className="stack-lg">
+      <h1>{community.name}</h1>
+      <ErrorNote error={detail.error} onRetry={() => void detail.reload()} />
+      <ErrorNote error={error} />
+
+      <section className="card stack" aria-labelledby="members-title">
+        <div className="row between wrap">
+          <h2 id="members-title" className="h3">
+            Members
+          </h2>
+          <span className="muted small">
+            {members.length} of {limits.maxMembersPerCommunity} on {limits.name}
+          </span>
+        </div>
+        <ul className="members">
+          {members.map((m) => {
+            const self = m.userId === me?.user.id;
+            return (
+              <li key={m.userId}>
+                <span>
+                  {m.displayName || 'Member'}
+                  {self && <span className="muted"> (you)</span>}
+                </span>
+                {isOwner && m.role !== 'owner' ? (
+                  <select
+                    aria-label={`Role for ${m.displayName}`}
+                    value={m.role}
+                    onChange={(e) =>
+                      act('role', async () => {
+                        await api.setMemberRole(community.id, m.userId, e.target.value as Role);
+                        await detail.reload();
+                      }, 'Role updated')
+                    }
+                  >
+                    <option value="member">Member</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                ) : (
+                  <span className="badge">{m.role}</span>
+                )}
+                {admin && !self && m.role !== 'owner' && (role === 'owner' || m.role === 'member') && (
+                  <ConfirmButton
+                    className="btn btn-ghost btn-small"
+                    confirmLabel="Remove?"
+                    onConfirm={() =>
+                      act('remove', async () => {
+                        await api.removeMember(community.id, m.userId);
+                        await detail.reload();
+                      }, 'Member removed')
+                    }
+                  >
+                    Remove
+                  </ConfirmButton>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+
+        {admin && (
+          <div className="stack invite-box">
+            <h3 className="h4">Invite someone</h3>
+            {full ? (
+              <p className="muted small">This community is full. The owner can upgrade the plan to add more people.</p>
+            ) : (
+              <div className="row wrap">
+                <select aria-label="Invite role" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as 'member' | 'admin')}>
+                  <option value="member">as member</option>
+                  <option value="admin">as admin</option>
+                </select>
+                <button
+                  className="btn btn-primary"
+                  disabled={busy === 'invite'}
+                  onClick={() => act('invite', async () => setInvite(await api.createInvite(community.id, { role: inviteRole })))}
+                >
+                  Create invite link
+                </button>
+              </div>
+            )}
+            {invite && (
+              <div className="stack">
+                <input readOnly value={invite.url} aria-label="Invite link" onFocus={(e) => e.currentTarget.select()} />
+                <div className="row wrap">
+                  <button className="btn" onClick={async () => setFlash((await copyText(invite.url)) ? 'Copied' : 'Copy failed')}>
+                    Copy link
+                  </button>
+                  <button className="btn" onClick={() => void shareInvite()}>
+                    Share…
+                  </button>
+                  <span className="muted small">Expires {formatDate(invite.expiresAt)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {admin && (
+        <section className="card stack" aria-labelledby="settings-title">
+          <h2 id="settings-title" className="h3">
+            Settings
+          </h2>
+          <Field label="Name">
+            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} />
+          </Field>
+          <Field label="Description">
+            <input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} />
+          </Field>
+          <Field label="Pantry staples" hint="One per line. These are tucked away on shopping lists, e.g. salt, olive oil, rice.">
+            <textarea rows={6} value={staples} onChange={(e) => setStaples(e.target.value)} />
+          </Field>
+          <button
+            className="btn btn-primary"
+            disabled={busy === 'save' || !name.trim()}
+            onClick={() =>
+              act('save', async () => {
+                await api.updateCommunity(community.id, {
+                  name: name.trim(),
+                  description: description.trim(),
+                  pantryStaples: staples.split('\n').map((s) => s.trim()).filter(Boolean),
+                });
+                await Promise.all([refreshMe(), detail.reload()]);
+              }, 'Saved')
+            }
+          >
+            Save settings
+          </button>
+        </section>
+      )}
+
+      <section className="card stack danger-zone" aria-labelledby="danger-title">
+        <h2 id="danger-title" className="h3">
+          {isOwner ? 'Delete community' : 'Leave community'}
+        </h2>
+        {isOwner ? (
+          <>
+            <p className="muted small">Deletes the plans and shopping lists. Recipes stay in their owners' accounts.</p>
+            <ConfirmButton
+              confirmLabel={`Delete ${community.name}?`}
+              onConfirm={() =>
+                act('delete', async () => {
+                  await api.deleteCommunity(community.id);
+                  await refreshMe();
+                  navigate('/book');
+                })
+              }
+            >
+              Delete community
+            </ConfirmButton>
+          </>
+        ) : (
+          <ConfirmButton
+            confirmLabel="Leave for sure?"
+            onConfirm={() =>
+              act('leave', async () => {
+                if (!me) return;
+                await api.removeMember(community.id, me.user.id);
+                await refreshMe();
+                navigate('/book');
+              })
+            }
+          >
+            Leave {community.name}
+          </ConfirmButton>
+        )}
+      </section>
+      <Flash message={flash} />
+    </div>
+  );
+}

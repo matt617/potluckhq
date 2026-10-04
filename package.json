@@ -1,0 +1,33 @@
+{
+  "name": "potluck",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Serverless social-video-to-recipe app for small food communities",
+  "workspaces": [
+    "packages/core",
+    "packages/functions",
+    "packages/web",
+    "infra"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "build:web": "npm run build -w @potluck/web",
+    "dev:web": "npm run dev -w @potluck/web",
+    "fetch:ytdlp": "bash scripts/fetch-ytdlp.sh",
+    "synth": "npm run synth -w @potluck/infra",
+    "deploy": "bash scripts/deploy.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true
+  }
+}

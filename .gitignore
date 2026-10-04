@@ -1,0 +1,12 @@
+node_modules/
+dist/
+cdk.out/
+.env
+.env.*
+!.env.example
+infra/layers/ytdlp/bin/
+*.log
+.DS_Store
+coverage/
+infra/cdk-outputs.json
+infra/cdk.context.json
