@@ -1,3 +1,4 @@
+import { MemberNominations } from '../components/MemberNominations';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tierConfig, type InviteResponse, type Role } from '@potluck/core';
@@ -59,7 +60,11 @@ export function CommunitySettings() {
     const text = `Join ${community.name} on Potluck to ${community.kind === 'circle' ? 'exchange recipes' : 'share recipes, meal plans and shopping lists'}.`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Potluck invite', text, url: invite.url });
+        await navigator.share({
+          title: 'Potluck invite',
+          text,
+          url: invite.url,
+        });
         return;
       } catch {
         /* cancelled; fall back to copy */
@@ -119,7 +124,7 @@ export function CommunitySettings() {
                   <ConfirmAction
                     className="btn btn-ghost btn-small"
                     title={`Remove ${m.displayName}?`}
-                    description="They lose access to this space’s recipes and plans. You can invite them again later."
+                    description="They lose access to this space’s recipes and plans. You can nominate them again later."
                     confirmLabel="Remove"
                     onConfirm={() =>
                       act(
@@ -140,9 +145,14 @@ export function CommunitySettings() {
           })}
         </ul>
 
+        {admin && <MemberNominations full={full} />}
         {admin && (
-          <div className="stack invite-box">
-            <h3 className="h4">Invite someone</h3>
+          <details className="stack invite-box">
+            <summary className="h4">Invite someone new to Potluck</summary>
+            <p className="small muted">
+              Use a shareable link when someone doesn’t have an account. Anyone with this link can join with the selected role until it expires or is
+              revoked.
+            </p>
             {full ? (
               <p className="muted small">
                 {community.kind === 'circle'
@@ -153,12 +163,20 @@ export function CommunitySettings() {
               <div className="row wrap">
                 <select aria-label="Invite role" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as 'member' | 'admin')}>
                   <option value="member">as member</option>
-                  <option value="admin">as admin</option>
+                  {isOwner && <option value="admin">as admin</option>}
                 </select>
                 <button
                   className="btn btn-primary"
                   disabled={busy === 'invite'}
-                  onClick={() => act('invite', async () => setInvite(await api.createInvite(community.id, { role: inviteRole })))}
+                  onClick={() =>
+                    act('invite', async () =>
+                      setInvite(
+                        await api.createInvite(community.id, {
+                          role: inviteRole,
+                        }),
+                      ),
+                    )
+                  }
                 >
                   Create invite link
                 </button>
@@ -178,7 +196,7 @@ export function CommunitySettings() {
                 </div>
               </div>
             )}
-          </div>
+          </details>
         )}
       </section>
 
@@ -233,8 +251,8 @@ export function CommunitySettings() {
         {isOwner ? (
           <>
             <p className="muted small">
-              Deletes this shared space and its plans, shopping lists and local recipe versions. Personal saves and independent copies elsewhere remain.
-              Transfer ownership above to let the group continue.
+              Deletes this shared space and its plans, shopping lists and local recipe versions. Personal saves and independent copies elsewhere
+              remain. Transfer ownership above to let the group continue.
             </p>
             <ConfirmAction
               title={`Delete ${community.name}?`}
@@ -254,7 +272,7 @@ export function CommunitySettings() {
         ) : (
           <ConfirmAction
             title={`Leave ${community.name}?`}
-            description="You lose access to its shared recipes and plans until someone invites you again."
+            description="You lose access to its shared recipes and plans until you accept a new nomination or invitation."
             confirmLabel="Leave"
             onConfirm={() =>
               act('leave', async () => {

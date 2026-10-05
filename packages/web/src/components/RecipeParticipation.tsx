@@ -1,3 +1,4 @@
+import { RecordPicker } from './RecordPicker';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DAY_NAMES, MEAL_SLOTS, weekStartOf, isWeekKey, ingredientConflicts, type MealSlot, type Recipe } from '@potluck/core';
@@ -13,9 +14,13 @@ import { ConfirmAction, ConfirmButton, ErrorNote, Field, FormDialog, TagInput } 
 export function AddToPlan({ recipe, servings }: { recipe: Recipe; servings: number }) {
   const { me, community, refreshMe, setCommunityId } = useSession(),
     navigate = useNavigate();
+  const kitchens = me?.communities.filter((c) => c.kind !== 'circle') ?? [];
   const [open, setOpen] = useState(false),
     [cid, setCid] = useState(
-      me?.communities.find((c) => c.id === recipe.kitchenId && c.kind !== 'circle')?.id ?? (community?.kind !== 'circle' ? community?.id : '') ?? '',
+      me?.communities.find((c) => c.id === recipe.kitchenId && c.kind !== 'circle')?.id ??
+        (community?.kind !== 'circle' ? community?.id : undefined) ??
+        kitchens[0]?.id ??
+        '',
     );
   const [week, setWeek] = useState(new URLSearchParams(window.location.search).get('week') ?? weekStartOf()),
     [day, setDay] = useState(0),
@@ -37,6 +42,7 @@ export function AddToPlan({ recipe, servings }: { recipe: Recipe; servings: numb
             setBusy(true);
             setError(undefined);
             try {
+              if (kitchens.length && !kitchens.some((c) => c.id === cid)) throw new Error('Choose a kitchen before adding this meal.');
               const kitchen = cid || (await api.startKitchen()).id;
               const saved = recipe.kitchenId === kitchen ? recipe : (await api.shareRecipe(recipe.id, kitchen)).recipe;
               const [{ plan }, { diners }] = await Promise.all([api.plan(kitchen, week), api.diners(kitchen)]);
@@ -64,23 +70,32 @@ export function AddToPlan({ recipe, servings }: { recipe: Recipe; servings: numb
             }
           }}
           footer={
-            <Button type="submit" variant="default" disabled={busy || !isWeekKey(week)}>
+            <Button
+              type="submit"
+              variant="default"
+              disabled={busy || !isWeekKey(week) || (kitchens.length > 0 && !kitchens.some((c) => c.id === cid))}
+            >
               {busy ? 'Adding…' : 'Add meal'}
             </Button>
           }
         >
-          <Field label="Kitchen">
-            <select value={cid} onChange={(e) => setCid(e.target.value)}>
-              <option value="">My kitchen</option>
-              {me?.communities
-                .filter((c) => c.kind !== 'circle')
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-            </select>
-          </Field>
+          {kitchens.length ? (
+            <Field label="Kitchen" hint="If needed, an independent recipe copy will be saved here before adding the meal.">
+              <RecordPicker
+                label="Kitchens"
+                value={cid}
+                onChange={setCid}
+                placeholder="Choose a kitchen"
+                options={kitchens.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                  detail: `${c.memberCount} members · ${c.role}`,
+                }))}
+              />
+            </Field>
+          ) : (
+            <p>We’ll create “My kitchen” and save this recipe and meal there.</p>
+          )}
           <Field label="Week starting Monday">
             <Input type="date" value={week} onChange={(e) => setWeek(e.target.value)} required />
           </Field>
@@ -229,8 +244,8 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
               </Field>
             </div>
             <p className="small muted">
-              Review the quantity and cooking steps. This only changes this saved version. Known ingredient conflicts are screened again when planning;
-              substitutions are not verified allergy-safe.
+              Review the quantity and cooking steps. This only changes this saved version. Known ingredient conflicts are screened again when
+              planning; substitutions are not verified allergy-safe.
             </p>
             <ConfirmButton
               className="btn"
@@ -240,7 +255,14 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
                 act(async () => {
                   const ingredients = recipe.ingredients.map((i, n) =>
                     n === ingredientIndex
-                      ? { ...i, name: replacement.trim(), quantity: Number(replacementAmount), unit: replacementUnit.trim(), note: undefined, estimated: false }
+                      ? {
+                          ...i,
+                          name: replacement.trim(),
+                          quantity: Number(replacementAmount),
+                          unit: replacementUnit.trim(),
+                          note: undefined,
+                          estimated: false,
+                        }
                       : i,
                   );
                   const conflicts = ingredientConflicts(
@@ -251,7 +273,10 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
                     throw new Error(
                       'This version still contains a known conflict with the usual diners. Review the ingredients and their shared requirements.',
                     );
-                  const result = await api.updateRecipe(recipe.id, { updatedAt: recipe.updatedAt, ingredients });
+                  const result = await api.updateRecipe(recipe.id, {
+                    updatedAt: recipe.updatedAt,
+                    ingredients,
+                  });
                   onUpdated(result.recipe);
                   setReplacement('');
                   setReplacementAmount('');
@@ -277,7 +302,11 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
                 disabled={busy || (kind === 'note' && !note.trim())}
                 onClick={() =>
                   void act(async () => {
-                    await api.addActivity(cid, { recipeId: recipe.id, kind, note });
+                    await api.addActivity(cid, {
+                      recipeId: recipe.id,
+                      kind,
+                      note,
+                    });
                     setNote('');
                     await activity.reload();
                   })

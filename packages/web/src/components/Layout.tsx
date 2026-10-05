@@ -1,3 +1,4 @@
+import { NominationInbox } from './MemberNominations';
 import { useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { BookOpenText, CalendarBlank, Basket } from '@phosphor-icons/react';
@@ -72,12 +73,13 @@ export function Layout() {
           <nav className="card stack" aria-label="Personal and kitchen settings">
             <Link to="/library">My recipes</Link>
             <Link to="/circles">Recipe circles</Link>
-            {community && <Link to={destination('/community')}>Kitchen settings and invitations</Link>}
+            {community && <Link to={destination('/community')}>Kitchen settings and members</Link>}
             <Link to="/account">Account and linked chats</Link>
           </nav>
         </details>
       </header>
       <main className="page" id="main" tabIndex={-1}>
+        <NominationInbox />
         {community || pathname === '/account' || pathname === '/library' || pathname === '/circles' || /^\/book\/.+/.test(pathname) ? (
           <div key={`${community?.id ?? 'personal'}:${pathname}`}>
             <Outlet />

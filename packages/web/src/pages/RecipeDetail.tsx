@@ -1,3 +1,4 @@
+import { RecordPicker } from '../components/RecordPicker';
 import { useMemo, useState } from 'react';
 import { ArrowLeft } from '@phosphor-icons/react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -71,7 +72,11 @@ export function RecipeDetail() {
         recipe={recipe}
         onCancel={() => setEditing(false)}
         onSaved={(r: Recipe) => {
-          state.setData((prev) => ({ canEdit: prev?.canEdit ?? true, recipe: r, media: prev?.media }));
+          state.setData((prev) => ({
+            canEdit: prev?.canEdit ?? true,
+            recipe: r,
+            media: prev?.media,
+          }));
           setServings(null);
           setEditing(false);
           toast('Recipe saved');
@@ -244,7 +249,10 @@ export function RecipeDetail() {
               className="btn"
               onClick={() =>
                 void run(async () => {
-                  const next = await api.updateRecipe(recipe.id, { updatedAt: recipe.updatedAt, archived: false });
+                  const next = await api.updateRecipe(recipe.id, {
+                    updatedAt: recipe.updatedAt,
+                    archived: false,
+                  });
                   state.setData(next);
                 }, 'Restored to the recipe book')
               }
@@ -259,17 +267,20 @@ export function RecipeDetail() {
           )}
           {shareable.length > 0 && (
             <div className="row">
-              <select aria-label="Save to kitchen or circle" value={shareTo} onChange={(e) => setShareTo(e.target.value)}>
-                <option value="">Save an independent copy to…</option>
-                {shareable.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <RecordPicker
+                label="Save to kitchen or circle"
+                value={shareTo}
+                onChange={setShareTo}
+                placeholder="Save an independent copy to…"
+                options={shareable.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                  detail: `${c.kind === 'circle' ? 'Recipe circle' : 'Kitchen'} · ${c.memberCount} members`,
+                }))}
+              />
               <button
                 className="btn"
-                disabled={!shareTo}
+                disabled={!shareable.some((c) => c.id === shareTo)}
                 onClick={() =>
                   run(async () => {
                     const result = await api.shareRecipe(recipe.id, shareTo);

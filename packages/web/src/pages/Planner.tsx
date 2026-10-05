@@ -1,3 +1,4 @@
+import { RecordPicker } from '../components/RecordPicker';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -43,14 +44,28 @@ export function Planner() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<unknown>();
-  const [editing, setEditing] = useState<{ entry: PlanEntry; isNew: boolean } | null>(null);
+  const [editing, setEditing] = useState<{
+    entry: PlanEntry;
+    isNew: boolean;
+  } | null>(null);
   const [aiResult, setAiResult] = useState<SuggestPlanResponse | null>(null);
   const draftKey = `potluck.planDraft:${me?.user.id}:${community.id}:${week}`;
-  const [recoverable, setRecoverable] = useState<{ entries: PlanEntry[]; revision: number } | null>(null);
+  const [recoverable, setRecoverable] = useState<{
+    entries: PlanEntry[];
+    revision: number;
+  } | null>(null);
   const [draftRevision, setDraftRevision] = useState<number | null>(null);
   useInterval(() => void planState.reload(), 15000, !dirty && !saving && !editing);
   useEffect(() => {
-    if (dirty) writeStore(draftKey, JSON.stringify({ entries, revision: draftRevision ?? planState.data?.plan.revision ?? 0 }), 'session');
+    if (dirty)
+      writeStore(
+        draftKey,
+        JSON.stringify({
+          entries,
+          revision: draftRevision ?? planState.data?.plan.revision ?? 0,
+        }),
+        'session',
+      );
   }, [entries, dirty, draftKey, draftRevision, planState.data]);
   function setWeek(next: string) {
     if (!dirty || window.confirm('Leave this draft? You can restore it when you return to this week.')) {
@@ -278,7 +293,11 @@ export function Planner() {
                     <div key={slot} className="plan-cell" role="row">
                       <span className="plan-slot">{slot}</span>
                       {cell.map((e) => (
-                        <button key={e.id} className={`plan-entry${e.leftoverOf ? ' leftover' : ''}`} onClick={() => setEditing({ entry: e, isNew: false })}>
+                        <button
+                          key={e.id}
+                          className={`plan-entry${e.leftoverOf ? ' leftover' : ''}`}
+                          onClick={() => setEditing({ entry: e, isNew: false })}
+                        >
                           <span>{entryTitle(e)}</span>
                           <span className="muted small">×{e.servings}</span>
                           {!e.leftoverOf && batchPortions(entries, e.id) > e.servings && (
@@ -287,7 +306,9 @@ export function Planner() {
                             </span>
                           )}
                           {e.cookId && (
-                            <span className="small">Cook: {detail.data?.members.find((m) => m.userId === e.cookId)?.displayName ?? 'Former member'}</span>
+                            <span className="small">
+                              Cook: {detail.data?.members.find((m) => m.userId === e.cookId)?.displayName ?? 'Former member'}
+                            </span>
                           )}
                         </button>
                       ))}
@@ -403,15 +424,15 @@ function EntryEditor({
   const [label, setLabel] = useState(entry.label ?? '');
   const [servings, setServings] = useState(entry.servings);
   const [note, setNote] = useState(entry.note ?? '');
-  const [filter, setFilter] = useState('');
   const [dinerIds, setDinerIds] = useState(entry.dinerIds ?? diners.filter((d) => d.usual).map((d) => d.id));
   const [cookId, setCookId] = useState(entry.cookId ?? '');
   const baseId = useId();
 
-  const sorted = recipes.filter((r) => !filter || r.title.toLowerCase().includes(filter.toLowerCase())).sort((a, b) => a.title.localeCompare(b.title));
   const earlier = others.filter((o) => o.day < entry.day || (o.day === entry.day && MEAL_SLOTS.indexOf(o.slot) < MEAL_SLOTS.indexOf(entry.slot)));
 
-  const valid = kind === 'recipe' ? !!recipeId : kind === 'leftover' ? !!leftoverOf : !!label.trim();
+  const valid =
+    (kind === 'recipe' ? recipes.some((r) => r.id === recipeId) : kind === 'leftover' ? earlier.some((o) => o.id === leftoverOf) : !!label.trim()) &&
+    (!cookId || members.some((m) => m.userId === cookId));
 
   function save() {
     const leftoverSrc = others.find((o) => o.id === leftoverOf);
@@ -424,7 +445,7 @@ function EntryEditor({
       leftoverOf: kind === 'leftover' ? leftoverOf : undefined,
       label: kind === 'label' ? label.trim() : undefined,
       note: note.trim() || undefined,
-      dinerIds: diners.length ? dinerIds : undefined,
+      dinerIds: diners.length ? dinerIds.filter((id) => diners.some((d) => d.id === id)) : undefined,
       cookId: cookId || undefined,
     });
   }
@@ -459,37 +480,37 @@ function EntryEditor({
           <TabsTrigger value="label">Other</TabsTrigger>
         </TabsList>
         <TabsContent value="recipe" className="flex flex-col gap-2">
-          <Input type="search" placeholder="Filter recipes" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Filter recipes" />
-          <ul className="m-0 flex max-h-56 list-none flex-col gap-0.5 overflow-y-auto rounded-md border border-border bg-card p-1" role="listbox" aria-label="Recipes">
-            {sorted.map((r) => (
-              <li key={r.id}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={recipeId === r.id}
-                  className="w-full cursor-pointer rounded-sm border-0 bg-transparent px-3 py-2 text-left text-[0.94rem] text-foreground hover:bg-muted aria-selected:bg-accent aria-selected:font-medium aria-selected:text-accent-foreground"
-                  onClick={() => {
-                    setRecipeId(r.id);
-                    if (isNew && !dinerIds.length) setServings(r.servings);
-                  }}
-                >
-                  {r.title}
-                </button>
-              </li>
-            ))}
-            {!sorted.length && <li className="px-3 py-2 text-sm text-muted-foreground">No recipes match.</li>}
-          </ul>
+          <Field label="Recipe" hint="Choose a recipe from this kitchen’s book. Your selection stays visible when you search again.">
+            <RecordPicker
+              label="Recipes"
+              value={recipeId}
+              placeholder="Choose a recipe"
+              empty="No recipes match. Add a recipe to this kitchen’s book first."
+              options={recipes.map((r) => ({
+                value: r.id,
+                label: r.title,
+                detail: `${r.servings} servings${r.totalMin ? ` · ${r.totalMin} min` : ''}`,
+              }))}
+              onChange={(id) => {
+                setRecipeId(id);
+                if (isNew && !dinerIds.length) setServings(recipes.find((r) => r.id === id)!.servings);
+              }}
+            />
+          </Field>
         </TabsContent>
         <TabsContent value="leftover">
           <Field label="Leftovers from">
-            <select value={leftoverOf} onChange={(e) => setLeftoverOf(e.target.value)}>
-              <option value="">Choose a meal…</option>
-              {earlier.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {DAY_NAMES[o.day]?.slice(0, 3)} {o.slot}: {titleOf(o)}
-                </option>
-              ))}
-            </select>
+            <RecordPicker
+              label="Earlier meals"
+              value={leftoverOf}
+              onChange={setLeftoverOf}
+              placeholder="Choose an earlier meal"
+              options={earlier.map((o) => ({
+                value: o.id,
+                label: titleOf(o),
+                detail: `${DAY_NAMES[o.day]} ${o.slot}`,
+              }))}
+            />
           </Field>
         </TabsContent>
         <TabsContent value="label">
@@ -499,15 +520,19 @@ function EntryEditor({
         </TabsContent>
       </Tabs>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Who’s cooking?">
-          <select value={cookId} onChange={(e) => setCookId(e.target.value)}>
-            <option value="">Unassigned</option>
-            {members.map((m) => (
-              <option key={m.userId} value={m.userId}>
-                {m.displayName}
-              </option>
-            ))}
-          </select>
+        <Field label="Who’s cooking?" hint="Assigns a kitchen member to this meal.">
+          <RecordPicker
+            label="Cooks"
+            value={cookId}
+            onChange={setCookId}
+            placeholder="Unassigned"
+            clearLabel="Unassigned"
+            options={members.map((m) => ({
+              value: m.userId,
+              label: m.displayName,
+              detail: m.role,
+            }))}
+          />
         </Field>
         <Field label="Servings">
           <Input type="number" min={0.25} step={0.25} max={50} value={servings} onChange={(e) => setServings(Number(e.target.value) || 1)} />
