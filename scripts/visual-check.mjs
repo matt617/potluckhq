@@ -102,8 +102,27 @@ const screens = [
     path: '/book?kitchen=home',
     wait: (p) => p.getByRole('link', { name: /Roast tomatoes/ }).first(),
     act: async (p) => {
-      await p.locator('select:has(option[value="__new"])').first().selectOption('__new');
+      await p.getByRole('combobox', { name: /Kitchen or recipe circle/ }).click();
+      await p.getByRole('option', { name: 'New kitchen' }).click();
       await p.getByRole('dialog').waitFor();
+    },
+  },
+  {
+    name: 'switcher-open',
+    path: '/book?kitchen=home',
+    wait: (p) => p.getByRole('link', { name: /Roast tomatoes/ }).first(),
+    act: async (p) => {
+      await p.getByRole('combobox', { name: /Kitchen or recipe circle/ }).click();
+      await p.getByRole('option', { name: 'New kitchen' }).waitFor();
+    },
+  },
+  {
+    name: 'menu-more',
+    path: '/book?kitchen=home',
+    wait: (p) => p.getByRole('link', { name: /Roast tomatoes/ }).first(),
+    act: async (p) => {
+      await p.getByRole('button', { name: 'More' }).click();
+      await p.getByRole('dialog').getByRole('link', { name: 'My recipes' }).waitFor();
     },
   },
   {
@@ -188,6 +207,17 @@ const keyboardChecks = [
   { name: 'add to plan dialog', path: `/book/r-home?kitchen=home&week=${week}`, trigger: (p) => p.getByRole('button', { name: 'Cook this week' }) },
   { name: 'origin review dialog', path: '/book/r-personal', trigger: (p) => p.getByRole('button', { name: 'Review changes to the original' }) },
   { name: 'remove confirmation', path: '/community?kitchen=home', role: 'alertdialog', trigger: (p) => p.getByRole('button', { name: 'Remove profile' }).first() },
+  {
+    name: 'new kitchen dialog',
+    path: '/book?kitchen=home',
+    trigger: (p) => p.getByRole('combobox', { name: /Kitchen or recipe circle/ }),
+    open: async (p) => {
+      await p.keyboard.press('Enter');
+      await p.getByRole('option', { name: 'New kitchen' }).waitFor();
+      await p.keyboard.press('End');
+      await p.keyboard.press('Enter');
+    },
+  },
 ];
 
 async function keyboardCheck(browser, check) {
@@ -205,7 +235,8 @@ async function keyboardCheck(browser, check) {
     await page.goto(`${origin}${check.path}`);
     const trigger = check.trigger(page);
     await trigger.focus();
-    await page.keyboard.press('Enter');
+    if (check.open) await check.open(page);
+    else await page.keyboard.press('Enter');
     const dialog = page.getByRole(check.role ?? 'dialog');
     await dialog.waitFor();
     const inside = () => page.evaluate((role) => !!document.activeElement?.closest(`[role=${role}]`), check.role ?? 'dialog');
@@ -447,6 +478,7 @@ async function capture(browser, variant, screen) {
   if (screen.full) await page.evaluate(() => window.scrollTo(0, 0));
   await page.mouse.move(0, 0); // no stray hover states in captures
   await settle(page);
+  if (process.env.VISUAL_EVAL) console.error(screen.name, variant.name, JSON.stringify(await page.evaluate(process.env.VISUAL_EVAL)));
   const file = `${outDir}/${screen.name}--${variant.name}.png`;
   await page.screenshot({ path: file, fullPage: screen.full, animations: 'disabled', caret: 'hide' });
   let axe = [];

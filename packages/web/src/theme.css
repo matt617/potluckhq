@@ -73,6 +73,16 @@
   --ease-smooth: var(--ease);
   --ease-spring: var(--spring);
 
+  /* The layout switches from phone tab bar to top navigation at 860px. */
+  --breakpoint-wide: 860px;
+
+  --animate-rise: rise 600ms var(--ease) both;
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
   --animate-shimmer: shimmer 1.6s ease-in-out infinite;
   @keyframes shimmer {
     from {

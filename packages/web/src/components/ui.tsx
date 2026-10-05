@@ -293,12 +293,12 @@ export function FormDialog({
 /** Page title block: small context line, serif title, optional actions on the right. */
 export function PageHeader({ eyebrow, title, children }: { eyebrow?: ReactNode; title: ReactNode; children?: ReactNode }) {
   return (
-    <header className="page-head">
-      <div className="page-head-text">
+    <header className="flex animate-rise flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-border pb-[22px] motion-reduce:animate-none">
+      <div className="flex min-w-0 flex-col gap-1.5">
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <h1>{title}</h1>
       </div>
-      {children && <div className="page-head-actions">{children}</div>}
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </header>
   );
 }
