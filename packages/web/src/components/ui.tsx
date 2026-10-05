@@ -258,3 +258,82 @@ export function Flash({ message }: { message: string | null }) {
     </div>
   );
 }
+
+/**
+ * Chip-style list input: Enter, comma or Tab adds an item, Backspace on an empty
+ * field removes the last one, and pasted comma/newline lists are split.
+ */
+export function TagInput({
+  value,
+  onChange,
+  placeholder,
+  lowercase,
+  id,
+  ...aria
+}: {
+  value: string[];
+  onChange: (next: string[]) => void;
+  placeholder?: string;
+  lowercase?: boolean;
+  id?: string;
+  'aria-labelledby'?: string;
+  'aria-describedby'?: string;
+}) {
+  const [draft, setDraft] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  function add(text: string) {
+    const seen = new Set(value.map((v) => v.toLowerCase()));
+    const fresh: string[] = [];
+    for (const raw of text.split(/[\n,]/)) {
+      const item = lowercase ? raw.trim().toLowerCase() : raw.trim();
+      if (item && !seen.has(item.toLowerCase())) {
+        seen.add(item.toLowerCase());
+        fresh.push(item);
+      }
+    }
+    if (fresh.length) onChange([...value, ...fresh]);
+    setDraft('');
+  }
+  return (
+    <div className="tag-input" onClick={() => inputRef.current?.focus()}>
+      {value.map((item, i) => (
+        <span key={item} className="tag">
+          {item}
+          <button
+            type="button"
+            className="tag-remove"
+            aria-label={`Remove ${item}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange(value.filter((_, n) => n !== i));
+            }}
+          >
+            <X size={12} weight="bold" aria-hidden />
+          </button>
+        </span>
+      ))}
+      <input
+        ref={inputRef}
+        id={id}
+        {...aria}
+        value={draft}
+        placeholder={value.length ? undefined : placeholder}
+        enterKeyHint="enter"
+        onChange={(e) => {
+          const text = e.target.value;
+          if (/[\n,]/.test(text)) add(text);
+          else setDraft(text);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || (e.key === 'Tab' && draft.trim())) {
+            e.preventDefault();
+            add(draft);
+          } else if (e.key === 'Backspace' && !draft && value.length) {
+            onChange(value.slice(0, -1));
+          }
+        }}
+        onBlur={() => draft.trim() && add(draft)}
+      />
+    </div>
+  );
+}

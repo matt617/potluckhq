@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { formatUsd, tierConfig, type LinkCodeResponse, type TierId } from '@potluck/core';
 import { api } from '../api';
-import { ConfirmButton, ErrorNote, Field, Flash, Spinner, useFlash } from '../components/ui';
+import { ConfirmButton, ErrorNote, Field, Flash, Spinner, TagInput, useFlash } from '../components/ui';
 import { logout } from '../lib/auth';
 import { useSession } from '../lib/session';
-import { cents, formatDate, splitList } from '../lib/util';
+import { cents, formatDate } from '../lib/util';
 
 export function Account() {
   const { me, setMe, publicConfig, refreshMe } = useSession();
@@ -51,9 +51,9 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
   const [displayName, setDisplayName] = useState(u.displayName);
   const [units, setUnits] = useState(u.units);
   const [defaultCommunityId, setDefaultCommunityId] = useState(u.defaultCommunityId ?? '');
-  const [allergies, setAllergies] = useState(u.diet.allergies.join(', '));
-  const [diets, setDiets] = useState(u.diet.diets.join(', '));
-  const [dislikes, setDislikes] = useState(u.diet.dislikes.join(', '));
+  const [allergies, setAllergies] = useState(u.diet.allergies);
+  const [diets, setDiets] = useState(u.diet.diets);
+  const [dislikes, setDislikes] = useState(u.diet.dislikes);
   const [goals, setGoals] = useState(u.diet.goals ?? '');
   const [glp1, setGlp1] = useState(!!u.diet.glp1);
   const [protein, setProtein] = useState(u.diet.dailyProteinTargetG?.toString() ?? '');
@@ -69,9 +69,9 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
         units,
         defaultCommunityId: defaultCommunityId || undefined,
         diet: {
-          allergies: splitList(allergies),
-          diets: splitList(diets),
-          dislikes: splitList(dislikes),
+          allergies,
+          diets,
+          dislikes,
           goals: goals.trim() || undefined,
           glp1,
           dailyProteinTargetG: protein.trim() ? Math.max(0, Number(protein) || 0) : null,
@@ -120,14 +120,14 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
         share them automatically.
       </p>
       <div className="form-grid">
-        <Field label="Allergies" hint="Comma separated">
-          <input value={allergies} onChange={(e) => setAllergies(e.target.value)} placeholder="peanuts, shellfish" />
+        <Field label="Allergies">
+          <TagInput value={allergies} onChange={setAllergies} placeholder="peanuts, shellfish" />
         </Field>
-        <Field label="Diets" hint="Comma separated">
-          <input value={diets} onChange={(e) => setDiets(e.target.value)} placeholder="vegetarian, low-carb" />
+        <Field label="Diets">
+          <TagInput value={diets} onChange={setDiets} placeholder="vegetarian, low-carb" />
         </Field>
-        <Field label="Dislikes" hint="Comma separated">
-          <input value={dislikes} onChange={(e) => setDislikes(e.target.value)} placeholder="cilantro, olives" />
+        <Field label="Dislikes">
+          <TagInput value={dislikes} onChange={setDislikes} placeholder="cilantro, olives" />
         </Field>
         <Field label="Daily protein target (g)">
           <input type="number" min={0} value={protein} onChange={(e) => setProtein(e.target.value)} />

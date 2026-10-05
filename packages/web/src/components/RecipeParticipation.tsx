@@ -6,7 +6,7 @@ import { useSession } from '../lib/session';
 import { useAsync } from '../lib/hooks';
 import { kitchenPath } from '../lib/kitchen-context';
 import { newId } from '../lib/util';
-import { ConfirmButton, ErrorNote, Field, Sheet } from './ui';
+import { ConfirmButton, ErrorNote, Field, Sheet, TagInput } from './ui';
 
 export function AddToPlan({ recipe, servings }: { recipe: Recipe; servings: number }) {
   const { me, community, refreshMe, setCommunityId } = useSession(),
@@ -125,7 +125,7 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
     [replacementUnit, setReplacementUnit] = useState('');
   const [note, setNote] = useState(''),
     [privateNote, setPrivateNote] = useState<string | null>(null),
-    [collections, setCollections] = useState<string | null>(null),
+    [collections, setCollections] = useState<string[] | null>(null),
     [review, setReview] = useState(false),
     [error, setError] = useState<unknown>(),
     [busy, setBusy] = useState(false),
@@ -181,18 +181,15 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
             void act(
               () =>
                 api.annotate(recipe.id, {
-                  collections: (collections ?? annotation?.collections.join(', ') ?? '')
-                    .split(',')
-                    .map((s) => s.trim())
-                    .filter(Boolean),
+                  collections: collections ?? annotation?.collections ?? [],
                   note: privateNote ?? annotation?.note ?? '',
                 }),
               'Private notes saved',
             );
           }}
         >
-          <Field label="Collections" hint="Comma separated">
-            <input value={collections ?? annotation?.collections.join(', ') ?? ''} onChange={(e) => setCollections(e.target.value)} />
+          <Field label="Collections">
+            <TagInput value={collections ?? annotation?.collections ?? []} onChange={setCollections} placeholder="weeknight, date night" />
           </Field>
           <Field label="Private note">
             <textarea value={privateNote ?? annotation?.note ?? ''} onChange={(e) => setPrivateNote(e.target.value)} maxLength={2000} />

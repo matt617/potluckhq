@@ -4,7 +4,13 @@ import { api } from '../api';
 import { useAsync } from '../lib/hooks';
 import { useSession, canAdmin, useCommunity } from '../lib/session';
 import { newId } from '../lib/util';
-import { ConfirmButton, ErrorNote, Field, Sheet } from './ui';
+import { ConfirmButton, ErrorNote, Field, Sheet, TagInput } from './ui';
+
+const DIET_FIELDS = [
+  ['allergies', 'Allergies', 'peanuts, shellfish'],
+  ['diets', 'Diets', 'vegetarian, low-carb'],
+  ['dislikes', 'Dislikes', 'cilantro, olives'],
+] as const;
 
 export function Diners() {
   const c = useCommunity(),
@@ -110,11 +116,12 @@ export function Diners() {
               <input type="checkbox" checked={editing.usual} onChange={(e) => setEditing({ ...editing, usual: e.target.checked })} />
               Usually eating with this kitchen
             </label>
-            {(['allergies', 'diets', 'dislikes'] as const).map((k) => (
-              <Field key={k} label={k} hint="Comma separated; visible to members of this kitchen">
-                <input
-                  value={editing.diet[k].join(', ')}
-                  onChange={(e) => setEditing({ ...editing, diet: { ...editing.diet, [k]: e.target.value.split(',').map((x) => x.trim()) } })}
+            {DIET_FIELDS.map(([k, label, placeholder]) => (
+              <Field key={k} label={label}>
+                <TagInput
+                  value={editing.diet[k]}
+                  onChange={(next) => setEditing({ ...editing, diet: { ...editing.diet, [k]: next } })}
+                  placeholder={placeholder}
                 />
               </Field>
             ))}
