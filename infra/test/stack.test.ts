@@ -41,9 +41,9 @@ describe('PotluckStack', () => {
     });
   });
 
-  it('creates three arm64 Node 22 handlers when SMS is off', () => {
+  it('creates three arm64 Node 24 handlers when SMS is off', () => {
     const fns = template.findResources('AWS::Lambda::Function', {
-      Properties: { Runtime: 'nodejs22.x', Architectures: ['arm64'] },
+      Properties: { Runtime: 'nodejs24.x', Architectures: ['arm64'] },
     });
     expect(Object.keys(fns)).toHaveLength(3);
   });
@@ -84,7 +84,7 @@ describe('PotluckStack', () => {
   it('adds the SMS handler, topic and budget when enabled', () => {
     const t = synth({ smsEnabled: true, alertEmail: 'ops@example.com' });
     const fns = t.findResources('AWS::Lambda::Function', {
-      Properties: { Runtime: 'nodejs22.x', Architectures: ['arm64'] },
+      Properties: { Runtime: 'nodejs24.x', Architectures: ['arm64'] },
     });
     expect(Object.keys(fns)).toHaveLength(4);
     // Inbound SMS topic plus the alert topic.

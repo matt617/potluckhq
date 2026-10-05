@@ -39,7 +39,7 @@ One CloudFront distribution serves everything on one origin, so the browser neve
 
 ## Lambda handlers
 
-All in `packages/functions/src/handlers/`, each exporting `handler`. Node 22, arm64, bundled with esbuild.
+All in `packages/functions/src/handlers/`, each exporting `handler`. Node 24, arm64, bundled with esbuild.
 
 | File | Trigger | Notes |
 |---|---|---|

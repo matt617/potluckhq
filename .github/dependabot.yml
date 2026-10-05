@@ -6,7 +6,8 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     ignore:
-      # Types must match the Lambda and CI runtime (Node 22). Raise together with the runtime.
+      # Types must match the Lambda and CI runtime (Node 24, the newest Lambda offers).
+      # Raise together with the runtime once AWS ships a newer one.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
     groups:
