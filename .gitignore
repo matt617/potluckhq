@@ -8,5 +8,6 @@ infra/layers/ytdlp/bin/
 *.log
 .DS_Store
 coverage/
+artifacts/
 infra/cdk-outputs.json
 infra/cdk.context.json

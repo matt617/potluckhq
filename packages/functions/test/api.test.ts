@@ -1,14 +1,18 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Community, ImportJob, Membership, UserProfile } from '@potluck/core';
+import type { Community, ImportJob, Membership, UserProfile, MealPlan, Recipe, ShoppingList } from '@potluck/core';
 
 const db = vi.hoisted(() => ({
   users: new Map<string, UserProfile>(),
   communities: new Map<string, Community>(),
   members: [] as Membership[],
   imports: new Map<string, ImportJob>(),
+  recipes: new Map<string, Recipe>(),
+  plans: new Map<string, MealPlan>(),
+  lists: new Map<string, ShoppingList>(),
 }));
 
+vi.mock('../src/lib/kitchen-repo.js', () => ({ diners: async () => [{ id: 'diner' }], participation: async () => undefined }));
 vi.mock('../src/lib/secrets.js', () => ({ secrets: async () => ({}) }));
 vi.mock('../src/lib/queue.js', () => ({ enqueueImport: vi.fn(async () => undefined) }));
 const limits = vi.hoisted(() => ({ blocked: new Set<string>() }));
@@ -42,7 +46,16 @@ vi.mock('../src/lib/repo.js', async () => {
       db.members.push(m);
     },
     listMembers: async (cid: string) => db.members.filter((m) => m.communityId === cid),
-    listCommunityRecipes: async () => [],
+    listCommunityRecipes: async (cid: string) => [...db.recipes.values()].filter((r) => r.communityIds.includes(cid)),
+    batchGetRecipes: async (ids: string[]) => new Map([...db.recipes].filter(([id]) => ids.includes(id))),
+    getPlan: async (cid: string, week: string) => db.plans.get(`${cid}:${week}`),
+    putPlan: async (plan: MealPlan) => db.plans.set(`${plan.communityId}:${plan.weekStart}`, plan),
+    getListWithVersion: async (cid: string, week: string) => ({ list: db.lists.get(`${cid}:${week}`), version: 1 }),
+    mutateList: async (cid: string, week: string, fn: (x: ShoppingList) => ShoppingList) => {
+      const next = fn(db.lists.get(`${cid}:${week}`) ?? { communityId: cid, weekStart: week, items: [], generatedAt: '', updatedAt: '' });
+      db.lists.set(`${cid}:${week}`, next);
+      return next;
+    },
     getInvite: async () => undefined,
     putImport: async (job: ImportJob) => {
       db.imports.set(job.id, job);
@@ -77,6 +90,9 @@ beforeEach(() => {
   db.communities.clear();
   db.members.length = 0;
   db.imports.clear();
+  db.recipes.clear();
+  db.plans.clear();
+  db.lists.clear();
 });
 
 function failedImport(communityId: string, patch: Partial<ImportJob> = {}): ImportJob {
@@ -164,7 +180,7 @@ describe('api handler', () => {
     expect(db.imports.get('imp1')!.dismissedAt).toBeTruthy();
   });
 
-  it('refuses to retry uploads, unfinished imports, or someone else\'s import', async () => {
+  it("refuses to retry uploads, unfinished imports, or someone else's import", async () => {
     const c = await call('POST', '/api/communities', { name: 'Home' });
     failedImport(c.body.id, { kind: 'image', url: undefined, imageKeys: ['uploads/u1/a.jpg'] });
     expect((await call('POST', '/api/imports/imp1/retry')).status).toBe(400);
@@ -180,5 +196,64 @@ describe('api handler', () => {
     failedImport(c.body.id);
     expect((await call('POST', '/api/imports/imp1/dismiss')).status).toBe(200);
     expect(db.imports.get('imp1')!.dismissedAt).toBeTruthy();
+  });
+});
+
+describe('kitchen planning and shopping contracts', () => {
+  const week = '2026-10-05';
+  async function setup() {
+    const { body: c } = await call('POST', '/api/communities', { name: 'Home' });
+    db.recipes.set('r', {
+      id: 'r',
+      ownerId: `KITCHEN#${c.id}`,
+      kitchenId: c.id,
+      title: 'Rice',
+      servings: 2,
+      ingredients: [{ name: 'rice', quantity: 1, unit: 'cup', aisle: 'pantry' }],
+      steps: [],
+      tags: [],
+      source: { platform: 'text' },
+      communityIds: [c.id],
+      createdAt: 'now',
+      updatedAt: 'now',
+    });
+    return {
+      cid: c.id,
+      path: `/api/communities/${c.id}/plans/${week}`,
+      entry: { id: 'meal', day: 0, slot: 'dinner', recipeId: 'r', servings: 2, dinerIds: ['diner'], cookId: 'u1' },
+    };
+  }
+  it('saves scoped attendance and rejects stale revisions without overwriting', async () => {
+    const { cid, path, entry } = await setup();
+    const first = await call('PUT', path, { revision: 0, entries: [entry], constraints: ['glp1', 'workout', 'quick'] });
+    expect(first.status).toBe(200);
+    expect(first.body.plan.revision).toBe(1);
+    expect(first.body.plan.constraints).not.toContain('glp1');
+    expect((await call('PUT', path, { revision: 0, entries: [] })).status).toBe(409);
+    expect(db.plans.get(`${cid}:${week}`)?.entries).toHaveLength(1);
+  });
+  it('rejects foreign recipes, missing people, nonmember cooks and techniques', async () => {
+    const { path, entry } = await setup();
+    for (const patch of [{ recipeId: 'foreign' }, { dinerIds: ['foreign'] }, { cookId: 'outsider' }, { leftoverOf: 'missing' }])
+      expect((await call('PUT', path, { revision: 0, entries: [{ ...entry, ...patch }] })).status).toBe(400);
+    db.recipes.get('r')!.kind = 'technique';
+    expect((await call('PUT', path, { revision: 0, entries: [entry] })).status).toBe(400);
+  });
+  it('requires a fresh shopping preview after recipe changes', async () => {
+    const { cid, path, entry } = await setup();
+    await call('PUT', path, { revision: 0, entries: [entry] });
+    const listPath = `/api/communities/${cid}/lists/${week}/generate`;
+    const preview = await call('POST', listPath, { preview: true });
+    expect(preview.status).toBe(200);
+    expect(db.lists.size).toBe(0);
+    db.recipes.get('r')!.updatedAt = 'later';
+    expect((await call('POST', listPath, { planFingerprint: preview.body.list.planFingerprint })).status).toBe(409);
+    const fresh = await call('POST', listPath, { preview: true });
+    expect((await call('POST', listPath, { planFingerprint: fresh.body.list.planFingerprint })).status).toBe(200);
+    expect(db.lists.size).toBe(1);
+  });
+  it('keeps circles out of kitchen planning and shopping endpoints', async () => {
+    const { body: c } = await call('POST', '/api/communities', { name: 'Friends', kind: 'circle' });
+    for (const path of [`plans/${week}`, `lists/${week}`]) expect((await call('GET', `/api/communities/${c.id}/${path}`)).status).toBe(400);
   });
 });

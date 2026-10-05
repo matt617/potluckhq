@@ -38,6 +38,9 @@ export function useAsync<T>(loader: () => Promise<T>, deps: unknown[]): AsyncSta
   }, [reload]);
 
   const setData = useCallback((updater: T | ((prev: T | undefined) => T)) => {
+    ++seq.current; // Ignore reads that started before this mutation response.
+    setLoading(false);
+    setError(undefined);
     setDataState((prev) => (typeof updater === 'function' ? (updater as (p: T | undefined) => T)(prev) : updater));
   }, []);
 

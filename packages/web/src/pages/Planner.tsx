@@ -5,6 +5,9 @@ import {
   DAY_NAMES,
   MEAL_SLOTS,
   weekStartOf,
+  batchPortions,
+  type Diner,
+  type Membership,
   type MealPlan,
   type MealSlot,
   type PlanEntry,
@@ -15,17 +18,21 @@ import { api } from '../api';
 import { AiResult, AiSuggest } from '../components/AiSuggest';
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { ErrorNote, Field, Flash, PageHeader, Sheet, Skeleton, useFlash } from '../components/ui';
-import { useAsync } from '../lib/hooks';
+import { useAsync, useInterval } from '../lib/hooks';
 import { useCommunity, useSession } from '../lib/session';
 import { formatDate, newId } from '../lib/util';
+import { kitchenPath, useWeek } from '../lib/kitchen-context';
+import { readStore, writeStore } from '../lib/storage';
 
 export function Planner() {
   const community = useCommunity();
   const { me } = useSession();
-  const [week, setWeek] = useState(() => weekStartOf());
+  const [week, changeWeek] = useWeek();
   const planState = useAsync(() => api.plan(community.id, week), [community.id, week]);
   const recipesState = useAsync(() => api.recipes(community.id), [community.id]);
   const detail = useAsync(() => api.community(community.id), [community.id]);
+  const people = useAsync(() => api.diners(community.id), [community.id]);
+  const [showAll, setShowAll] = useState(() => readStore('potluck.allMeals') === 'true');
   const [entries, setEntries] = useState<PlanEntry[]>([]);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -33,11 +40,58 @@ export function Planner() {
   const [editing, setEditing] = useState<{ entry: PlanEntry; isNew: boolean } | null>(null);
   const [aiResult, setAiResult] = useState<SuggestPlanResponse | null>(null);
   const [flash, setFlash] = useFlash();
+  const draftKey = `potluck.planDraft:${me?.user.id}:${community.id}:${week}`;
+  const [recoverable, setRecoverable] = useState<{ entries: PlanEntry[]; revision: number } | null>(null);
+  const [draftRevision, setDraftRevision] = useState<number | null>(null);
+  useInterval(() => void planState.reload(), 15000, !dirty && !saving && !editing);
+  useEffect(() => {
+    if (dirty) writeStore(draftKey, JSON.stringify({ entries, revision: draftRevision ?? planState.data?.plan.revision ?? 0 }), 'session');
+  }, [entries, dirty, draftKey, draftRevision, planState.data]);
+  function setWeek(next: string) {
+    if (!dirty || window.confirm('Leave this draft? You can restore it when you return to this week.')) {
+      setDirty(false);
+      setEditing(null);
+      changeWeek(next);
+    }
+  }
+  useEffect(() => {
+    if (!dirty) return;
+    const unload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    const click = (e: MouseEvent) => {
+      if ((e.target as Element).closest('a[href]') && !window.confirm('Discard unsaved meal-plan changes?')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    const navigate = (e: Event) => {
+      if (!window.confirm('Leave your unsaved meal-plan draft? You can restore it later.')) e.preventDefault();
+    };
+    window.addEventListener('beforeunload', unload);
+    document.addEventListener('click', click, true);
+    window.addEventListener('potluck:before-navigation', navigate);
+    return () => {
+      window.removeEventListener('beforeunload', unload);
+      document.removeEventListener('click', click, true);
+      window.removeEventListener('potluck:before-navigation', navigate);
+    };
+  }, [dirty]);
 
   useEffect(() => {
-    if (planState.data) {
+    if (dirty) return;
+    if (planState.data?.plan.communityId === community.id && planState.data.plan.weekStart === week) {
       setEntries(planState.data.plan.entries);
       setDirty(false);
+      setDraftRevision(null);
+      try {
+        const draft = readStore(draftKey, 'session');
+        const value = draft ? JSON.parse(draft) : null;
+        setRecoverable(value && Array.isArray(value.entries) && Number.isInteger(value.revision) ? value : null);
+      } catch {
+        setRecoverable(null);
+      }
     }
   }, [planState.data]);
 
@@ -50,7 +104,7 @@ export function Planner() {
     return m;
   }, [recipesState.data, planState.data]);
 
-  const plan: MealPlan | undefined = planState.data?.plan;
+  const plan: MealPlan | undefined = planState.data?.plan.weekStart === week ? planState.data.plan : undefined;
 
   function entryTitle(e: PlanEntry): string {
     if (e.leftoverOf) {
@@ -63,12 +117,24 @@ export function Planner() {
   }
 
   function upsert(entry: PlanEntry) {
-    setEntries((list) => (list.some((e) => e.id === entry.id) ? list.map((e) => (e.id === entry.id ? entry : e)) : [...list, entry]));
+    if (!dirty) setDraftRevision(plan?.revision ?? 0);
+    const hasLeftovers = entries.some((e) => e.leftoverOf === entry.id);
+    const canSupplyLeftovers = !!entry.recipeId && !entry.leftoverOf;
+    if (hasLeftovers && !canSupplyLeftovers && !window.confirm('This meal will no longer supply leftovers. Remove its planned leftovers?')) return;
+    setEntries((list) =>
+      list.some((e) => e.id === entry.id)
+        ? list
+            .filter((e) => canSupplyLeftovers || e.leftoverOf !== entry.id)
+            .map((e) => (e.id === entry.id ? entry : e.leftoverOf === entry.id ? { ...e, recipeId: entry.recipeId } : e))
+        : [...list, entry],
+    );
     setDirty(true);
   }
 
   function remove(id: string) {
-    setEntries((list) => list.filter((e) => e.id !== id).map((e) => (e.leftoverOf === id ? { ...e, leftoverOf: undefined } : e)));
+    if (entries.some((e) => e.leftoverOf === id) && !window.confirm('Remove this cooking meal and its planned leftovers?')) return;
+    if (!dirty) setDraftRevision(plan?.revision ?? 0);
+    setEntries((list) => list.filter((e) => e.id !== id && e.leftoverOf !== id));
     setDirty(true);
   }
 
@@ -78,9 +144,14 @@ export function Planner() {
     try {
       const res = await api.savePlan(community.id, week, {
         entries,
+        revision: draftRevision ?? plan?.revision ?? 0,
         constraints: aiResult?.plan.constraints ?? plan?.constraints,
         notes: aiResult?.plan.notes ?? plan?.notes,
       });
+      setDirty(false);
+      writeStore(draftKey, null, 'session');
+      setRecoverable(null);
+      setDraftRevision(null);
       planState.setData(res);
       setFlash('Plan saved');
     } catch (e) {
@@ -93,6 +164,16 @@ export function Planner() {
   const thisWeek = weekStartOf();
   const todayIndex = week === thisWeek ? (new Date().getDay() + 6) % 7 : -1;
 
+  if (community.kind === 'circle')
+    return (
+      <div className="stack">
+        <h1>Circles exchange recipes</h1>
+        <p>Choose a kitchen to plan meals.</p>
+        <Link className="btn" to="/circles">
+          Recipe circles
+        </Link>
+      </div>
+    );
   return (
     <div className="stack-lg">
       <PageHeader eyebrow={week === thisWeek ? 'This week' : week < thisWeek ? 'Past week' : 'Coming up'} title="Meal plan">
@@ -122,8 +203,10 @@ export function Planner() {
         isOwner={community.ownerId === me?.user.id}
         initialConstraints={plan?.constraints ?? []}
         hasEdits={dirty}
+        attendance={Object.fromEntries(entries.filter((e) => e.dinerIds).map((e) => [`${e.day}:${e.slot}`, e.dinerIds!]))}
         onPlan={(res) => {
           // Load the suggestion into the grid as unsaved edits; the user reviews, then saves.
+          if (!dirty) setDraftRevision(plan?.revision ?? 0);
           setAiResult(res);
           setEntries(res.plan.entries);
           setDirty(true);
@@ -134,6 +217,45 @@ export function Planner() {
 
       {planState.loading && !plan && <Skeleton label="Loading meal plan" />}
       <ErrorNote error={planState.error} onRetry={() => void planState.reload()} />
+      {recoverable && !dirty && (
+        <section className="note stack">
+          <p>You have an unsaved draft for this week.</p>
+          <div className="row">
+            <button
+              className="btn"
+              onClick={() => {
+                setEntries(recoverable.entries);
+                setDraftRevision(recoverable.revision);
+                setDirty(true);
+                setRecoverable(null);
+              }}
+            >
+              Restore draft
+            </button>
+            <button
+              className="btn"
+              onClick={() => {
+                writeStore(draftKey, null, 'session');
+                setRecoverable(null);
+              }}
+            >
+              Discard draft
+            </button>
+          </div>
+        </section>
+      )}
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={showAll}
+          onChange={(e) => {
+            setShowAll(e.target.checked);
+            writeStore('potluck.allMeals', String(e.target.checked));
+          }}
+        />
+        Show breakfast, lunch and snacks
+      </label>
+      {!showAll && entries.some((e) => e.slot !== 'dinner') && <p className="small muted">Other meals are planned. Show all meals to see them.</p>}
 
       {plan && (
         <>
@@ -145,7 +267,7 @@ export function Planner() {
                   <span className="plan-day-date">{formatDate(addDays(week, d))}</span>
                   {d === todayIndex && <span className="plan-today">Today</span>}
                 </h2>
-                {MEAL_SLOTS.map((slot) => {
+                {(showAll ? MEAL_SLOTS : (['dinner'] as MealSlot[])).map((slot) => {
                   const cell = entries.filter((e) => e.day === d && e.slot === slot);
                   return (
                     <div key={slot} className="plan-cell" role="row">
@@ -154,12 +276,32 @@ export function Planner() {
                         <button key={e.id} className={`plan-entry${e.leftoverOf ? ' leftover' : ''}`} onClick={() => setEditing({ entry: e, isNew: false })}>
                           <span>{entryTitle(e)}</span>
                           <span className="muted small">×{e.servings}</span>
+                          {!e.leftoverOf && batchPortions(entries, e.id) > e.servings && (
+                            <span className="small">
+                              Cook {batchPortions(entries, e.id)} portions; eat {e.servings}, save {batchPortions(entries, e.id) - e.servings}
+                            </span>
+                          )}
+                          {e.cookId && (
+                            <span className="small">Cook: {detail.data?.members.find((m) => m.userId === e.cookId)?.displayName ?? 'Former member'}</span>
+                          )}
                         </button>
                       ))}
                       <button
                         className="plan-add"
                         aria-label={`Add ${slot} on ${day}`}
-                        onClick={() => setEditing({ entry: { id: newId(), day: d, slot: slot as MealSlot, servings: 2 }, isNew: true })}
+                        onClick={() => {
+                          const diners = people.data?.diners.filter((p) => p.usual) ?? [];
+                          setEditing({
+                            entry: {
+                              id: newId(),
+                              day: d,
+                              slot: slot as MealSlot,
+                              servings: diners.reduce((n, p) => n + p.portions, 0) || 2,
+                              dinerIds: diners.length ? diners.map((p) => p.id) : undefined,
+                            },
+                            isNew: true,
+                          });
+                        }}
                       >
                         +
                       </button>
@@ -174,12 +316,29 @@ export function Planner() {
             <div className="row between wrap">
               <span className="muted small">{dirty ? 'Unsaved changes' : plan.updatedAt ? 'All changes saved' : 'Nothing planned yet'}</span>
               <div className="row">
-                <Link to="/shop" className="btn">
+                <Link to={kitchenPath('/shop', community.id, week)} className="btn">
                   Shopping list
                 </Link>
                 <button className="btn btn-primary" disabled={!dirty || saving} onClick={save}>
                   {saving ? 'Saving…' : 'Save plan'}
                 </button>
+                {!!error && (
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      if (window.confirm('Discard this draft and load the latest saved plan?')) {
+                        writeStore(draftKey, null, 'session');
+                        setDirty(false);
+                        setDraftRevision(null);
+                        setRecoverable(null);
+                        setError(undefined);
+                        void planState.reload();
+                      }
+                    }}
+                  >
+                    Load latest plan
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -190,7 +349,9 @@ export function Planner() {
         <EntryEditor
           entry={editing.entry}
           isNew={editing.isNew}
-          recipes={(recipesState.data?.recipes ?? []).filter((r) => r.kind !== 'technique')}
+          recipes={(recipesState.data?.recipes ?? []).filter((r) => !r.archived && r.kind !== 'technique')}
+          diners={people.data?.diners ?? []}
+          members={detail.data?.members ?? []}
           others={entries.filter((e) => e.id !== editing.entry.id && (e.recipeId || e.label) && !e.leftoverOf)}
           titleOf={entryTitle}
           onClose={() => setEditing(null)}
@@ -213,6 +374,8 @@ function EntryEditor({
   entry,
   isNew,
   recipes,
+  diners,
+  members,
   others,
   titleOf,
   onClose,
@@ -222,6 +385,8 @@ function EntryEditor({
   entry: PlanEntry;
   isNew: boolean;
   recipes: RecipeSummary[];
+  diners: Diner[];
+  members: Membership[];
   others: PlanEntry[];
   titleOf: (e: PlanEntry) => string;
   onClose: () => void;
@@ -235,10 +400,10 @@ function EntryEditor({
   const [servings, setServings] = useState(entry.servings);
   const [note, setNote] = useState(entry.note ?? '');
   const [filter, setFilter] = useState('');
+  const [dinerIds, setDinerIds] = useState(entry.dinerIds ?? diners.filter((d) => d.usual).map((d) => d.id));
+  const [cookId, setCookId] = useState(entry.cookId ?? '');
 
-  const sorted = recipes
-    .filter((r) => !filter || r.title.toLowerCase().includes(filter.toLowerCase()))
-    .sort((a, b) => a.title.localeCompare(b.title));
+  const sorted = recipes.filter((r) => !filter || r.title.toLowerCase().includes(filter.toLowerCase())).sort((a, b) => a.title.localeCompare(b.title));
   const earlier = others.filter((o) => o.day < entry.day || (o.day === entry.day && MEAL_SLOTS.indexOf(o.slot) < MEAL_SLOTS.indexOf(entry.slot)));
 
   const valid = kind === 'recipe' ? !!recipeId : kind === 'leftover' ? !!leftoverOf : !!label.trim();
@@ -249,11 +414,13 @@ function EntryEditor({
       id: entry.id,
       day: entry.day,
       slot: entry.slot,
-      servings: Math.max(1, servings),
+      servings: Math.max(0.25, servings),
       recipeId: kind === 'recipe' ? recipeId : kind === 'leftover' ? leftoverSrc?.recipeId : undefined,
       leftoverOf: kind === 'leftover' ? leftoverOf : undefined,
       label: kind === 'label' ? label.trim() : undefined,
       note: note.trim() || undefined,
+      dinerIds: diners.length ? dinerIds : undefined,
+      cookId: cookId || undefined,
     });
   }
 
@@ -291,7 +458,7 @@ function EntryEditor({
                     className={recipeId === r.id ? 'on' : ''}
                     onClick={() => {
                       setRecipeId(r.id);
-                      if (isNew) setServings(r.servings);
+                      if (isNew && !dinerIds.length) setServings(r.servings);
                     }}
                   >
                     {r.title}
@@ -320,13 +487,41 @@ function EntryEditor({
           </Field>
         )}
         <div className="form-grid">
+          <Field label="Who’s cooking?">
+            <select value={cookId} onChange={(e) => setCookId(e.target.value)}>
+              <option value="">Unassigned</option>
+              {members.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.displayName}
+                </option>
+              ))}
+            </select>
+          </Field>
           <Field label="Servings">
-            <input type="number" min={1} max={50} value={servings} onChange={(e) => setServings(Number(e.target.value) || 1)} />
+            <input type="number" min={0.25} step={0.25} max={50} value={servings} onChange={(e) => setServings(Number(e.target.value) || 1)} />
           </Field>
           <Field label="Note">
             <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={120} />
           </Field>
         </div>
+        <fieldset className="fieldset">
+          <legend>Who’s eating?</legend>
+          {diners.map((d) => (
+            <label className="check" key={d.id}>
+              <input
+                type="checkbox"
+                checked={dinerIds.includes(d.id)}
+                onChange={(e) => {
+                  const ids = e.target.checked ? [...dinerIds, d.id] : dinerIds.filter((id) => id !== d.id);
+                  setDinerIds(ids);
+                  setServings(diners.filter((x) => ids.includes(x.id)).reduce((n, x) => n + x.portions, 0) || 1);
+                }}
+              />
+              {d.name}
+            </label>
+          ))}
+          {!diners.length && <Link to="/community">Add yourself, children or guests in kitchen settings</Link>}
+        </fieldset>
         <div className="row between">
           {!isNew ? (
             <button type="button" className="btn btn-danger" onClick={onRemove}>

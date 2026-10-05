@@ -12,6 +12,7 @@ const KIND_LABEL: Record<KindFilter, string> = { all: 'Everything', recipe: 'Rec
 import { useAsync, useInterval } from '../lib/hooks';
 import { useCommunity, useSession } from '../lib/session';
 import { mediaUrl, minutes } from '../lib/util';
+import { kitchenPath } from '../lib/kitchen-context';
 
 /** Stable warm placeholder tone (0-3) for recipes without a thumbnail. */
 function toneOf(id: string): number {
@@ -23,12 +24,14 @@ function toneOf(id: string): number {
 export function RecipeBook() {
   const community = useCommunity();
   const { publicConfig } = useSession();
+  const members = useAsync(() => api.community(community.id), [community.id]);
   const recipes = useAsync(() => api.recipes(community.id), [community.id]);
   const imports = useAsync(() => api.imports(), []);
+  const [showArchived, setShowArchived] = useState(false);
   const [query, setQuery] = useState('');
   const [tag, setTag] = useState<string | null>(null);
   const [kind, setKind] = useState<KindFilter>('all');
-  const [addMode, setAddMode] = useState<AddMode | null>(null);
+  const [addMode, setAddMode] = useState<AddMode | null>(() => (new URLSearchParams(window.location.search).has('add') ? 'link' : null));
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
   const [flash, setFlash] = useFlash();
   const lastDone = useRef<Set<string>>(new Set());
@@ -65,11 +68,14 @@ export function RecipeBook() {
     for (const j of imports.data?.imports ?? []) if (j.status === 'done') lastDone.current.add(j.id);
   }, [imports.data]);
 
-  const list = recipes.data?.recipes ?? [];
+  const list = (recipes.data?.recipes ?? []).filter((r) => showArchived || !r.archived);
   const tags = useMemo(() => {
     const counts = new Map<string, number>();
     for (const r of list) for (const t of r.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 16).map(([t]) => t);
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 16)
+      .map(([t]) => t);
   }, [list]);
 
   const filtered = useMemo(() => {
@@ -92,16 +98,30 @@ export function RecipeBook() {
           {showAdd ? 'Close' : 'Add recipe'}
         </button>
       </PageHeader>
+      <div className="row wrap">
+        <Link to="/library" className="btn">
+          My recipes
+        </Link>
+        <Link className="btn" to={kitchenPath('/community', community.id)}>
+          Invite someone
+        </Link>
+      </div>
 
-      {addMode && <AddRecipe key={addMode} communityId={community.id} initialMode={addMode} onQueued={() => void imports.reload()} />}
+      {addMode && (
+        <AddRecipe key={addMode} communityId={community.id} initialMode={addMode} onQueued={() => void Promise.all([imports.reload(), recipes.reload()])} />
+      )}
       <ImportList
         imports={pendingImports}
-        onChanged={() => void imports.reload()}
+        onChanged={() => void Promise.all([imports.reload(), recipes.reload()])}
         onUseInstead={(mode) => {
           setAddMode(mode);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
+      <label className="check">
+        <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+        Show archived recipes
+      </label>
 
       <div className="stack">
         <div className="search">
@@ -148,7 +168,7 @@ export function RecipeBook() {
             const thumb = mediaUrl(publicConfig?.mediaBaseUrl, r.thumbnailKey);
             return (
               <li key={r.id} className="rise" style={{ '--i': Math.min(idx, 12) } as CSSProperties}>
-                <Link to={`/book/${r.id}`} className="recipe-card">
+                <Link to={kitchenPath(`/book/${r.id}`, community.id)} className="recipe-card">
                   <div className="thumb" data-tone={toneOf(r.id)}>
                     {r.kind === 'technique' && <span className="thumb-flag">Technique</span>}
                     {justAdded.has(r.id) && <span className="thumb-new">Just added</span>}
@@ -161,11 +181,16 @@ export function RecipeBook() {
                     )}
                   </div>
                   <div className="recipe-card-body">
-                    <h3>{r.title}</h3>
+                    <h3>
+                      {r.title}
+                      {r.archived && <span className="badge">Archived</span>}
+                    </h3>
+                    <p className="small muted">Added by {members.data?.members.find((m) => m.userId === r.addedBy)?.displayName ?? 'a former member'}</p>
                     <p className="muted small">
                       {(r.kind === 'technique'
                         ? ['Cooking technique']
-                        : [minutes(r.totalMin), `${r.servings} servings`, r.proteinG ? `${Math.round(r.proteinG)} g protein` : ''])
+                        : [minutes(r.totalMin), `${r.servings} servings`, r.proteinG ? `${Math.round(r.proteinG)} g protein` : '']
+                      )
                         .filter(Boolean)
                         .join(' · ')}
                     </p>

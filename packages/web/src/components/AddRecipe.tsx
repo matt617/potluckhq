@@ -6,7 +6,7 @@ import { ErrorNote, Field } from './ui';
 export type AddMode = 'link' | 'photos' | 'text';
 
 export function AddRecipe({ communityId, initialMode = 'link', onQueued }: { communityId: string; initialMode?: AddMode; onQueued: () => void }) {
-  const { publicConfig } = useSession();
+  const { publicConfig, me } = useSession();
   const [mode, setMode] = useState<AddMode>(initialMode);
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
@@ -52,8 +52,7 @@ export function AddRecipe({ communityId, initialMode = 'link', onQueued }: { com
     }
   }
 
-  const valid =
-    mode === 'link' ? /^https?:\/\/\S+$/i.test(url.trim()) : mode === 'text' ? text.trim().length >= 40 : files.length > 0;
+  const valid = mode === 'link' ? /^https?:\/\/\S+$/i.test(url.trim()) : mode === 'text' ? text.trim().length >= 40 : files.length > 0;
   const tg = publicConfig?.telegramBotUsername;
 
   return (
@@ -69,13 +68,19 @@ export function AddRecipe({ communityId, initialMode = 'link', onQueued }: { com
         </div>
       </div>
       <form className="stack" onSubmit={submit}>
+        <p className="small muted">
+          Saving to <strong>{me?.communities.find((c) => c.id === communityId)?.name}</strong> and My recipes. Imports use this group owner’s account allowance.
+        </p>
         {mode === 'link' && (
           <Field label="Video or recipe link" hint="TikTok, Instagram, YouTube, Facebook, Pinterest or a recipe website.">
             <input type="url" inputMode="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.tiktok.com/@chef/video/…" />
           </Field>
         )}
         {mode === 'photos' && (
-          <Field label="Photos or a video" hint="Cookbook pages, a handwritten card, screenshots of comments that list the ingredients, or one saved cooking video.">
+          <Field
+            label="Photos or a video"
+            hint="Cookbook pages, a handwritten card, screenshots of comments that list the ingredients, or one saved cooking video."
+          >
             <input
               ref={fileInput}
               type="file"

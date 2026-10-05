@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { formatUsd, tierConfig, type LinkCodeResponse, type TierId } from '@potluck/core';
 import { api } from '../api';
 import { ConfirmButton, ErrorNote, Field, Flash, Spinner, useFlash } from '../components/ui';
@@ -101,19 +101,24 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
             <option value="metric">Metric (ml, g, kg)</option>
           </select>
         </Field>
-        <Field label="Default community for chat imports">
+        <Field label="Default kitchen for chat imports" hint="Browsing another kitchen does not change this destination.">
           <select value={defaultCommunityId} onChange={(e) => setDefaultCommunityId(e.target.value)}>
-            <option value="">First community</option>
-            {me!.communities.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
+            <option value="">Choose a kitchen</option>
+            {me!.communities
+              .filter((c) => c.kind !== 'circle')
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
           </select>
         </Field>
       </div>
       <h3 className="h4">Food profile</h3>
-      <p className="muted small">The AI planner uses this to fit suggestions to you.</p>
+      <p className="muted small">
+        These preferences are private. In each kitchen’s settings, choose which food requirements to share as a diner. Joining a kitchen or circle does not
+        share them automatically.
+      </p>
       <div className="form-grid">
         <Field label="Allergies" hint="Comma separated">
           <input value={allergies} onChange={(e) => setAllergies(e.target.value)} placeholder="peanuts, shellfish" />
@@ -132,13 +137,11 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
         <textarea rows={2} value={goals} onChange={(e) => setGoals(e.target.value)} />
       </Field>
       <label className="check">
-        <input type="checkbox" checked={glp1} onChange={(e) => setGlp1(e.target.checked)} />
-        I take a GLP-1 medication. Favor smaller, protein-forward, fiber-rich portions.
+        <input type="checkbox" checked={glp1} onChange={(e) => setGlp1(e.target.checked)} />I take a GLP-1 medication. Favor smaller, protein-forward,
+        fiber-rich portions.
       </label>
       {glp1 && (
-        <p className="small muted">
-          Potluck's suggestions are general food ideas, not medical advice. Follow your clinician's guidance on diet and dosing.
-        </p>
+        <p className="small muted">Potluck's suggestions are general food ideas, not medical advice. Follow your clinician's guidance on diet and dosing.</p>
       )}
       <ErrorNote error={error} />
       <div>
@@ -176,7 +179,10 @@ function ChatsSection() {
       <h2 id="chats-title" className="h3">
         Linked chats
       </h2>
-      <p className="muted small">Link a chat app once, then forward any recipe video to the bot. It lands in your default community.</p>
+      <p className="muted small">
+        Link a private chat with the bot, then forward a recipe. It lands in your chosen kitchen. The bot receives direct messages; it does not join your group
+        chat.
+      </p>
       {me!.channels.length > 0 ? (
         <ul className="members">
           {me!.channels.map((c) => (
@@ -327,7 +333,7 @@ function BillingSection() {
             <p className="price">{t.priceCents ? `${cents(t.priceCents)}/mo` : 'Free'}</p>
             <ul>
               <li>
-                {t.maxCommunities} {t.maxCommunities === 1 ? 'community' : 'communities'}
+                {t.maxCommunities} {t.maxCommunities === 1 ? 'owned kitchen' : 'owned kitchens'}
               </li>
               <li>Up to {t.maxMembersPerCommunity} people each</li>
               <li>{t.importsPerMonth} recipe imports a month</li>
@@ -341,11 +347,7 @@ function BillingSection() {
                   Switch in portal
                 </button>
               ) : (
-                <button
-                  className="btn btn-primary"
-                  disabled={!!busy}
-                  onClick={() => go(t.id, () => api.checkout({ tier: t.id as Exclude<TierId, 'free'> }))}
-                >
+                <button className="btn btn-primary" disabled={!!busy} onClick={() => go(t.id, () => api.checkout({ tier: t.id as Exclude<TierId, 'free'> }))}>
                   {busy === t.id ? 'Opening…' : `Upgrade to ${t.name}`}
                 </button>
               )
@@ -356,7 +358,10 @@ function BillingSection() {
       {paid && cfg.billingEnabled && (
         <>
           <h3 className="h4">AI credits</h3>
-          <p className="small muted">When your monthly AI allowance runs out, credit packs keep AI planning going. Credits stay available while your account is open.</p>
+          <p className="small muted">
+            Imports and AI planning share your account’s allowance across all kitchens and circles you own. Credit packs extend both. Credits stay with your
+            account when you transfer a kitchen.
+          </p>
           <div className="row wrap">
             {cfg.creditPacks.map((p) => (
               <button key={p.id} className="btn" disabled={!!busy} onClick={() => go(p.id, () => api.checkout({ creditPackId: p.id }))}>
@@ -417,7 +422,9 @@ function DangerZone() {
       <h2 id="danger-zone-title">Your data</h2>
       <div className="stack">
         <h3 className="h4">Download my data</h3>
-        <p className="small muted">A JSON file with your profile, recipes, communities, meal plans, shopping lists and linked chats.</p>
+        <p className="small muted">
+          A JSON file with your profile, personal recipes and notes, kitchens and circles, shared recipes, meal plans, shopping lists and linked chats.
+        </p>
         <div>
           <button type="button" className="btn" disabled={exporting} onClick={() => void download()}>
             {exporting ? 'Preparing file' : 'Download my data'}
@@ -428,27 +435,27 @@ function DangerZone() {
         <h3 className="h4">Delete account</h3>
         <p className="small">Deleting your account is permanent and cannot be undone. When you delete it:</p>
         <ul className="small danger-list">
-          <li>Every recipe you added is deleted.</li>
-          <li>You leave every community you belong to.</li>
+          <li>Your personal recipes, private notes and shared contributions are deleted. Independent recipe copies already saved by others remain.</li>
+          <li>You leave every kitchen and circle you belong to.</li>
           {owned.length > 0 ? (
             <li>
-              Communities you own are deleted for everyone in them: <strong>{owned.map((c) => c.name).join(', ')}</strong>.
+              Kitchens and circles you own are deleted for everyone in them: <strong>{owned.map((c) => c.name).join(', ')}</strong>.
             </li>
           ) : (
-            <li>Communities you own are deleted for everyone in them. You do not own any right now.</li>
+            <li>Kitchens and circles you own are deleted for everyone in them. You do not own any right now.</li>
           )}
           <li>Any paid subscription is cancelled immediately, with no refund.</li>
           <li>Remaining AI credits are forfeited.</li>
           <li>Linked Telegram, WhatsApp and SMS chats are unlinked.</li>
         </ul>
+        {owned.length > 0 && (
+          <p className="small">
+            To keep a group going, offer ownership in its settings and wait for the recipient to accept before deleting your account.{' '}
+            <Link to="/community">Open settings</Link>
+          </p>
+        )}
         <Field label="Type DELETE to confirm">
-          <input
-            value={confirmText}
-            onChange={(e) => setConfirmText(e.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-            aria-describedby="delete-help"
-          />
+          <input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" spellCheck={false} aria-describedby="delete-help" />
         </Field>
         <p id="delete-help" className="small muted">
           The delete button unlocks when the box says DELETE.

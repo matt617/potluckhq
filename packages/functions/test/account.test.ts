@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const calls = vi.hoisted(() => ({ log: [] as string[], stripeError: null as Error | null }));
+vi.mock('../src/lib/kitchen-repo.js', () => ({
+  annotations: async () => [{ recipeId: 'r1', note: 'private', collections: [] }],
+  diners: async () => [],
+  activity: async () => [],
+  transfer: async () => undefined,
+  removeRecord: vi.fn(),
+  forgetContributions: vi.fn(async () => undefined),
+}));
 
 vi.mock('../src/lib/stripe.js', () => ({
   stripeApi: async (method: string, path: string) => {
@@ -10,8 +18,14 @@ vi.mock('../src/lib/stripe.js', () => ({
   },
 }));
 vi.mock('@aws-sdk/client-cognito-identity-provider', () => ({
-  CognitoIdentityProviderClient: class { send = async () => { calls.log.push('cognito delete'); }; },
-  AdminDeleteUserCommand: class { constructor(public input: unknown) {} },
+  CognitoIdentityProviderClient: class {
+    send = async () => {
+      calls.log.push('cognito delete');
+    };
+  },
+  AdminDeleteUserCommand: class {
+    constructor(public input: unknown) {}
+  },
 }));
 vi.mock('../src/lib/repo.js', () => ({
   getUser: async (id: string) => (id === 'u1' ? { id: 'u1', stripeSubscriptionId: 'sub_1', stripeCustomerId: 'cus_1' } : { id, defaultCommunityId: 'own' }),
@@ -19,7 +33,16 @@ vi.mock('../src/lib/repo.js', () => ({
     { communityId: 'own', userId: 'u1', role: 'owner' },
     { communityId: 'other', userId: 'u1', role: 'member' },
   ],
-  listMembers: async () => [{ communityId: 'own', userId: 'u1' }, { communityId: 'own', userId: 'friend' }],
+  getCommunity: async (id: string) => ({ id }),
+  exportKitchenPlansAndLists: async () => ({ plans: [{ weekStart: '2026-10-05' }], shoppingLists: [] }),
+  listCommunityRecipes: async () => [{ id: 'shared' }],
+  batchGetRecipes: async () => new Map([['shared', { id: 'shared' }]]),
+  listAllUserImports: async () => [],
+  listLedger: async () => [],
+  listMembers: async () => [
+    { communityId: 'own', userId: 'u1' },
+    { communityId: 'own', userId: 'friend' },
+  ],
   deleteCommunity: async (id: string) => void calls.log.push(`delete community ${id}`),
   updateUser: async (id: string) => void calls.log.push(`reset default ${id}`),
   removeMember: async (cid: string) => void calls.log.push(`leave ${cid}`),
@@ -31,7 +54,7 @@ vi.mock('../src/lib/repo.js', () => ({
 }));
 
 process.env.USER_POOL_ID = 'us-east-1_test';
-const { deleteAccount } = await import('../src/lib/account.js');
+const { deleteAccount, exportAccount } = await import('../src/lib/account.js');
 
 beforeEach(() => {
   calls.log.length = 0;
@@ -65,4 +88,12 @@ describe('deleteAccount', () => {
     await expect(deleteAccount('u1')).rejects.toThrow(/500/);
     expect(calls.log).toEqual(['stripe DELETE subscriptions/sub_1']);
   });
+});
+
+it('exports accessible shared recipes and plans alongside private annotations', async () => {
+  const result = await exportAccount('u1');
+  expect(result.personalAnnotations).toEqual([{ recipeId: 'r1', note: 'private', collections: [] }]);
+  expect(result.communities).toEqual(
+    expect.arrayContaining([expect.objectContaining({ communityId: 'own', plans: [{ weekStart: '2026-10-05' }], recipes: [{ id: 'shared' }] })]),
+  );
 });

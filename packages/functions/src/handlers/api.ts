@@ -8,6 +8,10 @@ import {
   TIERS,
   budgetFor,
   buildShoppingList,
+  planFingerprint,
+  validatePlanEntries,
+  ingredientConflicts,
+  hashKey,
   canUseAiFeatures,
   isWeekKey,
   manualItem,
@@ -42,32 +46,22 @@ import { chargeAi } from '../lib/charge.js';
 import { sendInviteEmail } from '../lib/email.js';
 import { env } from '../lib/env.js';
 import { UserFacingError } from '../lib/gemini.js';
-import {
-  Router,
-  badRequest,
-  buildCtx,
-  dispatch,
-  forbidden,
-  json,
-  notFound,
-  num,
-  obj,
-  paymentRequired,
-  str,
-  strArray,
-  type Ctx,
-} from '../lib/http.js';
+import { Router, badRequest, buildCtx, dispatch, forbidden, json, notFound, num, obj, paymentRequired, str, strArray, type Ctx } from '../lib/http.js';
 import { newId, newLinkCode, newToken, nowIso } from '../lib/ids.js';
 import { createImport } from '../lib/imports.js';
 import { listText } from '../lib/messages.js';
 import { suggestPlan } from '../lib/planner.js';
 import * as repo from '../lib/repo.js';
 import { ALLOWED_UPLOAD_TYPES, presignGet, presignUpload, uploadKey } from '../lib/s3.js';
-import { deleteRecipeMedia } from '../lib/media.js';
 import { secrets } from '../lib/secrets.js';
 import { priceForTier, stripeApi } from '../lib/stripe.js';
+import { registerKitchenRoutes } from '../lib/kitchen-routes.js';
+import * as kr from '../lib/kitchen-repo.js';
+import { HttpError } from '../lib/http.js';
+import { emitMetric } from '../lib/metrics.js';
 
 const router = new Router();
+registerKitchenRoutes(router);
 
 function me(ctx: Ctx) {
   if (!ctx.user) throw forbidden('Sign in required');
@@ -77,10 +71,14 @@ function me(ctx: Ctx) {
 async function meResponse(userId: string, email: string, name: string): Promise<MeResponse> {
   const user = await repo.ensureUser(userId, email, name);
   const memberships = await repo.listUserMemberships(userId);
-  const communities = (await Promise.all(memberships.map(async (m) => {
-    const c = await repo.getCommunity(m.communityId);
-    return c ? { ...c, role: m.role } : undefined;
-  }))).filter(Boolean) as MeResponse['communities'];
+  const communities = (
+    await Promise.all(
+      memberships.map(async (m) => {
+        const c = await repo.getCommunity(m.communityId);
+        return c ? { ...c, role: m.role } : undefined;
+      }),
+    )
+  ).filter(Boolean) as MeResponse['communities'];
   const channels = (await repo.listUserChannels(userId)).map((c) => ({ kind: c.kind, address: c.address, linkedAt: c.linkedAt }));
   return { user, budget: budgetFor(user), communities, channels };
 }
@@ -88,7 +86,7 @@ async function meResponse(userId: string, email: string, name: string): Promise<
 /* ----------------------------------- public ---------------------------------- */
 
 router.on('GET', '/public/config', async () => {
-  const s = await secrets().catch(() => ({} as Awaited<ReturnType<typeof secrets>>));
+  const s = await secrets().catch(() => ({}) as Awaited<ReturnType<typeof secrets>>);
   const cfg: PublicConfig = {
     telegramBotUsername: s['telegram-bot-username'],
     whatsappNumber: s['whatsapp-number'],
@@ -96,7 +94,16 @@ router.on('GET', '/public/config', async () => {
     mediaBaseUrl: `${env.appUrl}/`,
     tiers: TIER_ORDER.map((id) => {
       const t = TIERS[id];
-      return { id, name: t.name, priceCents: t.priceCents, maxCommunities: t.maxCommunities, maxMembersPerCommunity: t.maxMembersPerCommunity, importsPerMonth: t.importsPerMonth, aiFeatures: t.aiFeatures, aiAllowanceMicros: t.aiAllowanceMicros };
+      return {
+        id,
+        name: t.name,
+        priceCents: t.priceCents,
+        maxCommunities: t.maxCommunities,
+        maxMembersPerCommunity: t.maxMembersPerCommunity,
+        importsPerMonth: t.importsPerMonth,
+        aiFeatures: t.aiFeatures,
+        aiAllowanceMicros: t.aiAllowanceMicros,
+      };
     }),
     creditPacks: CREDIT_PACKS,
     billingEnabled: Boolean(s['stripe-secret-key'] && s['stripe-price-plus'] && s['stripe-price-pro']),
@@ -114,7 +121,8 @@ router.on('GET', '/public/invites/:token', async (ctx) => {
     communityName: community.name,
     invitedByName: inviter?.displayName ?? 'Someone',
     expiresAt: inv.expiresAt,
-    full: community.memberCount >= tierConfig(owner.tier).maxMembersPerCommunity,
+    full: community.memberCount >= (community.kind === 'circle' ? 20 : tierConfig(owner.tier).maxMembersPerCommunity),
+    kind: community.kind ?? 'kitchen',
   };
   return preview;
 });
@@ -149,7 +157,10 @@ router.on('PATCH', '/api/me', async (ctx) => {
       dislikes: strArray(d.dislikes, 'dislikes', 50, 60) ?? user.diet.dislikes,
       goals: d.goals !== undefined ? str(d.goals, 'goals', { max: 500, optional: true }) : user.diet.goals,
       glp1: d.glp1 !== undefined ? Boolean(d.glp1) : user.diet.glp1,
-      dailyProteinTargetG: d.dailyProteinTargetG !== undefined ? (num(d.dailyProteinTargetG, 'dailyProteinTargetG', { min: 0, max: 500, optional: true }) ?? null) : user.diet.dailyProteinTargetG,
+      dailyProteinTargetG:
+        d.dailyProteinTargetG !== undefined
+          ? (num(d.dailyProteinTargetG, 'dailyProteinTargetG', { min: 0, max: 500, optional: true }) ?? null)
+          : user.diet.dailyProteinTargetG,
     };
   }
   await repo.updateUser(u.id, patch);
@@ -200,15 +211,21 @@ router.on('POST', '/api/communities', async (ctx) => {
   const b = obj(ctx.body);
   const name = str(b.name, 'name', { max: 60 })!;
   const user = await repo.ensureUser(u.id, u.email, u.name);
-  const owned = (await repo.listUserMemberships(u.id)).filter((m) => m.role === 'owner').length;
+  const kind = b.kind === 'circle' ? 'circle' : 'kitchen';
+  const ownedScopes = await Promise.all((await repo.listUserMemberships(u.id)).filter((m) => m.role === 'owner').map((m) => repo.getCommunity(m.communityId)));
+  const owned = ownedScopes.filter((c) => c && (c.kind ?? 'kitchen') === kind).length;
   const tier = tierConfig(user.tier);
-  if (owned >= tier.maxCommunities) {
-    throw paymentRequired(`The ${tier.name} plan allows ${tier.maxCommunities} communit${tier.maxCommunities === 1 ? 'y' : 'ies'}. Upgrade to create more.`, 'tier_limit');
+  if (owned >= (kind === 'circle' ? 3 : tier.maxCommunities)) {
+    throw paymentRequired(
+      `The ${tier.name} plan allows ${tier.maxCommunities} communit${tier.maxCommunities === 1 ? 'y' : 'ies'}. Upgrade to create more.`,
+      'tier_limit',
+    );
   }
   const now = nowIso();
   const community: Community = {
     id: newId(),
     name,
+    kind,
     description: str(b.description, 'description', { max: 300, optional: true }),
     ownerId: u.id,
     memberCount: 1,
@@ -216,7 +233,7 @@ router.on('POST', '/api/communities', async (ctx) => {
     createdAt: now,
   };
   await repo.createCommunity(community, { communityId: community.id, userId: u.id, role: 'owner', displayName: user.displayName, joinedAt: now });
-  if (!user.defaultCommunityId) await repo.updateUser(u.id, { defaultCommunityId: community.id });
+  if (!user.defaultCommunityId && kind === 'kitchen') await repo.updateUser(u.id, { defaultCommunityId: community.id });
   return community;
 });
 
@@ -261,12 +278,13 @@ router.on('POST', '/api/communities/:cid/invites', async (ctx) => {
   const email = str(b.email, 'email', { max: 254, optional: true });
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw badRequest('That email address looks wrong');
   const owner = await payerFor(community);
-  if (community.memberCount >= tierConfig(owner.tier).maxMembersPerCommunity) {
+  if (community.memberCount >= (community.kind === 'circle' ? 20 : tierConfig(owner.tier).maxMembersPerCommunity)) {
     throw paymentRequired(`${community.name} is full on the ${tierConfig(owner.tier).name} plan. The owner can upgrade to add more people.`, 'tier_limit');
   }
   const token = newToken();
   const expiresAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
   await repo.putInvite({ token, communityId: community.id, communityName: community.name, invitedBy: u.id, role, email, expiresAt });
+  await kr.writeRecord(`COMM#${community.id}`, `INVITE#${token}`, { token, role, expiresAt });
   const url = `${env.appUrl}/invite/${token}`;
   if (email) {
     const inviter = await repo.getUser(u.id);
@@ -280,16 +298,18 @@ router.on('POST', '/api/invites/:token/accept', async (ctx) => {
   const u = me(ctx);
   const inv = await repo.getInvite(ctx.params.token!);
   if (!inv) throw notFound('This invite has expired or does not exist');
+  if (inv.email && inv.email.toLowerCase() !== u.email.toLowerCase()) throw forbidden('Sign in with the email address this invitation was sent to.');
   const community = await repo.getCommunity(inv.communityId);
   if (!community) throw notFound('This community no longer exists');
   const user = await repo.ensureUser(u.id, u.email, u.name);
   const owner = await payerFor(community);
   const result = await repo.addMember(
     { communityId: community.id, userId: u.id, role: inv.role, displayName: user.displayName, joinedAt: nowIso() },
-    tierConfig(owner.tier).maxMembersPerCommunity,
+    community.kind === 'circle' ? 20 : tierConfig(owner.tier).maxMembersPerCommunity,
   );
   if (result === 'full') throw paymentRequired(`${community.name} is full. Ask the owner to upgrade their plan.`, 'tier_limit');
-  if (!user.defaultCommunityId) await repo.updateUser(u.id, { defaultCommunityId: community.id });
+  if (!user.defaultCommunityId && community.kind !== 'circle') await repo.updateUser(u.id, { defaultCommunityId: community.id });
+  emitMetric('InviteAccepted', 1, 'Count');
   return (await repo.getCommunity(community.id))!;
 });
 
@@ -318,6 +338,7 @@ router.on('DELETE', '/api/communities/:cid/members/:uid', async (ctx) => {
     if (target.role === 'admin' && membership.role !== 'owner') throw forbidden('Only the owner can remove an admin');
   }
   await repo.removeMember(cid, uid);
+  for (const d of await kr.diners(cid)) if (d.userId === uid) await kr.removeRecord(`COMM#${cid}`, `DINER#${d.id}`);
   const profile = await repo.getUser(uid);
   if (profile?.defaultCommunityId === cid) await repo.updateUser(uid, { defaultCommunityId: '' });
   return { ok: true };
@@ -336,14 +357,27 @@ router.on('DELETE', '/api/communities/:cid/recipes/:rid', async (ctx) => {
   const { membership } = await requireMember(ctx.params.cid!, u.id);
   const recipe = await repo.getRecipe(ctx.params.rid!);
   if (!recipe) throw notFound('Recipe not found');
+  if (!recipe.communityIds.includes(ctx.params.cid!)) throw notFound('Recipe not in this kitchen.');
   if (recipe.ownerId !== u.id && membership.role === 'member') throw forbidden('Only the recipe owner or an admin can remove it');
-  await repo.unshareRecipe(recipe.id, ctx.params.cid!);
+  if (recipe.kitchenId === ctx.params.cid) {
+    await repo.saveRecipeAndSummaries({ ...recipe, archived: true, updatedAt: nowIso() });
+  } else await repo.unshareRecipe(recipe.id, ctx.params.cid!);
   return { ok: true };
 });
 
 router.on('GET', '/api/recipes/:rid', async (ctx) => {
   const u = me(ctx);
-  const recipe = await repo.getRecipe(ctx.params.rid!);
+  let recipe = await repo.getRecipe(ctx.params.rid!);
+  if (!recipe || !(await canReadRecipe(recipe, u.id))) {
+    const memberships = await repo.listUserMemberships(u.id);
+    for (const m of memberships.sort((a, b) => Number(b.communityId === ctx.query.kitchen) - Number(a.communityId === ctx.query.kitchen))) {
+      const copy = await repo.getRecipe(`copy-${hashKey(`${ctx.params.rid!}:kitchen:${m.communityId}`)}`);
+      if (copy && (await canReadRecipe(copy, u.id))) {
+        recipe = copy;
+        break;
+      }
+    }
+  }
   if (!recipe || !(await canReadRecipe(recipe, u.id))) throw notFound('Recipe not found');
   const res: RecipeResponse = { recipe, canEdit: await canEditRecipe(recipe, u.id), media: await signMedia(recipe) };
   return res;
@@ -371,11 +405,8 @@ async function signMedia(recipe: Recipe): Promise<RecipeMedia | undefined> {
 
 /** Owners and admins of any community holding the recipe can fix extraction mistakes. */
 async function canEditRecipe(recipe: Recipe, userId: string): Promise<boolean> {
+  if (recipe.kitchenId) return Boolean(await repo.getMembership(recipe.kitchenId, userId));
   if (recipe.ownerId === userId) return true;
-  for (const cid of recipe.communityIds) {
-    const m = await repo.getMembership(cid, userId);
-    if (m && m.role !== 'member') return true;
-  }
   return false;
 }
 
@@ -392,6 +423,7 @@ function parseIngredients(v: unknown): Ingredient[] | undefined {
       unit: str(o.unit, 'unit', { max: 20, optional: true }) ?? '',
       name,
       note: str(o.note, 'note', { max: 200, optional: true }),
+      estimated: o.estimated === true,
       aisle: AISLES.some((a) => a.id === o.aisle) ? (o.aisle as Ingredient['aisle']) : parsed.aisle,
       group: str(o.group, 'group', { max: 60, optional: true }),
     };
@@ -401,16 +433,18 @@ function parseIngredients(v: unknown): Ingredient[] | undefined {
 function parseSteps(v: unknown): Step[] | undefined {
   if (v === undefined) return undefined;
   if (!Array.isArray(v) || v.length > 80) throw badRequest('steps must be an array of at most 80 items');
-  return v.map((raw, i) => {
-    if (typeof raw === 'string') return { text: raw.trim().slice(0, 1000) };
-    const o = obj(raw);
-    return {
-      text: str(o.text, `steps[${i}].text`, { max: 1000 })!,
-      timestampSec: num(o.timestampSec, 'timestampSec', { min: 0, optional: true }) ?? null,
-      endSec: num(o.endSec, 'endSec', { min: 0, optional: true }) ?? null,
-      durationMin: num(o.durationMin, 'durationMin', { min: 0, optional: true }) ?? null,
-    };
-  }).filter((s) => s.text);
+  return v
+    .map((raw, i) => {
+      if (typeof raw === 'string') return { text: raw.trim().slice(0, 1000) };
+      const o = obj(raw);
+      return {
+        text: str(o.text, `steps[${i}].text`, { max: 1000 })!,
+        timestampSec: num(o.timestampSec, 'timestampSec', { min: 0, optional: true }) ?? null,
+        endSec: num(o.endSec, 'endSec', { min: 0, optional: true }) ?? null,
+        durationMin: num(o.durationMin, 'durationMin', { min: 0, optional: true }) ?? null,
+      };
+    })
+    .filter((s) => s.text);
 }
 
 router.on('PATCH', '/api/recipes/:rid', async (ctx) => {
@@ -418,8 +452,15 @@ router.on('PATCH', '/api/recipes/:rid', async (ctx) => {
   const recipe = await repo.getRecipe(ctx.params.rid!);
   if (!recipe || !(await canReadRecipe(recipe, u.id))) throw notFound('Recipe not found');
   if (!(await canEditRecipe(recipe, u.id))) throw forbidden('Only the recipe owner or a community admin can edit it');
+  if (!recipe.kitchenId && recipe.communityIds.length)
+    throw new HttpError(409, 'This legacy shared recipe must be migrated to independent kitchen copies before editing.', 'migration_required');
   const b = obj(ctx.body);
+  if (b.updatedAt !== recipe.updatedAt) throw new HttpError(409, 'This recipe changed. Reload it before editing.', 'recipe_conflict');
   const next: Recipe = { ...recipe, updatedAt: nowIso() };
+  if (b.archived !== undefined) {
+    if (recipe.kitchenId) await requireAdmin(recipe.kitchenId, u.id);
+    next.archived = Boolean(b.archived);
+  }
   if (b.title !== undefined) next.title = str(b.title, 'title', { max: 140 })!;
   if (b.description !== undefined) next.description = str(b.description, 'description', { max: 600, optional: true });
   if (b.cuisine !== undefined) next.cuisine = str(b.cuisine, 'cuisine', { max: 40, optional: true });
@@ -432,7 +473,7 @@ router.on('PATCH', '/api/recipes/:rid', async (ctx) => {
   next.steps = parseSteps(b.steps) ?? next.steps;
   const total = (next.prepMin ?? 0) + (next.cookMin ?? 0);
   next.totalMin = total > 0 ? total : null;
-  await repo.saveRecipeAndSummaries(next);
+  await repo.saveRecipeAndSummaries(next, recipe.updatedAt);
   const res: RecipeResponse = { recipe: next, canEdit: true, media: await signMedia(next) };
   return res;
 });
@@ -443,7 +484,6 @@ router.on('DELETE', '/api/recipes/:rid', async (ctx) => {
   if (!recipe || !(await canReadRecipe(recipe, u.id))) throw notFound('Recipe not found');
   if (recipe.ownerId !== u.id) throw forbidden('Only the person who added a recipe can delete it');
   await repo.deleteRecipe(recipe);
-  await deleteRecipeMedia(recipe);
   return { ok: true };
 });
 
@@ -453,8 +493,10 @@ router.on('POST', '/api/recipes/:rid/share', async (ctx) => {
   await requireMember(cid, u.id);
   const recipe = await repo.getRecipe(ctx.params.rid!);
   if (!recipe || !(await canReadRecipe(recipe, u.id))) throw notFound('Recipe not found');
-  await repo.shareRecipe(recipe, cid, u.id);
-  return { ok: true };
+  const copy = await repo.saveRecipeCopy(recipe, u.id, cid);
+  emitMetric('RecipeSavedToKitchen', 1, 'Count');
+  await kr.participation(cid, u.id, 'saved');
+  return { ok: true, recipe: copy };
 });
 
 /* ----------------------------------- imports --------------------------------- */
@@ -530,7 +572,7 @@ function requireWeek(week: string): string {
 }
 
 function emptyPlan(communityId: string, weekStart: string): MealPlan {
-  return { communityId, weekStart, entries: [], constraints: [], updatedAt: nowIso() };
+  return { communityId, weekStart, entries: [], constraints: [], revision: 0, updatedAt: '' };
 }
 
 async function planResponse(communityId: string, plan: MealPlan): Promise<PlanResponse> {
@@ -551,13 +593,15 @@ function parseEntries(v: unknown): PlanEntry[] {
       slot,
       recipeId: str(o.recipeId, 'recipeId', { max: 40, optional: true }),
       label: str(o.label, 'label', { max: 80, optional: true }),
-      servings: num(o.servings, 'servings', { min: 1, max: 100, optional: true }) ?? 2,
+      servings: num(o.servings, 'servings', { min: 0.25, max: 100, optional: true }) ?? 2,
       leftoverOf: str(o.leftoverOf, 'leftoverOf', { max: 40, optional: true }),
       note: str(o.note, 'note', { max: 200, optional: true }),
+      dinerIds: strArray(o.dinerIds, 'dinerIds', 40, 100),
+      cookId: str(o.cookId, 'cookId', { max: 100, optional: true }),
     } satisfies PlanEntry;
   });
-  const ids = new Set(entries.map((e) => e.id));
-  for (const e of entries) if (e.leftoverOf && !ids.has(e.leftoverOf)) e.leftoverOf = undefined;
+  const issue = validatePlanEntries(entries);
+  if (issue) throw badRequest(issue);
   return entries;
 }
 
@@ -577,20 +621,35 @@ router.on('GET', '/api/communities/:cid/plans/:week', async (ctx) => {
 router.on('PUT', '/api/communities/:cid/plans/:week', async (ctx) => {
   const u = me(ctx);
   const week = requireWeek(ctx.params.week!);
-  await requireMember(ctx.params.cid!, u.id);
+  const { community } = await requireMember(ctx.params.cid!, u.id);
+  if (community.kind === 'circle') throw badRequest('Plan meals in a kitchen. Circles only share recipes.');
   const b = obj(ctx.body);
   const existing = await repo.getPlan(ctx.params.cid!, week);
+  const expected = num(b.revision, 'revision', { min: 0 })!;
+  if (!Number.isInteger(expected) || expected !== (existing?.revision ?? 0))
+    throw new HttpError(409, 'Someone changed this plan. Reload it before saving.', 'plan_conflict');
   const plan: MealPlan = {
     communityId: ctx.params.cid!,
     weekStart: week,
     entries: parseEntries(b.entries),
-    constraints: b.constraints !== undefined ? parseConstraints(b.constraints) : existing?.constraints ?? [],
+    constraints: (b.constraints !== undefined ? parseConstraints(b.constraints) : (existing?.constraints ?? [])).filter((c) => c !== 'glp1' && c !== 'workout'),
     notes: b.notes !== undefined ? str(b.notes, 'notes', { max: 1000, optional: true }) : existing?.notes,
     aiSummary: existing?.aiSummary,
     updatedAt: nowIso(),
     updatedBy: u.id,
+    revision: expected + 1,
   };
-  await repo.putPlan(plan);
+  const allowed = new Set((await repo.listCommunityRecipes(community.id)).filter((r) => r.kind !== 'technique').map((r) => r.id));
+  const members = new Set((await repo.listMembers(community.id)).map((m) => m.userId));
+  const diners = new Set((await kr.diners(community.id)).map((d) => d.id));
+  for (const e of plan.entries) {
+    if (e.recipeId && !allowed.has(e.recipeId)) throw badRequest('Save every recipe to this kitchen before planning it.');
+    if (e.cookId && !members.has(e.cookId)) throw badRequest('Choose a cook who still belongs to this kitchen.');
+    if (e.dinerIds?.some((id) => !diners.has(id))) throw badRequest('Attendance changed. Choose the diners again.');
+  }
+  await repo.putPlan(plan, expected);
+  emitMetric('PlanSaved', 1, 'Count');
+  await kr.participation(community.id, u.id, 'planned');
   return planResponse(ctx.params.cid!, plan);
 });
 
@@ -598,6 +657,7 @@ router.on('POST', '/api/communities/:cid/plans/:week/suggest', async (ctx) => {
   const u = me(ctx);
   const week = requireWeek(ctx.params.week!);
   const { community } = await requireMember(ctx.params.cid!, u.id);
+  if (community.kind === 'circle') throw badRequest('Plan meals in a kitchen.');
   const payer = await payerFor(community);
   const gate = canUseAiFeatures(budgetFor(payer));
   if (!gate.ok) {
@@ -614,24 +674,57 @@ router.on('POST', '/api/communities/:cid/plans/:week/suggest', async (ctx) => {
     servings: num(b.servings, 'servings', { min: 1, max: 40, optional: true }),
     allowNewIdeas: Boolean(b.allowNewIdeas),
   };
-  // Techniques teach a method; they are never planned as meals.
-  const catalog = (await repo.listCommunityRecipes(community.id)).filter((r) => r.kind !== 'technique');
+  const summaries = (await repo.listCommunityRecipes(community.id)).filter((r) => !r.archived && r.kind !== 'technique');
+  const catalog = [...(await repo.batchGetRecipes(summaries.map((r) => r.id))).values()];
   if (catalog.length < 3) throw badRequest('Add at least 3 recipes to the book before asking for a plan.');
-  const members = await repo.listMembers(community.id);
-  const profiles = (await Promise.all(members.map((m) => repo.getUser(m.userId)))).filter(Boolean);
+  const diners = await kr.diners(community.id);
+  const attendance: Record<string, string[]> = {};
+  if (b.attendance !== undefined)
+    for (const [slot, ids] of Object.entries(obj(b.attendance))) {
+      if (!/^[0-6]:(breakfast|lunch|dinner|snack)$/.test(slot)) throw badRequest('Invalid meal attendance.');
+      attendance[slot] = strArray(ids, 'attendance', 40, 100) ?? [];
+      if (attendance[slot]!.some((id) => !diners.some((d) => d.id === id))) throw badRequest('Choose diners from this kitchen.');
+    }
+  request.attendance = attendance;
   try {
     const { plan, newIdeas, usage } = await suggestPlan({
       request,
       catalog,
-      diets: profiles.map((p) => ({ name: p!.displayName, diet: p!.diet })),
+      diets: diners.filter((d) => d.usual).map((d) => ({ name: 'Diner', diet: d.diet })),
+      diners,
       weekStart: week,
       communityId: community.id,
       model: env.geminiModel,
       userId: u.id,
     });
     const costMicros = await chargeAi(payer, { model: env.geminiModel, usage, kind: 'plan', ref: `${community.id}:${week}`, actorId: u.id });
+    const suggestedCount = plan.entries.length;
+    plan.entries = plan.entries.filter((e) => {
+      if (attendance[`${e.day}:${e.slot}`]?.length === 0) return false;
+      const people = diners.filter((d) => (attendance[`${e.day}:${e.slot}`] ?? diners.filter((x) => x.usual).map((x) => x.id)).includes(d.id));
+      e.dinerIds = people.map((d) => d.id);
+      if (people.length) e.servings = people.reduce((n, d) => n + d.portions, 0);
+      const r = catalog.find((r) => r.id === e.recipeId);
+      return (
+        !r ||
+        ingredientConflicts(
+          r,
+          people.map((d) => d.diet),
+        ).length === 0
+      );
+    });
+    // Removing an unsuitable original cook also removes its leftover meals.
+    plan.entries = plan.entries.filter((e) => !e.leftoverOf || plan.entries.some((x) => x.id === e.leftoverOf));
+    plan.aiSummary = 'Draft based on the selected diners and your saved recipes. Review ingredient labels, portions and any estimated amounts before cooking.';
+    plan.constraints = plan.constraints.filter((c) => c !== 'glp1' && c !== 'workout');
     // Returned as a draft; the client saves it with PUT once the household is happy.
-    const res: SuggestPlanResponse = { plan, newIdeas, costMicros };
+    const warnings =
+      plan.entries.length === 0
+        ? ['No meals could be suggested from the available recipes and selected attendance. Add more recipes or review this week’s diners.']
+        : plan.entries.length < suggestedCount
+          ? ['Some suggestions were removed after checking attendance and ingredient conflicts. Review the remaining gaps.']
+          : [];
+    const res: SuggestPlanResponse = { plan, newIdeas, costMicros, warnings };
     return res;
   } catch (err) {
     if (err instanceof UserFacingError) throw badRequest(err.message);
@@ -646,7 +739,12 @@ router.on('GET', '/api/communities/:cid/lists/:week', async (ctx) => {
   const week = requireWeek(ctx.params.week!);
   await requireMember(ctx.params.cid!, u.id);
   const { list } = await repo.getListWithVersion(ctx.params.cid!, week);
-  return { list: list ?? { communityId: ctx.params.cid!, weekStart: week, items: [], generatedAt: '', updatedAt: nowIso() } };
+  const plan = await repo.getPlan(ctx.params.cid!, week);
+  const recipes = plan ? await repo.batchGetRecipes(plan.entries.flatMap((e) => (e.recipeId ? [e.recipeId] : []))) : new Map<string, Recipe>();
+  return {
+    list: list ?? { communityId: ctx.params.cid!, weekStart: week, items: [], generatedAt: '', updatedAt: nowIso() },
+    stale: Boolean(list?.generatedAt && plan && list.planFingerprint !== planFingerprint(plan, recipes)),
+  };
 });
 
 router.on('POST', '/api/communities/:cid/lists/:week/generate', async (ctx) => {
@@ -654,14 +752,33 @@ router.on('POST', '/api/communities/:cid/lists/:week/generate', async (ctx) => {
   const week = requireWeek(ctx.params.week!);
   const { community } = await requireMember(ctx.params.cid!, u.id);
   const plan = await repo.getPlan(community.id, week);
-  if (!plan?.entries.some((e) => e.recipeId)) throw badRequest('Add some recipes to this week\'s plan first.');
+  if (!plan?.entries.some((e) => e.recipeId)) throw badRequest("Add some recipes to this week's plan first.");
   const recipes = await repo.batchGetRecipes(plan.entries.map((e) => e.recipeId).filter((x): x is string => Boolean(x)));
   const user = await repo.getUser(u.id);
+  const fingerprint = planFingerprint(plan, recipes);
+  const preview = obj(ctx.body ?? {});
+  if (preview.preview === true) {
+    const previous = (await repo.getListWithVersion(community.id, week)).list;
+    return {
+      list: {
+        communityId: community.id,
+        weekStart: week,
+        items: buildShoppingList(plan, recipes, { units: user?.units ?? 'us', pantryStaples: community.pantryStaples, previous: previous?.items }),
+        planFingerprint: fingerprint,
+        generatedAt: nowIso(),
+        updatedAt: nowIso(),
+      },
+    };
+  }
+  if (preview.planFingerprint !== fingerprint) throw new HttpError(409, 'The plan or a recipe changed. Review the shopping update again.', 'list_conflict');
   const list = await repo.mutateList(community.id, week, (prev) => ({
     ...prev,
     items: buildShoppingList(plan, recipes, { units: user?.units ?? 'us', pantryStaples: community.pantryStaples, previous: prev.items }),
     generatedAt: nowIso(),
+    planFingerprint: fingerprint,
   }));
+  emitMetric('ShoppingListGenerated', 1, 'Count');
+  await kr.participation(community.id, u.id, 'shopped');
   return { list };
 });
 
@@ -744,7 +861,12 @@ router.on('POST', '/api/billing/checkout', async (ctx) => {
     mode: 'payment',
     ...(user.stripeCustomerId ? {} : { customer_creation: 'always' }),
     metadata: { userId: user.id, creditPackId: pack.id },
-    line_items: [{ quantity: 1, price_data: { currency: 'usd', unit_amount: pack.priceCents, product_data: { name: `Potluck AI credits (${pack.id.replace('credits_', '$')})` } } }],
+    line_items: [
+      {
+        quantity: 1,
+        price_data: { currency: 'usd', unit_amount: pack.priceCents, product_data: { name: `Potluck AI credits (${pack.id.replace('credits_', '$')})` } },
+      },
+    ],
   });
   return { url: session.url };
 });
@@ -759,7 +881,12 @@ router.on('POST', '/api/billing/portal', async (ctx) => {
 
 /* ----------------------------------- entry ----------------------------------- */
 
-interface JwtClaims { sub?: string; email?: string; name?: string; 'cognito:username'?: string }
+interface JwtClaims {
+  sub?: string;
+  email?: string;
+  name?: string;
+  'cognito:username'?: string;
+}
 
 export async function handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
   let ctx: Ctx;
@@ -772,6 +899,17 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
   if (ctx.path.startsWith('/api/')) {
     if (!claims?.sub) return json(401, { error: 'Sign in required', code: 'unauthorized' });
     ctx.user = { id: claims.sub, email: claims.email ?? '', name: claims.name ?? claims.email?.split('@')[0] ?? 'Cook' };
+    const kitchenOnly = ctx.path.match(/^\/api\/communities\/([^/]+)\/(?:plans|lists)(?:\/|$)/);
+    if (kitchenOnly) {
+      try {
+        const { community } = await requireMember(decodeURIComponent(kitchenOnly[1]!), claims.sub);
+        if (community.kind === 'circle')
+          return json(400, { error: 'Meal plans and shopping lists belong to kitchens, not recipe circles.', code: 'kitchen_required' });
+      } catch (e) {
+        if (e instanceof HttpError) return json(e.status, { error: e.message, code: e.code });
+        return json(500, { error: 'Could not open this kitchen.' });
+      }
+    }
   }
   return dispatch(router, ctx);
 }

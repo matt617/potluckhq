@@ -1,8 +1,11 @@
 # Potluck architecture
 
-Potluck turns social cooking videos into a shared recipe book, weekly meal plan and shopping list for a
-small community such as a household, office or friend group. It is built to cost close to nothing when
+Potluck turns cooking videos into recipes and techniques people can keep privately, plan and shop with
+in a kitchen, or exchange through recipe circles. It is built to cost close to nothing when
 idle and to scale with real usage.
+
+See [Kitchens and recipe circles implementation](kitchen-implementation.md) for ownership, privacy,
+new API contracts and the required migration procedure.
 
 ## Cost shape
 
@@ -139,12 +142,12 @@ Authenticated, under `/api`:
 | GET | `/api/recipes/{rid}` | → `RecipeResponse` |
 | PATCH | `/api/recipes/{rid}` | `UpdateRecipeRequest` → `RecipeResponse` |
 | DELETE | `/api/recipes/{rid}` | → `{ ok }` owner only |
-| POST | `/api/recipes/{rid}/share` | `ShareRecipeRequest` → `{ ok }` |
+| POST | `/api/recipes/{rid}/share` | `ShareRecipeRequest` → `{ ok, recipe }` (independent copy) |
 | GET | `/api/communities/{cid}/plans/{week}` | → `PlanResponse` (empty plan if none) |
 | PUT | `/api/communities/{cid}/plans/{week}` | `SavePlanRequest` → `PlanResponse` |
 | POST | `/api/communities/{cid}/plans/{week}/suggest` | `SuggestPlanRequest` → `SuggestPlanResponse` |
 | GET | `/api/communities/{cid}/lists/{week}` | → `ShoppingListResponse` (empty list if none) |
-| POST | `/api/communities/{cid}/lists/{week}/generate` | → `ShoppingListResponse` |
+| POST | `/api/communities/{cid}/lists/{week}/generate` | `{ preview: true }` or `{ planFingerprint }` → `ShoppingListResponse` |
 | POST | `/api/communities/{cid}/lists/{week}/items` | `AddShoppingItemRequest` → `ShoppingListResponse` |
 | PATCH | `/api/communities/{cid}/lists/{week}/items/{key}` | `PatchShoppingItemRequest` → `ShoppingListResponse` (key URI-encoded) |
 | POST | `/api/communities/{cid}/lists/{week}/send` | → `{ ok, sentTo }` sends to the caller's linked chat |

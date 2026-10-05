@@ -6,7 +6,9 @@ import {
   type MealPlan,
   type MealSlot,
   type PlanEntry,
-  type RecipeSummary,
+  type Recipe,
+  type Diner,
+  ingredientConflicts,
   type SuggestPlanRequest,
   type TokenUsage,
 } from '@potluck/core';
@@ -15,7 +17,16 @@ import { newId, nowIso } from './ids.js';
 
 interface PlannerOutput {
   summary: string;
-  entries: { day: number; slot: string; recipeId?: string | null; label?: string | null; servings: number; leftoverFromDay?: number | null; leftoverFromSlot?: string | null; note?: string | null }[];
+  entries: {
+    day: number;
+    slot: string;
+    recipeId?: string | null;
+    label?: string | null;
+    servings: number;
+    leftoverFromDay?: number | null;
+    leftoverFromSlot?: string | null;
+    note?: string | null;
+  }[];
   newIdeas: { title: string; why: string; searchQuery: string }[];
 }
 
@@ -64,11 +75,13 @@ Rules:
 - GLP-1: smaller portions, protein first, fiber-rich, avoid very greasy or very large meals; this is general guidance, not medical advice.
 - Workout: higher protein, more carbs on training days.
 - Keep the summary under 120 words, written to the household, explaining the shape of the week.
+- Never disclose individual requirements, medications or health goals in summaries, labels, notes or newIdeas. Requirements apply only to the diners attending that meal. An explicitly empty attendance list means no meal.
 - newIdeas: up to 3 dishes not in the catalog that would fill a gap (only if allowed), each with a short search query to find a video.`;
 
 export interface PlannerInput {
   request: SuggestPlanRequest;
-  catalog: RecipeSummary[];
+  catalog: Recipe[];
+  diners?: Diner[];
   diets: { name: string; diet: DietProfile }[];
   existing?: MealPlan;
   weekStart: string;
@@ -87,8 +100,9 @@ export async function suggestPlan(input: PlannerInput): Promise<{ plan: MealPlan
     tags: r.tags.slice(0, 6),
     totalMin: r.totalMin ?? null,
     servings: r.servings,
-    kcal: r.calories ?? null,
-    proteinG: r.proteinG ?? null,
+    ingredients: r.ingredients.map((i) => ({ name: i.name, note: i.note, estimated: i.estimated })),
+    kcal: r.nutrition?.calories ?? null,
+    proteinG: r.nutrition?.proteinG ?? null,
   }));
   const constraintText = request.constraints
     .map((c) => PLAN_CONSTRAINTS.find((p) => p.id === c))
@@ -113,10 +127,37 @@ export async function suggestPlan(input: PlannerInput): Promise<{ plan: MealPlan
     request.awayDays?.length ? `Away days (nobody cooking): ${request.awayDays.map((d) => DAY_NAMES[d]).join(', ')}.` : '',
     constraintText ? `Constraints:\n${constraintText}` : '',
     request.notes ? `Extra notes from the household: ${request.notes.slice(0, 1000)}` : '',
-    `People:\n${people.join('\n')}`,
+    !input.diners ? `Default food requirements (never quote personal requirements):\n${people.join('\n')}` : '',
+    `Meal attendance and eligible recipes:\n${JSON.stringify(
+      Array.from({ length: 7 }, (_, day) =>
+        slots.map((slot) => {
+          const ids = request.attendance?.[`${day}:${slot}`];
+          const diners = (input.diners ?? []).filter((d) => (ids ? ids.includes(d.id) : d.usual));
+          return {
+            day,
+            slot,
+            skip: ids?.length === 0,
+            requirements: diners.map((d) => d.diet),
+            servings: diners.length ? diners.reduce((n, d) => n + d.portions, 0) : servings,
+            recipeIds: input.catalog
+              .filter(
+                (r) =>
+                  r.ingredients.length &&
+                  !ingredientConflicts(
+                    r,
+                    diners.map((d) => d.diet),
+                  ).length,
+              )
+              .map((r) => r.id),
+          };
+        }),
+      ).flat(),
+    )}`,
     `New dishes outside the catalog allowed: ${request.allowNewIdeas ? 'yes' : 'no'}.`,
     `Recipe catalog (JSON):\n${JSON.stringify(catalog)}`,
-  ].filter(Boolean).join('\n\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 
   const { data, usage } = await generateJson<PlannerOutput>({
     model: input.model,
@@ -147,7 +188,7 @@ export async function suggestPlan(input: PlannerInput): Promise<{ plan: MealPlan
       recipeId,
       label: recipeId ? undefined : label,
       servings: Math.min(40, Math.max(1, Math.round(e.servings || servings))),
-      leftoverOf: source && source.recipeId === recipeId ? source.id : undefined,
+      leftoverOf: source && !source.leftoverOf && source.recipeId === recipeId ? source.id : undefined,
       note: e.note?.trim().slice(0, 200) || undefined,
     };
     bySlot.set(key, entry);
@@ -164,6 +205,10 @@ export async function suggestPlan(input: PlannerInput): Promise<{ plan: MealPlan
     updatedAt: nowIso(),
     updatedBy: input.userId,
   };
-  const newIdeas = request.allowNewIdeas ? (data.newIdeas ?? []).slice(0, 3).map((i) => ({ title: String(i.title).slice(0, 100), why: String(i.why).slice(0, 300), searchQuery: String(i.searchQuery).slice(0, 100) })) : [];
+  const newIdeas = request.allowNewIdeas
+    ? (data.newIdeas ?? [])
+        .slice(0, 3)
+        .map((i) => ({ title: String(i.title).slice(0, 100), why: String(i.why).slice(0, 300), searchQuery: String(i.searchQuery).slice(0, 100) }))
+    : [];
   return { plan, newIdeas, usage };
 }

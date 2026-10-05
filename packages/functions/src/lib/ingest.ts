@@ -26,6 +26,7 @@ import { pickHeroFrame, storeTechniqueMedia } from './media.js';
 import { recipeReadyText, recipeLink, techniqueReadyText } from './messages.js';
 import { emitMetric } from './metrics.js';
 import * as repo from './repo.js';
+import { participation } from './kitchen-repo.js';
 import { deleteObject, getObjectBytes, putObject, storeThumbnail } from './s3.js';
 
 /** A video file on local disk, kept until the import finishes so technique media can be cut from it. */
@@ -58,6 +59,8 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
   if (!job || job.status === 'done' || job.status === 'failed') return;
   const community = await repo.getCommunity(job.communityId);
   if (!community) return fail(job, 'The community no longer exists.', 'unreadable');
+  if (!(await repo.getUser(job.userId)) || !(await repo.getMembership(job.communityId, job.userId)))
+    return fail(job, 'This import was cancelled because its sender no longer belongs to this kitchen.', 'unreadable');
   const payer = await payerFor(community);
   let keepUploads = false;
   let ex: Extraction | undefined;
@@ -86,9 +89,13 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
     } else {
       const gate = canImport(budgetFor(payer));
       if (!gate.ok) {
-        return fail(job, gate.reason === 'import_quota'
-          ? `${community.name} has used all of its recipe imports this month.`
-          : `${community.name} is out of AI credit this month. The owner can buy more credits in the app.`, 'quota');
+        return fail(
+          job,
+          gate.reason === 'import_quota'
+            ? `${community.name} has used all of its recipe imports this month.`
+            : `${community.name} is out of AI credit this month. The owner can buy more credits in the app.`,
+          'quota',
+        );
       }
       ex = await runExtraction(job, urlHash);
     }
@@ -102,9 +109,17 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
     }
 
     if (urlHash && !cached) {
-      await repo.putCachedExtraction(urlHash, { url: normalizeUrl(job.url!), extracted: ex.extracted, thumbnailKey: ex.thumbnailKey, author: ex.author, createdAt: nowIso() });
+      await repo.putCachedExtraction(urlHash, {
+        url: normalizeUrl(job.url!),
+        extracted: ex.extracted,
+        thumbnailKey: ex.thumbnailKey,
+        author: ex.author,
+        createdAt: nowIso(),
+      });
     }
 
+    if (!(await repo.getUser(job.userId)) || !(await repo.getMembership(job.communityId, job.userId)) || !(await repo.getCommunity(job.communityId)))
+      return fail(job, 'This import was cancelled because its destination or membership changed.', 'unreadable');
     const recipe = toRecipe(job, ex);
     if (recipe.kind === 'technique' && ex.localVideo) {
       recipe.video = await storeTechniqueMedia({
@@ -119,11 +134,12 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
       });
     }
     await repo.putRecipe(recipe);
-    await repo.shareRecipe(recipe, job.communityId, job.userId);
-    if (urlHash) await repo.putCommunitySourceRecipe(job.communityId, urlHash, recipe.id);
-    await repo.updateImport(job.id, { status: 'done', recipeId: recipe.id });
+    const kitchenRecipe = await repo.saveRecipeCopy(recipe, job.userId, job.communityId);
+    if (urlHash) await repo.putCommunitySourceRecipe(job.communityId, urlHash, kitchenRecipe.id);
+    await repo.updateImport(job.id, { status: 'done', recipeId: kitchenRecipe.id });
     emitMetric('ImportSucceeded', 1, 'Count');
-    let text = recipe.kind === 'technique' ? techniqueReadyText(recipe, community.name) : recipeReadyText(recipe, community.name);
+    await participation(job.communityId, job.userId, 'saved');
+    let text = recipe.kind === 'technique' ? techniqueReadyText(kitchenRecipe, community.name) : recipeReadyText(kitchenRecipe, community.name);
     if (ex.extracted.additionalDishes?.length) text += `\n\nThis video also showed: ${ex.extracted.additionalDishes.join(', ')}.`;
     await reply(job, text);
   } catch (err) {
@@ -231,7 +247,9 @@ async function runExtraction(job: ImportJob, urlHash: string | undefined): Promi
     for (const key of job.imageKeys) {
       const obj = await getObjectBytes(key);
       photos.push(obj);
-      parts.push({ inlineData: { mimeType: obj.contentType.startsWith('image/') ? obj.contentType : 'image/jpeg', data: Buffer.from(obj.bytes).toString('base64') } });
+      parts.push({
+        inlineData: { mimeType: obj.contentType.startsWith('image/') ? obj.contentType : 'image/jpeg', data: Buffer.from(obj.bytes).toString('base64') },
+      });
     }
     const res = await extractRecipe({ model, parts, caption: job.text, lowMediaResolution: false });
     // Use the photo Gemini judged most appetizing, falling back to the first one.
@@ -257,7 +275,7 @@ export function toRecipe(job: ImportJob, ex: Extraction): Recipe {
   const now = nowIso();
   const total = (e.prepMin ?? 0) + (e.cookMin ?? 0);
   return {
-    id: newId(),
+    id: `import-${job.id}`,
     kind: e.isTechnique ? 'technique' : 'recipe',
     ownerId: job.userId,
     title: e.title,

@@ -46,15 +46,15 @@ const CONSTRAINTS = [
   { label: 'Travel', on: false },
   { label: 'Long work days', on: true },
   { label: 'Long weekend', on: false },
-  { label: 'GLP-1', on: true },
-  { label: 'Workout routine', on: false },
+  { label: 'Quick meals', on: true },
+  { label: 'Budget', on: false },
   { label: 'Batch cooking', on: true },
 ];
 
 export function Landing() {
   const { signedIn, publicConfig } = useSession();
   const root = useReveal();
-  if (signedIn) return <Navigate to="/book" replace />;
+  if (signedIn) return <Navigate to="/week" replace />;
 
   const tiers = publicConfig?.tiers ?? TIER_ORDER.map((id) => TIERS[id]);
   const start = () => void login('/book');
@@ -82,11 +82,12 @@ export function Landing() {
         <section className="lp-hero">
           <div className="lp-hero-copy">
             <h1>
-              <span>Cooking videos in.</span> <span><em>Dinner plans</em> out.</span>
+              <span>The recipes you save.</span>{' '}
+              <span>
+                The meals you <em>share.</em>
+              </span>
             </h1>
-            <p className="lp-sub">
-              Send a recipe video to the Potluck bot. It writes the recipe, plans the week and builds the shopping list.
-            </p>
+            <p className="lp-sub">Save recipes from videos, websites or photos. Plan meals and share a shopping list with your household.</p>
             <div className="row wrap lp-ctas">
               <button type="button" className="btn btn-primary btn-large" onClick={start}>
                 Start free
@@ -125,12 +126,12 @@ export function Landing() {
 
         <section id="how" className="lp-section lp-how" aria-labelledby="how-title">
           <h2 id="how-title" className="lp-h2 reveal">
-            From a link in a group chat to a plan on the fridge.
+            From a saved recipe to dinner together.
           </h2>
           <ol className="lp-steps">
             <li className="reveal" style={stagger(0)}>
               <h3>Send</h3>
-              <p>Share a TikTok, Reel, YouTube Short or recipe site, or snap a cookbook page. Use the chat you already have open.</p>
+              <p>Paste a recipe link or upload a cookbook photo. Optionally link a private chat with the Potluck bot for easy forwarding.</p>
               <div className="lp-channels" aria-label="Works with">
                 <span>
                   <TelegramLogo size={18} weight="fill" aria-hidden /> Telegram
@@ -145,7 +146,7 @@ export function Landing() {
             </li>
             <li className="reveal" style={stagger(1)}>
               <h3>Read</h3>
-              <p>Gemini watches the whole video, captions included, and writes exact amounts and steps. Anything the creator skipped is estimated and flagged.</p>
+              <p>Potluck reads the recipe and organizes the ingredients and steps. Estimated amounts are flagged for you to review.</p>
             </li>
             <li className="reveal" style={stagger(2)}>
               <h3>Plan</h3>
@@ -169,7 +170,7 @@ export function Landing() {
                   </span>
                 ))}
               </div>
-              <p className="small muted">GLP-1 suggestions are general guidance, not medical advice.</p>
+              <p className="small muted">Choose who’s eating, then review the suggested meals before saving.</p>
             </div>
 
             <div className="lp-tile lp-tile-list reveal" style={stagger(1)}>
@@ -198,7 +199,9 @@ export function Landing() {
 
             <div className="lp-tile lp-tile-people reveal" style={stagger(2)}>
               <h3>One book for your people</h3>
-              <p>A household, an office kitchen, a group of friends. Everyone adds recipes and edits the same plan.</p>
+              <p>
+                Save recipes, choose meals and shop with your household. Separate recipe circles let friends exchange ideas while keeping their own kitchens.
+              </p>
             </div>
 
             <div className="lp-tile lp-tile-leftovers reveal" style={stagger(3)}>
@@ -229,11 +232,12 @@ export function Landing() {
                   </div>
                   <ul className="lp-price-features">
                     <li>
-                      {t.maxCommunities} {t.maxCommunities === 1 ? 'community' : 'communities'}
+                      {t.maxCommunities} {t.maxCommunities === 1 ? 'kitchen you own' : 'kitchens you own'}
                     </li>
                     <li>Up to {t.maxMembersPerCommunity} people in each</li>
-                    <li>{t.importsPerMonth} recipe imports a month</li>
-                    <li>{t.aiFeatures ? `AI meal planning, ${formatUsd(t.aiAllowanceMicros)} of AI use included` : 'Plan and shop by hand'}</li>
+                    <li>{t.importsPerMonth} imports a month across your kitchens and circles</li>
+                    <li>{t.aiFeatures ? 'AI meal planning for your kitchens' : 'Manual planning and shared shopping'}</li>
+                    <li>3 recipe circles, up to 20 members each</li>
                   </ul>
                   <button
                     type="button"
@@ -247,7 +251,10 @@ export function Landing() {
             })}
           </div>
           <div className="reveal stack">
-            <p className="muted small">Used your AI allowance early? Add credits from $5 any time. Paid plans renew monthly until you cancel.</p>
+            <p className="muted small">
+              Each owner’s paid plan includes $2 of monthly AI usage across their kitchens and circles. Imports and AI planning share that allowance; additional
+              credits start at $5. Paid plans renew monthly until cancelled.
+            </p>
             <ConsentNote />
           </div>
         </section>

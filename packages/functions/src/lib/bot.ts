@@ -55,13 +55,16 @@ export async function handleInbound(msg: InboundMessage): Promise<string> {
     const n = slug(name);
     return communities.find((c) => slug(c.name) === n) ?? communities.find((c) => slug(c.name).startsWith(n));
   };
-  const defaultCommunity = communities.find((c) => c.id === user.defaultCommunityId) ?? communities[0]!;
+  const defaultCommunity = communities.find((c) => c.id === user.defaultCommunityId);
+  const chooseDestination = `Choose where recipes should go first. Send kitchens to see your choices, then use <name>. You can also add #name after a recipe link.`;
 
   const lower = text.toLowerCase().replace(/^\//, '');
   if (!msg.media?.length) {
     if (['help', 'start', '?', 'hi', 'hello'].includes(lower)) return HELP_TEXT;
-    if (lower === 'communities') {
-      return communities.map((c) => `${c.id === defaultCommunity.id ? '✅' : '•'} ${c.name} (#${slug(c.name)})`).join('\n') + '\n\nSend *use <name>* to switch.';
+    if (lower === 'communities' || lower === 'kitchens') {
+      return (
+        communities.map((c) => `${c.id === defaultCommunity?.id ? '✅' : '•'} ${c.name} (#${slug(c.name)})`).join('\n') + '\n\nSend *use <name>* to switch.'
+      );
     }
     if (lower.startsWith('use ')) {
       const target = findCommunity(text.slice(4));
@@ -70,18 +73,23 @@ export async function handleInbound(msg: InboundMessage): Promise<string> {
       return `New recipes will go to *${target.name}*.`;
     }
     if (lower === 'plan') {
+      if (!defaultCommunity) return chooseDestination;
+      if (defaultCommunity.kind === 'circle') return 'Choose a kitchen with use <name> to see its meal plan.';
       const plan = await repo.getPlan(defaultCommunity.id, weekStartOf());
       const recipes = new Map((await repo.listCommunityRecipes(defaultCommunity.id)).map((r) => [r.id, r]));
-      return planText(plan, recipes, defaultCommunity.name);
+      return planText(plan, recipes, defaultCommunity.name, defaultCommunity.id);
     }
     if (['shop', 'shopping', 'list', 'groceries'].includes(lower)) {
+      if (!defaultCommunity) return chooseDestination;
+      if (defaultCommunity.kind === 'circle') return 'Choose a kitchen with use <name> to see its shopping list.';
       const { list } = await repo.getListWithVersion(defaultCommunity.id, weekStartOf());
-      return listText(list, defaultCommunity.name);
+      return listText(list, defaultCommunity.name, defaultCommunity.id);
     }
     if (lower === 'recipes') {
+      if (!defaultCommunity) return chooseDestination;
       const recipes = (await repo.listCommunityRecipes(defaultCommunity.id)).slice(0, 10);
       if (!recipes.length) return 'No recipes yet. Send me a link!';
-      return `*Latest in ${defaultCommunity.name}*\n${recipes.map((r) => `• ${r.title}`).join('\n')}\n\n${env.appUrl}/book`;
+      return `*Latest in ${defaultCommunity.name}*\n${recipes.map((r) => `• ${r.title}`).join('\n')}\n\n${env.appUrl}/book?kitchen=${encodeURIComponent(defaultCommunity.id)}`;
     }
   }
 
@@ -89,6 +97,7 @@ export async function handleInbound(msg: InboundMessage): Promise<string> {
   const target = tag ? findCommunity(tag) : defaultCommunity;
   if (tag && !target) return `I couldn't find a community called #${tag}. Send *communities* to see yours.`;
   const community = target ?? defaultCommunity;
+  if (!community) return chooseDestination;
 
   try {
     if (msg.media?.length) {
@@ -101,7 +110,15 @@ export async function handleInbound(msg: InboundMessage): Promise<string> {
         if (m.type === 'video') videoKey = key;
         else images.push(key);
       }
-      const job = await createImport({ userId, communityId: community.id, imageKeys: videoKey ? undefined : images, videoKey, text: text || undefined, channel: msg.channel, replyTo: msg.address });
+      const job = await createImport({
+        userId,
+        communityId: community.id,
+        imageKeys: videoKey ? undefined : images,
+        videoKey,
+        text: text || undefined,
+        channel: msg.channel,
+        replyTo: msg.address,
+      });
       return `Got your ${describeSource(job)}! Reading the recipe now. I'll message you when it's in *${community.name}*.`;
     }
     const urls = extractUrls(text).slice(0, 5);
@@ -123,7 +140,11 @@ export async function handleInbound(msg: InboundMessage): Promise<string> {
 }
 
 export function slug(s: string): string {
-  return s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return s
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 export async function botLinks(): Promise<{ telegram?: string; whatsapp?: string }> {

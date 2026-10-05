@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HeroMoment, Recipe, Step, StoredVideo, VideoClip } from '@potluck/core';
 import { env } from './env.js';
-import { deleteObject, putObject } from './s3.js';
+import { copyObject, deleteObject, putObject } from './s3.js';
 
 /** Frames below this size are almost always black, blank or heavily blurred. */
 const MIN_FRAME_BYTES = 12_000;
@@ -124,7 +124,28 @@ export async function storeTechniqueMedia(input: {
     let res = await ffmpeg(['-i', input.videoPath, '-map', '0:v:0', '-map', '0:a:0?', '-c', 'copy', '-movflags', '+faststart', '-y', full], 60_000);
     if (res.code !== 0) {
       res = await ffmpeg(
-        ['-i', input.videoPath, '-vf', "scale=-2:'trunc(min(480,ih)/2)*2'", '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', '-y', full],
+        [
+          '-i',
+          input.videoPath,
+          '-vf',
+          "scale=-2:'trunc(min(480,ih)/2)*2'",
+          '-c:v',
+          'libx264',
+          '-preset',
+          'veryfast',
+          '-crf',
+          '26',
+          '-pix_fmt',
+          'yuv420p',
+          '-c:a',
+          'aac',
+          '-b:a',
+          '96k',
+          '-movflags',
+          '+faststart',
+          '-y',
+          full,
+        ],
         Math.max(10_000, deadline - Date.now()),
       );
     }
@@ -140,7 +161,29 @@ export async function storeTechniqueMedia(input: {
       if (deadline - Date.now() < 8_000) break;
       const clipPath = join(dir, `clip-${i}.mp4`);
       const cut = await ffmpeg(
-        ['-ss', String(c.startSec), '-i', full, '-t', String(c.endSec - c.startSec), '-an', '-vf', "scale=-2:'trunc(min(480,ih)/2)*2'", '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '28', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-y', clipPath],
+        [
+          '-ss',
+          String(c.startSec),
+          '-i',
+          full,
+          '-t',
+          String(c.endSec - c.startSec),
+          '-an',
+          '-vf',
+          "scale=-2:'trunc(min(480,ih)/2)*2'",
+          '-c:v',
+          'libx264',
+          '-preset',
+          'veryfast',
+          '-crf',
+          '28',
+          '-pix_fmt',
+          'yuv420p',
+          '-movflags',
+          '+faststart',
+          '-y',
+          clipPath,
+        ],
         Math.min(30_000, deadline - Date.now()),
       );
       if (cut.code !== 0 || !(await stat(clipPath).catch(() => null))?.size) continue;
@@ -170,4 +213,11 @@ export function mediaKeys(r: Pick<Recipe, 'video'>): string[] {
 
 export async function deleteRecipeMedia(r: Pick<Recipe, 'video'>): Promise<void> {
   for (const key of mediaKeys(r)) await deleteObject(key);
+}
+
+export async function copyRecipeMedia(source: Pick<Recipe, 'video'>, target: Pick<Recipe, 'video'>): Promise<void> {
+  const from = mediaKeys(source),
+    to = mediaKeys(target);
+  if (from.length !== to.length) throw new Error('Video copy is incomplete');
+  for (let i = 0; i < from.length; i++) await copyObject(from[i]!, to[i]!);
 }

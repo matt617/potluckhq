@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand, S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand, S3Client, DeleteObjectCommand, CopyObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { env } from './env.js';
 import { newId } from './ids.js';
@@ -18,6 +18,17 @@ export async function presignUpload(key: string, contentType: string): Promise<s
 
 export async function putObject(key: string, body: Uint8Array, contentType: string, cacheControl?: string): Promise<void> {
   await s3.send(new PutObjectCommand({ Bucket: env.mediaBucket, Key: key, Body: body, ContentType: contentType, CacheControl: cacheControl }));
+}
+
+export async function copyObject(source: string, destination: string): Promise<void> {
+  if (source === destination) return;
+  await s3.send(
+    new CopyObjectCommand({
+      Bucket: env.mediaBucket,
+      Key: destination,
+      CopySource: `${env.mediaBucket}/${source.split('/').map(encodeURIComponent).join('/')}`,
+    }),
+  );
 }
 
 export async function getObjectBytes(key: string): Promise<{ bytes: Uint8Array; contentType: string }> {

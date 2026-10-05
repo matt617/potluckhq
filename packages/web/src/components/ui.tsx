@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { X } from '@phosphor-icons/react';
 import { ApiError, errorMessage } from '../api';
+import { useSession } from '../lib/session';
 
 type SkeletonVariant = 'page' | 'grid' | 'list';
 
@@ -71,12 +72,12 @@ export function ErrorNote({ error, onRetry }: { error: unknown; onRetry?: () => 
 const QUOTA_COPY: Record<string, { title: string; body: string; cta: string }> = {
   ai_tier: {
     title: 'AI planning is a paid feature',
-    body: "This community's owner is on the Free plan. Upgrading to Plus or Pro unlocks AI meal plans and suggestions.",
+    body: 'This kitchen’s owner is on the Free plan. The owner can upgrade to unlock AI planning for everyone here.',
     cta: 'See plans',
   },
   ai_allowance: {
     title: 'AI allowance used up',
-    body: 'The monthly AI allowance for this community is spent. The owner can buy an AI credit pack to keep going.',
+    body: 'The owner’s shared account allowance is spent. The owner can add credits for imports and AI planning.',
     cta: 'Buy AI credits',
   },
   import_quota: {
@@ -86,12 +87,14 @@ const QUOTA_COPY: Record<string, { title: string; body: string; cta: string }> =
   },
   tier_limit: {
     title: 'Plan limit reached',
-    body: 'Your plan does not allow more communities or members. Upgrade to raise the limit.',
+    body: 'The owner’s plan has reached a kitchen or member limit. Existing saved data stays available.',
     cta: 'See plans',
   },
 };
 
 export function QuotaNote({ code, message }: { code?: string; message?: string }) {
+  const { community, me } = useSession();
+  const owner = !community || community.ownerId === me?.user.id;
   const copy = (code && QUOTA_COPY[code]) || { title: 'Plan limit reached', body: message ?? '', cta: 'See plans' };
   return (
     <div className="note note-upgrade" role="alert">
@@ -99,9 +102,13 @@ export function QuotaNote({ code, message }: { code?: string; message?: string }
         <strong>{copy.title}</strong>
         <p>{message && code !== 'ai_tier' ? message : copy.body}</p>
       </div>
-      <Link className="btn btn-primary btn-small" to="/account#billing">
-        {copy.cta}
-      </Link>
+      {owner ? (
+        <Link className="btn btn-primary btn-small" to="/account#billing">
+          {copy.cta}
+        </Link>
+      ) : (
+        <p className="small">Ask this kitchen or circle’s owner to review the shared allowance in settings.</p>
+      )}
     </div>
   );
 }
@@ -156,7 +163,15 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
     return () => d?.close();
   }, []);
   return (
-    <dialog ref={ref} className="sheet" onClose={onClose} onCancel={onClose} aria-label={title}>
+    <dialog
+      ref={ref}
+      className="sheet"
+      onClose={(event) => {
+        if (!event.currentTarget.open) onClose();
+      }}
+      onCancel={onClose}
+      aria-label={title}
+    >
       <div className="sheet-head">
         <h2>{title}</h2>
         <button type="button" className="btn btn-ghost btn-icon" aria-label="Close" onClick={onClose}>
@@ -182,12 +197,25 @@ export function PageHeader({ eyebrow, title, children }: { eyebrow?: ReactNode; 
 }
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  const id = useId();
   return (
-    <label className="field">
-      <span className="field-label">{label}</span>
-      {children}
-      {hint && <span className="field-hint">{hint}</span>}
-    </label>
+    <div className="field">
+      <label className="field-label" id={`${id}-label`} htmlFor={id}>
+        {label}
+      </label>
+      {isValidElement(children)
+        ? cloneElement(children as ReactElement<Record<string, unknown>>, {
+            id,
+            'aria-labelledby': `${id}-label`,
+            ...(hint ? { 'aria-describedby': `${id}-hint` } : {}),
+          })
+        : children}
+      {hint && (
+        <span id={`${id}-hint`} className="field-hint">
+          {hint}
+        </span>
+      )}
+    </div>
   );
 }
 

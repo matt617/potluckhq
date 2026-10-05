@@ -12,6 +12,10 @@ import { PrivacyPage, TermsPage } from './pages/Legal';
 import { RecipeBook } from './pages/RecipeBook';
 import { RecipeDetail } from './pages/RecipeDetail';
 import { Shopping } from './pages/Shopping';
+import { Library } from './pages/Library';
+import { ThisWeek } from './pages/ThisWeek';
+import { Circles } from './pages/Circles';
+import './kitchen.css';
 
 export function App() {
   return (
@@ -24,6 +28,9 @@ export function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route element={<Layout />}>
+            <Route path="/week" element={<ThisWeek />} />
+            <Route path="/library" element={<Library />} />
+            <Route path="/circles" element={<Circles />} />
             <Route path="/book" element={<RecipeBook />} />
             <Route path="/book/:rid" element={<RecipeDetail />} />
             <Route path="/plan" element={<Planner />} />
