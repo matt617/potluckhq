@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -337,6 +337,22 @@ export class PotluckStack extends Stack {
 
     const userPoolDomain = userPool.addDomain('Domain', {
       cognitoDomain: { domainPrefix: `potluck-${cfg.stage}-${this.account}` },
+      // Managed login (v2) supports full theming; the classic hosted UI only takes a logo and limited CSS.
+      managedLoginVersion: cognito.ManagedLoginVersion.NEWER_MANAGED_LOGIN,
+    });
+
+    // Sign-in pages themed to match the web app. Settings come from infra/cognito/build-branding.py.
+    const brandingDir = join(REPO_ROOT, 'infra', 'cognito');
+    const svg = (file: string) => readFileSync(join(brandingDir, file)).toString('base64');
+    new cognito.CfnManagedLoginBranding(this, 'LoginBranding', {
+      userPoolId: userPool.userPoolId,
+      clientId: userPoolClient.userPoolClientId,
+      useCognitoProvidedValues: false,
+      settings: JSON.parse(readFileSync(join(brandingDir, 'branding.json'), 'utf8')),
+      assets: (['LIGHT', 'DARK'] as const).flatMap((mode) => [
+        { category: 'FORM_LOGO', colorMode: mode, extension: 'SVG', bytes: svg(`logo-${mode.toLowerCase()}.svg`) },
+        { category: 'FAVICON_SVG', colorMode: mode, extension: 'SVG', bytes: svg(`favicon-${mode.toLowerCase()}.svg`) },
+      ]),
     });
     const cognitoDomainUrl = userPoolDomain.baseUrl();
 
