@@ -33,7 +33,9 @@ import {
   type SuggestPlanRequest,
   type SuggestPlanResponse,
 } from '@potluck/core';
+import { deleteAccount, exportAccount } from '../lib/account.js';
 import { canReadRecipe, payerFor, requireAdmin, requireMember } from '../lib/access.js';
+import { enforceLimit } from '../lib/ratelimit.js';
 import { sendToChannel } from '../lib/channels/index.js';
 import { chargeAi } from '../lib/charge.js';
 import { sendInviteEmail } from '../lib/email.js';
@@ -152,8 +154,23 @@ router.on('PATCH', '/api/me', async (ctx) => {
   return meResponse(u.id, u.email, u.name);
 });
 
+router.on('GET', '/api/me/export', async (ctx) => {
+  const u = me(ctx);
+  await enforceLimit('exportsPerHour', u.id, 'You can download your data a few times an hour. Please try again later.');
+  const data = await exportAccount(u.id);
+  return json(200, data, { 'content-disposition': `attachment; filename="potluck-export-${new Date().toISOString().slice(0, 10)}.json"` });
+});
+
+router.on('DELETE', '/api/me', async (ctx) => {
+  const u = me(ctx);
+  const summary = await deleteAccount(u.id);
+  console.log(JSON.stringify({ event: 'account_deleted', userId: u.id, ...summary }));
+  return { ok: true, ...summary };
+});
+
 router.on('POST', '/api/me/link-code', async (ctx) => {
   const u = me(ctx);
+  await enforceLimit('linkCodesPerHour', u.id, 'Too many link codes requested. Please wait a bit and try again.');
   await repo.ensureUser(u.id, u.email, u.name);
   const code = newLinkCode();
   const ttl = 15 * 60;
@@ -236,6 +253,7 @@ router.on('DELETE', '/api/communities/:cid', async (ctx) => {
 router.on('POST', '/api/communities/:cid/invites', async (ctx) => {
   const u = me(ctx);
   const { community } = await requireAdmin(ctx.params.cid!, u.id);
+  await enforceLimit('invitesPerDay', community.id, 'This community has created a lot of invites today. Try again tomorrow.');
   const b = (ctx.body ?? {}) as Record<string, unknown>;
   const role = b.role === 'admin' ? 'admin' : 'member';
   const email = str(b.email, 'email', { max: 254, optional: true });
@@ -420,6 +438,7 @@ router.on('POST', '/api/recipes/:rid/share', async (ctx) => {
 router.on('POST', '/api/uploads', async (ctx) => {
   const u = me(ctx);
   const contentType = str(obj(ctx.body).contentType, 'contentType')!;
+  await enforceLimit('uploadsPer10Min', u.id, 'Too many uploads at once. Please wait a few minutes.');
   if (!ALLOWED_UPLOAD_TYPES.includes(contentType)) throw badRequest('Only photos (JPEG, PNG, WebP, HEIC) and videos (MP4, MOV, WebM) can be uploaded');
   const key = uploadKey(u.id, contentType);
   return { key, uploadUrl: await presignUpload(key, contentType) };
@@ -537,6 +556,7 @@ router.on('POST', '/api/communities/:cid/plans/:week/suggest', async (ctx) => {
     if (gate.reason === 'tier') throw paymentRequired('AI meal planning is part of the Plus and Pro plans.', 'ai_tier');
     throw paymentRequired(`${community.name} has used its AI allowance for this month. The owner can buy more credits.`, 'ai_allowance');
   }
+  await enforceLimit('planSuggestPerHour', community.id, 'AI planning is limited to a few runs an hour per community. Please try again later.');
   const b = obj(ctx.body);
   const request: SuggestPlanRequest = {
     constraints: parseConstraints(b.constraints),

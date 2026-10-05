@@ -94,6 +94,8 @@ export const api = {
   me: () => request<MeResponse>('GET', '/api/me'),
   updateMe: (body: UpdateMeRequest) => request<MeResponse>('PATCH', '/api/me', body),
   linkCode: () => request<LinkCodeResponse>('POST', '/api/me/link-code'),
+  exportMe: () => request<unknown>('GET', '/api/me/export'),
+  deleteMe: () => request<Ok>('DELETE', '/api/me'),
   unlinkChannel: (kind: string, address: string) => request<Ok>('DELETE', `/api/me/channels/${enc(kind)}/${enc(address)}`),
 
   createCommunity: (body: CreateCommunityRequest) => request<Community>('POST', '/api/communities', body),

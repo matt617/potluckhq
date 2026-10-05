@@ -18,6 +18,8 @@ import * as apigw from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as budgets from 'aws-cdk-lib/aws-budgets';
+import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
+import * as cwActions from 'aws-cdk-lib/aws-cloudwatch-actions';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
@@ -31,6 +33,8 @@ import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+import * as ses from 'aws-cdk-lib/aws-ses';
+import * as sesActions from 'aws-cdk-lib/aws-ses-actions';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as subs from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
@@ -47,6 +51,10 @@ export interface StackConfig {
   smsEnabled: boolean;
   smsOriginationNumber?: string;
   sesFromEmail?: string;
+  /** Send Cognito emails (sign-up codes, password resets) through SES. Needs the SES domain verified first. */
+  cognitoUseSes: boolean;
+  /** Inbox that receives mail sent to support@, privacy@ and legal@ on the custom domain. */
+  forwardEmail?: string;
   geminiModel: string;
   pitr: boolean;
   skipYtdlp: boolean;
@@ -85,6 +93,8 @@ export function readStackConfig(app: App | Construct): StackConfig {
     smsEnabled: ctxBool(app, 'smsEnabled', false),
     smsOriginationNumber: ctxString(app, 'smsOriginationNumber'),
     sesFromEmail: ctxString(app, 'sesFromEmail'),
+    cognitoUseSes: ctxBool(app, 'cognitoUseSes', false),
+    forwardEmail: ctxString(app, 'forwardEmail') ?? ctxString(app, 'alertEmail'),
     geminiModel: ctxString(app, 'geminiModel') ?? 'gemini-flash-lite-latest',
     pitr: ctxBool(app, 'pitr', false),
     skipYtdlp: ctxBool(app, 'skipYtdlp', false),
@@ -105,7 +115,8 @@ export interface PotluckStackProps extends StackProps {
 export class PotluckStack extends Stack {
   constructor(scope: Construct, id: string, props: PotluckStackProps) {
     super(scope, id, props);
-    const cfg = props.config;
+    const cfg = { ...props.config };
+    if (cfg.domainName && !cfg.sesFromEmail) cfg.sesFromEmail = `Potluck <no-reply@${cfg.domainName}>`;
     const paramPrefix = `/potluck/${cfg.stage}/`;
 
     // ---------- Data ----------
@@ -163,6 +174,9 @@ export class PotluckStack extends Stack {
       description: `Potluck API (${cfg.stage})`,
       createDefaultStage: true,
     });
+    // Whole-API safety net; per-user limits live in the Lambda code (lib/ratelimit.ts).
+    const defaultStage = httpApi.defaultStage?.node.defaultChild as apigw.CfnStage | undefined;
+    defaultStage?.addPropertyOverride('DefaultRouteSettings', { ThrottlingRateLimit: 50, ThrottlingBurstLimit: 100 });
     const apiDomain = `${httpApi.apiId}.execute-api.${this.region}.amazonaws.com`;
 
     // ---------- CloudFront ----------
@@ -176,6 +190,21 @@ export class PotluckStack extends Stack {
         domainName: cfg.domainName,
         subjectAlternativeNames: [`www.${cfg.domainName}`],
         validation: acm.CertificateValidation.fromDns(zone),
+      });
+    }
+
+    // ---------- Email (SES) ----------
+    let emailIdentity: ses.EmailIdentity | undefined;
+    if (zone && cfg.domainName) {
+      // DKIM, MAIL FROM (MX + SPF) records are created in the hosted zone automatically.
+      emailIdentity = new ses.EmailIdentity(this, 'EmailIdentity', {
+        identity: ses.Identity.publicHostedZone(zone),
+        mailFromDomain: `mail.${cfg.domainName}`,
+      });
+      new route53.TxtRecord(this, 'Dmarc', {
+        zone,
+        recordName: `_dmarc.${cfg.domainName}`,
+        values: ['v=DMARC1; p=quarantine; adkim=s; aspf=r; pct=100'],
       });
     }
 
@@ -280,6 +309,29 @@ export class PotluckStack extends Stack {
       passwordPolicy: { minLength: 10, requireSymbols: false, requireUppercase: false, requireDigits: true, requireLowercase: true },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       featurePlan: cognito.FeaturePlan.ESSENTIALS,
+      ...(cfg.cognitoUseSes && cfg.domainName
+        ? {
+            email: cognito.UserPoolEmail.withSES({
+              fromEmail: `no-reply@${cfg.domainName}`,
+              fromName: 'Potluck',
+              replyTo: `support@${cfg.domainName}`,
+              sesRegion: this.region,
+              sesVerifiedDomain: cfg.domainName,
+            }),
+          }
+        : {}),
+      userVerification: {
+        emailStyle: cognito.VerificationEmailStyle.CODE,
+        emailSubject: 'Your Potluck code',
+        emailBody: [
+          '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#141413;max-width:480px;margin:0 auto;padding:24px">',
+          '<p style="font-size:18px;font-weight:600;margin:0 0 16px">Potluck</p>',
+          '<p style="margin:0 0 12px">Here is your verification code:</p>',
+          '<p style="font-size:28px;font-weight:600;letter-spacing:6px;margin:0 0 20px;font-family:Menlo,monospace">{####}</p>',
+          '<p style="color:#6b6a65;font-size:14px;margin:0">It expires in 24 hours. If you did not ask for this, you can ignore this email.</p>',
+          '</div>',
+        ].join(''),
+      },
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
@@ -412,8 +464,9 @@ export class PotluckStack extends Stack {
 
     const apiFn = makeFn('ApiFn', 'api', {
       description: 'Potluck web API',
-      environment: { SES_FROM_EMAIL: cfg.sesFromEmail ?? '' },
+      environment: { SES_FROM_EMAIL: cfg.sesFromEmail ?? '', USER_POOL_ID: userPool.userPoolId },
     });
+    apiFn.addToRolePolicy(new iam.PolicyStatement({ actions: ['cognito-idp:AdminDeleteUser'], resources: [userPool.userPoolArn] }));
     const webhooksFn = makeFn('WebhooksFn', 'webhooks', { description: 'Telegram, WhatsApp and Stripe webhooks' });
 
     const layerDir = join(REPO_ROOT, 'infra', 'layers', 'ytdlp');
@@ -442,7 +495,8 @@ export class PotluckStack extends Stack {
       layers: ytdlpLayer ? [ytdlpLayer] : [],
       environment: { YTDLP_PATH: '/opt/bin/yt-dlp', FFMPEG_DIR: '/opt/bin', HOME: '/tmp', XDG_CACHE_HOME: '/tmp' },
     });
-    workerFn.addEventSource(new SqsEventSource(ingestQueue, { batchSize: 1, reportBatchItemFailures: true }));
+    // maxConcurrency caps parallel Gemini calls, which bounds cost during a burst of imports.
+    workerFn.addEventSource(new SqsEventSource(ingestQueue, { batchSize: 1, reportBatchItemFailures: true, maxConcurrency: 5 }));
 
     let smsFn: NodejsFunction | undefined;
     let smsTopic: sns.Topic | undefined;
@@ -495,7 +549,10 @@ export class PotluckStack extends Stack {
     mediaBucket.grantRead(workerFn, 'media/*');
 
     if (cfg.sesFromEmail) {
-      apiFn.addToRolePolicy(new iam.PolicyStatement({ actions: ['ses:SendEmail'], resources: ['*'] }));
+      apiFn.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['ses:SendEmail'],
+        resources: [`arn:${this.partition}:ses:${this.region}:${this.account}:identity/*`],
+      }));
     }
 
     // ---------- Routes ----------
@@ -532,6 +589,91 @@ export class PotluckStack extends Stack {
       memoryLimit: 256,
     });
 
+    // ---------- Inbound mail forwarding ----------
+    if (zone && cfg.domainName && emailIdentity && cfg.forwardEmail) {
+      const mailBucket = new s3.Bucket(this, 'MailBucket', {
+        blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+        enforceSSL: true,
+        encryption: s3.BucketEncryption.S3_MANAGED,
+        lifecycleRules: [{ expiration: Duration.days(30) }],
+        removalPolicy: RemovalPolicy.RETAIN,
+      });
+      const mailFn = makeFn('MailFn', 'mail', {
+        description: 'Forward support, privacy and legal mail to the operator',
+        environment: { MAIL_BUCKET: mailBucket.bucketName, FORWARD_TO: cfg.forwardEmail, FORWARD_FROM: `forwarder@${cfg.domainName}` },
+      });
+      mailBucket.grantRead(mailFn, 'inbound/*');
+      mailFn.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+        resources: [`arn:${this.partition}:ses:${this.region}:${this.account}:identity/*`],
+      }));
+      const ruleSet = new ses.ReceiptRuleSet(this, 'InboundRules', {
+        rules: [{
+          recipients: ['support', 'privacy', 'legal', 'hello'].map((a) => `${a}@${cfg.domainName}`),
+          scanEnabled: true,
+          actions: [
+            new sesActions.S3({ bucket: mailBucket, objectKeyPrefix: 'inbound/' }),
+            new sesActions.Lambda({ function: mailFn, invocationType: sesActions.LambdaInvocationType.EVENT }),
+          ],
+        }],
+      });
+      new cr.AwsCustomResource(this, 'ActivateInboundRules', {
+        installLatestAwsSdk: false,
+        onCreate: { service: 'SES', action: 'setActiveReceiptRuleSet', parameters: { RuleSetName: ruleSet.receiptRuleSetName }, physicalResourceId: cr.PhysicalResourceId.of('active-rule-set') },
+        onUpdate: { service: 'SES', action: 'setActiveReceiptRuleSet', parameters: { RuleSetName: ruleSet.receiptRuleSetName }, physicalResourceId: cr.PhysicalResourceId.of('active-rule-set') },
+        onDelete: { service: 'SES', action: 'setActiveReceiptRuleSet', parameters: {} },
+        policy: cr.AwsCustomResourcePolicy.fromStatements([new iam.PolicyStatement({ actions: ['ses:SetActiveReceiptRuleSet'], resources: ['*'] })]),
+      });
+      new route53.MxRecord(this, 'InboundMx', {
+        zone,
+        recordName: cfg.domainName,
+        values: [{ priority: 10, hostName: `inbound-smtp.${this.region}.amazonaws.com` }],
+      });
+    }
+
+    // ---------- Alarms ----------
+    const alertTopic = new sns.Topic(this, 'AlertTopic', { displayName: `Potluck ${cfg.stage} alerts` });
+    if (cfg.alertEmail) alertTopic.addSubscription(new subs.EmailSubscription(cfg.alertEmail));
+    const notify = new cwActions.SnsAction(alertTopic);
+    const alarm = (id: string, metric: cloudwatch.IMetric, threshold: number, description: string, evaluationPeriods = 1) => {
+      const a = new cloudwatch.Alarm(this, id, {
+        alarmName: `potluck-${cfg.stage}-${id}`,
+        alarmDescription: description,
+        metric,
+        threshold,
+        evaluationPeriods,
+        comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      });
+      a.addAlarmAction(notify);
+      a.addOkAction(notify);
+      return a;
+    };
+    const five = Duration.minutes(5);
+    const hour = Duration.hours(1);
+    alarm('dlq-messages', dlq.metricApproximateNumberOfMessagesVisible({ period: five, statistic: 'Maximum' }), 1,
+      'Recipe imports failed three times and landed in the dead-letter queue.');
+    const fns: [string, lambda.IFunction, number][] = [['api', apiFn, 5], ['webhooks', webhooksFn, 5], ['worker', workerFn, 3], ...(smsFn ? [['sms', smsFn, 3] as [string, lambda.IFunction, number]] : [])];
+    for (const [name, fn, threshold] of fns) {
+      alarm(`${name}-errors`, fn.metricErrors({ period: five, statistic: 'Sum' }), threshold, `The ${name} Lambda is throwing errors.`);
+      alarm(`${name}-throttles`, fn.metricThrottles({ period: five, statistic: 'Sum' }), 1, `The ${name} Lambda is being throttled.`);
+    }
+    alarm('worker-slow', workerFn.metricDuration({ period: five, statistic: 'p95' }), 240_000,
+      'Imports are taking close to the 5 minute Lambda timeout.', 2);
+    alarm('api-5xx', new cloudwatch.Metric({ namespace: 'AWS/ApiGateway', metricName: '5xx', dimensionsMap: { ApiId: httpApi.apiId }, period: five, statistic: 'Sum' }), 10,
+      'The HTTP API is returning server errors.');
+    const potluckMetric = (metricName: string, period: Duration) =>
+      new cloudwatch.Metric({ namespace: 'Potluck', metricName, dimensionsMap: { Stage: cfg.stage }, period, statistic: 'Sum' });
+    alarm('ai-spend', potluckMetric('AiCostMicros', hour), 1_000_000, 'Gemini spend passed $1.00 in one hour.');
+    alarm('imports-failing', potluckMetric('ImportFailed', hour), 10, 'Ten or more recipe imports failed in the last hour.');
+    alarm('rate-limited', potluckMetric('RateLimited', hour), 50, 'Many requests are being rate limited, which may mean abuse.');
+    if (emailIdentity) {
+      alarm('ses-bounce-rate', new cloudwatch.Metric({ namespace: 'AWS/SES', metricName: 'Reputation.BounceRate', period: hour, statistic: 'Maximum' }), 0.04,
+        'SES bounce rate is near the 5% level where AWS reviews the account.');
+      alarm('ses-complaint-rate', new cloudwatch.Metric({ namespace: 'AWS/SES', metricName: 'Reputation.ComplaintRate', period: hour, statistic: 'Maximum' }), 0.001,
+        'SES complaint rate is near the 0.1% level where AWS reviews the account.');
+    }
+
     // ---------- Budget alarm ----------
     if (cfg.alertEmail) {
       new budgets.CfnBudget(this, 'MonthlyBudget', {
@@ -565,6 +707,7 @@ export class PotluckStack extends Stack {
     new CfnOutput(this, 'TableName', { value: table.tableName });
     new CfnOutput(this, 'ParamPrefix', { value: paramPrefix });
     new CfnOutput(this, 'IngestDlqUrl', { value: dlq.queueUrl });
+    new CfnOutput(this, 'AlertTopicArn', { value: alertTopic.topicArn });
     if (smsTopic) {
       new CfnOutput(this, 'SmsInboundTopicArn', {
         value: smsTopic.topicArn,

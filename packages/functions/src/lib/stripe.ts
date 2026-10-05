@@ -18,7 +18,7 @@ export function formEncode(obj: Record<string, unknown>, prefix = ''): string[] 
   return out;
 }
 
-export async function stripeApi<T>(method: 'GET' | 'POST', path: string, params?: Record<string, unknown>): Promise<T> {
+export async function stripeApi<T>(method: 'GET' | 'POST' | 'DELETE', path: string, params?: Record<string, unknown>): Promise<T> {
   const key = (await secrets())['stripe-secret-key'];
   if (!key) throw new Error('Stripe is not configured');
   const body = params ? formEncode(params).join('&') : undefined;

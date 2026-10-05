@@ -49,7 +49,7 @@ router.on('POST', '/webhooks/telegram', async (ctx: Ctx) => {
       return;
     }
     const reply = await handleInbound({ channel: 'telegram', address: chatId, text: m.text ?? m.caption ?? '', media });
-    await sendTelegram(chatId, reply);
+    if (reply) await sendTelegram(chatId, reply);
   });
   return ok();
 });
@@ -83,7 +83,7 @@ router.on('POST', '/webhooks/whatsapp', async (ctx) => {
           const text = m.text?.body ?? m.image?.caption ?? m.video?.caption ?? '';
           if (!text && !media.length) return;
           const reply = await handleInbound({ channel: 'whatsapp', address: m.from, text, media });
-          await sendWhatsApp(m.from, reply);
+          if (reply) await sendWhatsApp(m.from, reply);
         });
       }
     }
@@ -96,7 +96,7 @@ router.on('POST', '/webhooks/whatsapp', async (ctx) => {
 
 async function applySubscription(sub: StripeSubscription): Promise<void> {
   const userId = sub.metadata?.userId ?? (await repo.userForStripeCustomer(sub.customer));
-  if (!userId) {
+  if (!userId || !(await repo.getUser(userId))) {
     console.warn('Subscription for unknown customer', sub.customer);
     return;
   }
@@ -117,7 +117,7 @@ router.on('POST', '/webhooks/stripe', async (ctx) => {
       case 'checkout.session.completed': {
         const session = event.data.object as StripeCheckoutSession;
         const userId = session.client_reference_id ?? session.metadata?.userId;
-        if (!userId) return;
+        if (!userId || !(await repo.getUser(userId))) return;
         if (session.customer) {
           await repo.mapStripeCustomer(session.customer, userId);
           await repo.updateUser(userId, { stripeCustomerId: session.customer });

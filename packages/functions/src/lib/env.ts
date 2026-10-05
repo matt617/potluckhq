@@ -13,5 +13,6 @@ export const env = {
   get smsOriginationNumber() { return e('SMS_ORIGINATION_NUMBER'); },
   get ffmpegDir() { return e('FFMPEG_DIR', '/opt/bin'); },
   get ytdlpPath() { return e('YTDLP_PATH', '/opt/bin/yt-dlp'); },
+  get userPoolId() { return e('USER_POOL_ID'); },
   get sesFromEmail() { return e('SES_FROM_EMAIL'); },
 };

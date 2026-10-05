@@ -4,6 +4,7 @@ import { HttpError } from './http.js';
 import { newId } from './ids.js';
 import { createImport, describeSource } from './imports.js';
 import { HELP_TEXT, listText, planText } from './messages.js';
+import { allowLimit } from './ratelimit.js';
 import * as repo from './repo.js';
 import { putObject } from './s3.js';
 import { secrets } from './secrets.js';
@@ -38,10 +39,13 @@ export async function handleInbound(msg: InboundMessage): Promise<string> {
   }
 
   if (!link) {
+    // Each reply to a stranger can cost money on SMS and WhatsApp, so answer rarely.
+    if (!(await allowLimit('unknownSenderRepliesPer30Min', `${msg.channel}:${msg.address}`))) return '';
     return `Hi! I'm the Potluck recipe bot. To save recipes, first link this chat:\n1. Open ${env.appUrl}/account\n2. Tap "Link a chat" and send me the 6-character code.`;
   }
 
   const userId = link.userId;
+  if (!(await allowLimit('chatMessagesPer10Min', `${msg.channel}:${msg.address}`))) return '';
   const user = await repo.getUser(userId);
   if (!user) return 'Your account could not be found. Please sign in to the app again.';
   const memberships = await repo.listUserMemberships(userId);

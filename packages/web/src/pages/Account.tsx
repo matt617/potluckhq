@@ -39,6 +39,7 @@ export function Account() {
       <ChatsSection />
       <UsageSection />
       {publicConfig && <BillingSection />}
+      <DangerZone />
       <Flash message={flash} />
     </div>
   );
@@ -355,7 +356,7 @@ function BillingSection() {
       {paid && cfg.billingEnabled && (
         <>
           <h3 className="h4">AI credits</h3>
-          <p className="small muted">When your monthly AI allowance runs out, credit packs keep AI planning going. Credits never expire.</p>
+          <p className="small muted">When your monthly AI allowance runs out, credit packs keep AI planning going. Credits stay available while your account is open.</p>
           <div className="row wrap">
             {cfg.creditPacks.map((p) => (
               <button key={p.id} className="btn" disabled={!!busy} onClick={() => go(p.id, () => api.checkout({ creditPackId: p.id }))}>
@@ -368,6 +369,96 @@ function BillingSection() {
           </button>
         </>
       )}
+      <ErrorNote error={error} />
+    </section>
+  );
+}
+
+function DangerZone() {
+  const { me } = useSession();
+  const [confirmText, setConfirmText] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState<unknown>();
+  const owned = (me?.communities ?? []).filter((c) => c.role === 'owner');
+
+  async function download() {
+    setExporting(true);
+    setError(undefined);
+    try {
+      const data = await api.exportMe();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `potluck-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function remove() {
+    setError(undefined);
+    try {
+      await api.deleteMe();
+      await logout();
+    } catch (e) {
+      setError(e);
+    }
+  }
+
+  return (
+    <section id="data" className="card stack danger-zone" aria-labelledby="danger-zone-title">
+      <h2 id="danger-zone-title">Your data</h2>
+      <div className="stack">
+        <h3 className="h4">Download my data</h3>
+        <p className="small muted">A JSON file with your profile, recipes, communities, meal plans, shopping lists and linked chats.</p>
+        <div>
+          <button type="button" className="btn" disabled={exporting} onClick={() => void download()}>
+            {exporting ? 'Preparing file' : 'Download my data'}
+          </button>
+        </div>
+      </div>
+      <div className="stack danger-delete">
+        <h3 className="h4">Delete account</h3>
+        <p className="small">Deleting your account is permanent and cannot be undone. When you delete it:</p>
+        <ul className="small danger-list">
+          <li>Every recipe you added is deleted.</li>
+          <li>You leave every community you belong to.</li>
+          {owned.length > 0 ? (
+            <li>
+              Communities you own are deleted for everyone in them: <strong>{owned.map((c) => c.name).join(', ')}</strong>.
+            </li>
+          ) : (
+            <li>Communities you own are deleted for everyone in them. You do not own any right now.</li>
+          )}
+          <li>Any paid subscription is cancelled immediately, with no refund.</li>
+          <li>Remaining AI credits are forfeited.</li>
+          <li>Linked Telegram, WhatsApp and SMS chats are unlinked.</li>
+        </ul>
+        <Field label="Type DELETE to confirm">
+          <input
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            aria-describedby="delete-help"
+          />
+        </Field>
+        <p id="delete-help" className="small muted">
+          The delete button unlocks when the box says DELETE.
+        </p>
+        <div>
+          <ConfirmButton disabled={confirmText.trim() !== 'DELETE'} confirmLabel="Tap again to delete forever" onConfirm={remove}>
+            Delete my account
+          </ConfirmButton>
+        </div>
+      </div>
       <ErrorNote error={error} />
     </section>
   );

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { BookOpenText, CalendarBlank, Basket, UsersThree, UserCircle } from '@phosphor-icons/react';
 import { ApiError } from '../api';
 import { login } from '../lib/auth';
@@ -66,6 +66,11 @@ export function Layout() {
           </section>
         )}
       </main>
+      <footer className="app-footer small">
+        <Link to="/privacy">Privacy</Link>
+        <Link to="/terms">Terms</Link>
+        <a href="mailto:support@potluckhq.app">Support</a>
+      </footer>
       <nav className="tabbar" aria-label="Main">
         {NAV.map(({ to, label, Icon }) => (
           <NavLink key={to} to={to}>

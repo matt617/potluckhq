@@ -22,6 +22,7 @@ import { extractRecipe } from './extract.js';
 import { RetryableError, UserFacingError, videoPartFromFile, type Part } from './gemini.js';
 import { newId, nowIso } from './ids.js';
 import { recipeReadyText, recipeLink } from './messages.js';
+import { emitMetric } from './metrics.js';
 import * as repo from './repo.js';
 import { deleteObject, getObjectBytes, storeThumbnail } from './s3.js';
 
@@ -94,6 +95,7 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
     await repo.shareRecipe(recipe, job.communityId, job.userId);
     if (urlHash) await repo.putCommunitySourceRecipe(job.communityId, urlHash, recipe.id);
     await repo.updateImport(job.id, { status: 'done', recipeId: recipe.id });
+    emitMetric('ImportSucceeded', 1, 'Count');
     let text = recipeReadyText(recipe, community.name);
     if (ex.extracted.additionalDishes?.length) text += `\n\nThis video also showed: ${ex.extracted.additionalDishes.join(', ')}.`;
     await reply(job, text);
@@ -215,6 +217,7 @@ export function toRecipe(job: ImportJob, ex: Extraction): Recipe {
 }
 
 async function fail(job: ImportJob, message: string): Promise<void> {
+  emitMetric('ImportFailed', 1, 'Count');
   await repo.updateImport(job.id, { status: 'failed', error: message });
   await reply(job, `⚠️ ${message}`);
 }

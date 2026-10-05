@@ -591,3 +591,52 @@ export async function putCommunitySourceRecipe(communityId: string, urlHash: str
 export async function unmarkEvent(provider: string, id: string): Promise<void> {
   await ddb.send(new DeleteCommand({ TableName: T(), Key: { pk: `EVENT#${provider}#${id}`, sk: 'SEEN' } }));
 }
+
+/* ------------------------------ account lifecycle ------------------------------ */
+
+async function deleteKeys(keys: { pk: string; sk: string }[]): Promise<void> {
+  for (let i = 0; i < keys.length; i += 25) {
+    let pending: Record<string, unknown>[] | undefined = keys.slice(i, i + 25).map((Key) => ({ DeleteRequest: { Key } }));
+    for (let attempt = 0; pending?.length && attempt < 5; attempt++) {
+      const res = await ddb.send(new BatchWriteCommand({ RequestItems: { [T()]: pending as never } }));
+      pending = res.UnprocessedItems?.[T()] as Record<string, unknown>[] | undefined;
+    }
+  }
+}
+
+export async function listUserRecipes(userId: string): Promise<Recipe[]> {
+  const items = await queryAll({
+    IndexName: 'gsi1',
+    KeyConditionExpression: 'gsi1pk = :p AND begins_with(gsi1sk, :s)',
+    ExpressionAttributeValues: { ':p': `USER#${userId}`, ':s': 'RECIPE#' },
+  }, 100_000);
+  const ids = items.map((i) => String(i.pk).slice('RECIPE#'.length));
+  return [...(await batchGetRecipes(ids)).values()];
+}
+
+export async function listAllUserImports(userId: string): Promise<ImportJob[]> {
+  const items = await queryAll({
+    IndexName: 'gsi1',
+    KeyConditionExpression: 'gsi1pk = :p AND begins_with(gsi1sk, :s)',
+    ExpressionAttributeValues: { ':p': `USER#${userId}`, ':s': 'IMPORT#' },
+  }, 100_000);
+  return items.map((i) => clean<ImportJob>(i)!);
+}
+
+export async function listLedger(userId: string): Promise<Record<string, unknown>[]> {
+  return queryAll({
+    KeyConditionExpression: 'pk = :p AND begins_with(sk, :s)',
+    ExpressionAttributeValues: { ':p': `USER#${userId}`, ':s': 'LEDGER#' },
+  }, 100_000);
+}
+
+/** Remove everything stored under a user's own partition plus their import jobs. */
+export async function purgeUserRecords(userId: string, stripeCustomerId?: string): Promise<void> {
+  const own = await queryAll({ KeyConditionExpression: 'pk = :p', ExpressionAttributeValues: { ':p': `USER#${userId}` } }, 100_000);
+  const imports = await listAllUserImports(userId);
+  await deleteKeys([
+    ...own.map((i) => ({ pk: String(i.pk), sk: String(i.sk) })),
+    ...imports.map((j) => ({ pk: `IMPORT#${j.id}`, sk: 'META' })),
+    ...(stripeCustomerId ? [{ pk: `STRIPECUST#${stripeCustomerId}`, sk: 'MAP' }] : []),
+  ]);
+}

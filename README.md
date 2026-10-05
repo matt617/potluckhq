@@ -52,3 +52,8 @@ scripts/set-telegram-webhook.sh --stage prod
 ```
 
 See `docs/setup.md` for each channel and for billing.
+
+## Shipping changes
+
+Open a pull request. The pipeline tests, scans for secrets and synthesizes the stack; merging to `main` deploys to
+https://potluckhq.app and smoke-tests it. Details are in `docs/setup.md` under continuous delivery.

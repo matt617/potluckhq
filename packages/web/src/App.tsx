@@ -8,6 +8,7 @@ import { InvitePage } from './pages/InvitePage';
 import { NotFound } from './pages/NotFound';
 import { Landing } from './pages/Landing';
 import { Planner } from './pages/Planner';
+import { PrivacyPage, TermsPage } from './pages/Legal';
 import { RecipeBook } from './pages/RecipeBook';
 import { RecipeDetail } from './pages/RecipeDetail';
 import { Shopping } from './pages/Shopping';
@@ -20,6 +21,8 @@ export function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/invite/:token" element={<InvitePage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route element={<Layout />}>
             <Route path="/book" element={<RecipeBook />} />
             <Route path="/book/:rid" element={<RecipeDetail />} />
