@@ -11,10 +11,11 @@ interface Props {
   isOwner: boolean;
   initialConstraints: PlanConstraint[];
   hasEdits: boolean;
+  attendance?: Record<string, string[]>;
   onPlan: (res: SuggestPlanResponse) => void;
 }
 
-export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstraints, hasEdits, onPlan }: Props) {
+export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstraints, hasEdits, onPlan, attendance }: Props) {
   const [constraints, setConstraints] = useState<PlanConstraint[]>(initialConstraints);
   const [notes, setNotes] = useState('');
   const [awayDays, setAwayDays] = useState<number[]>([]);
@@ -28,16 +29,13 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
     return (
       <section className="card note-upgrade stack">
         <h2 className="h3">Let AI plan your week</h2>
-        <p>
-          Tell Potluck about travel, long work days, a long weekend, GLP-1 or your training schedule, and it will build a plan from your
-          recipe book. AI planning comes with Plus and Pro.
-        </p>
+        <p>Choose quick meals, a budget or planned leftovers, and Potluck will suggest a week from your recipe book. AI planning comes with Plus and Pro.</p>
         {isOwner ? (
           <Link className="btn btn-primary" to="/account#billing">
             See plans
           </Link>
         ) : (
-          <p className="muted small">Ask the community owner to upgrade to unlock AI planning.</p>
+          <p className="muted small">The kitchen owner can upgrade to unlock AI planning for everyone here.</p>
         )}
       </section>
     );
@@ -46,6 +44,7 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
   async function suggest() {
+    if (hasEdits && !window.confirm('Replace your unsaved meal-plan draft with a new suggestion?')) return;
     setBusy(true);
     setError(undefined);
     try {
@@ -56,6 +55,7 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
         slots,
         servings,
         allowNewIdeas,
+        attendance,
       });
       onPlan(res);
     } catch (e) {
@@ -71,15 +71,24 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
         Suggest a plan with AI
       </h2>
       <div className="chips" role="group" aria-label="This week">
-        {PLAN_CONSTRAINTS.map((c) => (
+        {PLAN_CONSTRAINTS.filter((c) => c.id !== 'glp1' && c.id !== 'workout').map((c) => (
           <Chip key={c.id} active={constraints.includes(c.id)} title={c.hint} onClick={() => setConstraints((l) => toggle(l, c.id))}>
             {c.label}
           </Chip>
         ))}
       </div>
-      {constraints.includes('glp1') && (
-        <p className="small muted">GLP-1 suggestions favor smaller, protein-forward portions. They are not medical advice.</p>
-      )}
+      <details>
+        <summary>Advanced food preferences</summary>
+        <div className="chips">
+          {PLAN_CONSTRAINTS.filter((c) => c.id === 'glp1' || c.id === 'workout').map((c) => (
+            <Chip key={c.id} active={constraints.includes(c.id)} title={c.hint} onClick={() => setConstraints((l) => toggle(l, c.id))}>
+              {c.label}
+            </Chip>
+          ))}
+        </div>
+        <p className="small muted">Applies to this draft. Shared summaries do not include personal health details.</p>
+      </details>
+      {constraints.includes('glp1') && <p className="small muted">GLP-1 suggestions favor smaller, protein-forward portions. They are not medical advice.</p>}
       <fieldset className="fieldset">
         <legend>Away or not cooking</legend>
         <div className="chips">
@@ -133,6 +142,11 @@ export function AiResult({ res, onDismiss }: { res: SuggestPlanResponse; onDismi
         </button>
       </div>
       {res.plan.aiSummary && <p>{res.plan.aiSummary}</p>}
+      {res.warnings?.map((w) => (
+        <p key={w} className="note">
+          {w}
+        </p>
+      ))}
       {res.newIdeas.length > 0 && (
         <>
           <h3 className="h4">New ideas to find</h3>

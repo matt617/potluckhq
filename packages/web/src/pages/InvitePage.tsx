@@ -22,7 +22,7 @@ export function InvitePage() {
       const c = await api.acceptInvite(token);
       await refreshMe();
       setCommunityId(c.id);
-      navigate('/book', { replace: true });
+      navigate(`${c.kind === 'circle' ? '/book' : '/week'}?kitchen=${encodeURIComponent(c.id)}`, { replace: true });
     } catch (e) {
       setError(e);
     } finally {
@@ -40,13 +40,14 @@ export function InvitePage() {
             <p className="eyebrow">You're invited</p>
             <h1>Join {preview.data.communityName}</h1>
             <p className="muted">
-              {preview.data.invitedByName} invited you to share recipes, meal plans and shopping lists. This invite expires{' '}
-              {formatDate(preview.data.expiresAt, { month: 'long', day: 'numeric' })}.
+              {preview.data.invitedByName} invited you to{' '}
+              {preview.data.kind === 'circle'
+                ? 'exchange recipes in a private circle. Your kitchen, groceries and food profile stay separate.'
+                : 'save recipes, plan meals and shop together. Your personal food profile stays private until you choose what to share.'}{' '}
+              This invite expires {formatDate(preview.data.expiresAt, { month: 'long', day: 'numeric' })}.
             </p>
             {preview.data.full ? (
-              <div className="note note-upgrade">
-                This community is full on its current plan. Ask {preview.data.invitedByName} to upgrade, then try again.
-              </div>
+              <div className="note note-upgrade">This group has reached its member limit. The owner can review membership or kitchen plan options.</div>
             ) : signedIn ? (
               <button className="btn btn-primary btn-large" disabled={busy} onClick={accept}>
                 {busy ? 'Joining…' : 'Accept invite'}

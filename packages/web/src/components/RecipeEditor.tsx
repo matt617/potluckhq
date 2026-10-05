@@ -77,6 +77,7 @@ export function RecipeEditor({ recipe, onCancel, onSaved }: { recipe: Recipe; on
     setError(undefined);
     try {
       const res = await api.updateRecipe(recipe.id, {
+        updatedAt: recipe.updatedAt,
         title: title.trim(),
         description: description.trim() || undefined,
         servings: Math.max(1, Number(servings) || recipe.servings),
@@ -86,7 +87,10 @@ export function RecipeEditor({ recipe, onCancel, onSaved }: { recipe: Recipe; on
         tags: splitList(tags).map((t) => t.toLowerCase()),
         ingredients: textToIngredients(ingredients, recipe.ingredients),
         steps: textToSteps(steps, recipe.steps),
-        tips: tips.split('\n').map((t) => t.trim()).filter(Boolean),
+        tips: tips
+          .split('\n')
+          .map((t) => t.trim())
+          .filter(Boolean),
       });
       onSaved(res.recipe);
     } catch (err) {

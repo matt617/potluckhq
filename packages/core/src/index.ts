@@ -7,3 +7,4 @@ export * from './ingredients.js';
 export * from './shopping.js';
 export * from './week.js';
 export * from './api.js';
+export * from './kitchen.js';

@@ -6,17 +6,7 @@ export type ChannelKind = 'telegram' | 'whatsapp' | 'sms' | 'web';
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 export const MEAL_SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
-export type Aisle =
-  | 'produce'
-  | 'meat_seafood'
-  | 'dairy_eggs'
-  | 'bakery'
-  | 'pantry'
-  | 'spices'
-  | 'frozen'
-  | 'beverages'
-  | 'condiments'
-  | 'other';
+export type Aisle = 'produce' | 'meat_seafood' | 'dairy_eggs' | 'bakery' | 'pantry' | 'spices' | 'frozen' | 'beverages' | 'condiments' | 'other';
 
 export const AISLES: { id: Aisle; label: string }[] = [
   { id: 'produce', label: 'Produce' },
@@ -102,22 +92,17 @@ export interface RecipeSource {
   thumbnailKey?: string;
 }
 
-export type Platform =
-  | 'tiktok'
-  | 'instagram'
-  | 'youtube'
-  | 'facebook'
-  | 'pinterest'
-  | 'x'
-  | 'web'
-  | 'photo'
-  | 'upload'
-  | 'text';
+export type Platform = 'tiktok' | 'instagram' | 'youtube' | 'facebook' | 'pinterest' | 'x' | 'web' | 'photo' | 'upload' | 'text';
 
 export interface Recipe {
   id: string;
   /** Missing on older records, which are all recipes. */
   kind?: RecipeKind;
+  /** Copies have independent identity and retain their immediate source for reviewed updates. */
+  originRecipeId?: string;
+  originUpdatedAt?: string;
+  kitchenId?: string;
+  archived?: boolean;
   ownerId: string;
   title: string;
   description?: string;
@@ -147,6 +132,7 @@ export interface Recipe {
 export interface RecipeSummary {
   id: string;
   kind?: RecipeKind;
+  archived?: boolean;
   title: string;
   ownerId: string;
   addedBy: string;
@@ -194,6 +180,7 @@ export interface UserProfile {
 
 export interface Community {
   id: string;
+  kind?: 'kitchen' | 'circle';
   name: string;
   ownerId: string;
   description?: string;
@@ -270,17 +257,11 @@ export interface PlanEntry {
   /** Plan entry id this one reuses as leftovers. */
   leftoverOf?: string;
   note?: string;
+  dinerIds?: string[];
+  cookId?: string;
 }
 
-export type PlanConstraint =
-  | 'travel'
-  | 'long_workdays'
-  | 'long_weekend'
-  | 'glp1'
-  | 'workout'
-  | 'budget'
-  | 'quick'
-  | 'batch_cook';
+export type PlanConstraint = 'travel' | 'long_workdays' | 'long_weekend' | 'glp1' | 'workout' | 'budget' | 'quick' | 'batch_cook';
 
 export const PLAN_CONSTRAINTS: { id: PlanConstraint; label: string; hint: string }[] = [
   { id: 'travel', label: 'Travel', hint: 'Away some days; skip cooking, use portable or freezer-friendly food.' },
@@ -294,6 +275,7 @@ export const PLAN_CONSTRAINTS: { id: PlanConstraint; label: string; hint: string
 ];
 
 export interface MealPlan {
+  revision?: number;
   communityId: string;
   /** ISO date (YYYY-MM-DD) of the Monday the plan starts on. */
   weekStart: string;
@@ -323,6 +305,7 @@ export interface ShoppingItem {
 }
 
 export interface ShoppingList {
+  planFingerprint?: string;
   communityId: string;
   weekStart: string;
   items: ShoppingItem[];

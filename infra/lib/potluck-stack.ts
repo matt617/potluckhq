@@ -1,16 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  Annotations,
-  CfnOutput,
-  Duration,
-  RemovalPolicy,
-  SecretValue,
-  Size,
-  Stack,
-  type StackProps,
-} from 'aws-cdk-lib';
+import { Annotations, CfnOutput, Duration, RemovalPolicy, SecretValue, Size, Stack, type StackProps } from 'aws-cdk-lib';
 import type { App } from 'aws-cdk-lib';
 import type { Construct } from 'constructs';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
@@ -267,7 +258,10 @@ export class PotluckStack extends Stack {
     const appUrl = cfg.domainName ? `https://${cfg.domainName}` : `https://${distribution.distributionDomainName}`;
     if (zone && cfg.domainName) {
       const target = route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution));
-      for (const [id, name] of [['Apex', cfg.domainName], ['Www', `www.${cfg.domainName}`]] as const) {
+      for (const [id, name] of [
+        ['Apex', cfg.domainName],
+        ['Www', `www.${cfg.domainName}`],
+      ] as const) {
         new route53.ARecord(this, `${id}A`, { zone, recordName: name, target });
         new route53.AaaaRecord(this, `${id}Aaaa`, { zone, recordName: name, target });
       }
@@ -293,9 +287,7 @@ export class PotluckStack extends Stack {
         },
         physicalResourceId: cr.PhysicalResourceId.of(`${mediaBucket.node.addr}-cors`),
       },
-      policy: cr.AwsCustomResourcePolicy.fromStatements([
-        new iam.PolicyStatement({ actions: ['s3:PutBucketCORS'], resources: [mediaBucket.bucketArn] }),
-      ]),
+      policy: cr.AwsCustomResourcePolicy.fromStatements([new iam.PolicyStatement({ actions: ['s3:PutBucketCORS'], resources: [mediaBucket.bucketArn] })]),
     });
 
     // ---------- Cognito ----------
@@ -545,6 +537,7 @@ export class PotluckStack extends Stack {
     mediaBucket.grantDelete(apiFn, 'media/*');
     // Technique videos: the API signs playback URLs for members and deletes them with the recipe or account.
     mediaBucket.grantRead(apiFn, 'private/*');
+    mediaBucket.grantPut(apiFn, 'private/techniques/*');
     mediaBucket.grantDelete(apiFn, 'private/*');
     mediaBucket.grantPut(webhooksFn, 'uploads/*');
     if (smsFn) mediaBucket.grantPut(smsFn, 'uploads/*');
@@ -553,12 +546,15 @@ export class PotluckStack extends Stack {
     mediaBucket.grantPut(workerFn, 'media/*');
     mediaBucket.grantRead(workerFn, 'media/*');
     mediaBucket.grantPut(workerFn, 'private/*');
+    mediaBucket.grantRead(workerFn, 'private/techniques/*');
 
     if (cfg.sesFromEmail) {
-      apiFn.addToRolePolicy(new iam.PolicyStatement({
-        actions: ['ses:SendEmail'],
-        resources: [`arn:${this.partition}:ses:${this.region}:${this.account}:identity/*`],
-      }));
+      apiFn.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['ses:SendEmail'],
+          resources: [`arn:${this.partition}:ses:${this.region}:${this.account}:identity/*`],
+        }),
+      );
     }
 
     // ---------- Routes ----------
@@ -585,10 +581,7 @@ export class PotluckStack extends Stack {
     }
     new s3deploy.BucketDeployment(this, 'WebDeployment', {
       destinationBucket: webBucket,
-      sources: [
-        ...(hasDist ? [s3deploy.Source.asset(cfg.webDistDir)] : []),
-        s3deploy.Source.jsonData('config.json', runtimeConfig),
-      ],
+      sources: [...(hasDist ? [s3deploy.Source.asset(cfg.webDistDir)] : []), s3deploy.Source.jsonData('config.json', runtimeConfig)],
       prune: hasDist,
       distribution,
       distributionPaths: ['/*'],
@@ -609,24 +602,38 @@ export class PotluckStack extends Stack {
         environment: { MAIL_BUCKET: mailBucket.bucketName, FORWARD_TO: cfg.forwardEmail, FORWARD_FROM: `forwarder@${cfg.domainName}` },
       });
       mailBucket.grantRead(mailFn, 'inbound/*');
-      mailFn.addToRolePolicy(new iam.PolicyStatement({
-        actions: ['ses:SendEmail', 'ses:SendRawEmail'],
-        resources: [`arn:${this.partition}:ses:${this.region}:${this.account}:identity/*`],
-      }));
+      mailFn.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+          resources: [`arn:${this.partition}:ses:${this.region}:${this.account}:identity/*`],
+        }),
+      );
       const ruleSet = new ses.ReceiptRuleSet(this, 'InboundRules', {
-        rules: [{
-          recipients: ['support', 'privacy', 'legal', 'hello'].map((a) => `${a}@${cfg.domainName}`),
-          scanEnabled: true,
-          actions: [
-            new sesActions.S3({ bucket: mailBucket, objectKeyPrefix: 'inbound/' }),
-            new sesActions.Lambda({ function: mailFn, invocationType: sesActions.LambdaInvocationType.EVENT }),
-          ],
-        }],
+        rules: [
+          {
+            recipients: ['support', 'privacy', 'legal', 'hello'].map((a) => `${a}@${cfg.domainName}`),
+            scanEnabled: true,
+            actions: [
+              new sesActions.S3({ bucket: mailBucket, objectKeyPrefix: 'inbound/' }),
+              new sesActions.Lambda({ function: mailFn, invocationType: sesActions.LambdaInvocationType.EVENT }),
+            ],
+          },
+        ],
       });
       new cr.AwsCustomResource(this, 'ActivateInboundRules', {
         installLatestAwsSdk: false,
-        onCreate: { service: 'SES', action: 'setActiveReceiptRuleSet', parameters: { RuleSetName: ruleSet.receiptRuleSetName }, physicalResourceId: cr.PhysicalResourceId.of('active-rule-set') },
-        onUpdate: { service: 'SES', action: 'setActiveReceiptRuleSet', parameters: { RuleSetName: ruleSet.receiptRuleSetName }, physicalResourceId: cr.PhysicalResourceId.of('active-rule-set') },
+        onCreate: {
+          service: 'SES',
+          action: 'setActiveReceiptRuleSet',
+          parameters: { RuleSetName: ruleSet.receiptRuleSetName },
+          physicalResourceId: cr.PhysicalResourceId.of('active-rule-set'),
+        },
+        onUpdate: {
+          service: 'SES',
+          action: 'setActiveReceiptRuleSet',
+          parameters: { RuleSetName: ruleSet.receiptRuleSetName },
+          physicalResourceId: cr.PhysicalResourceId.of('active-rule-set'),
+        },
         onDelete: { service: 'SES', action: 'setActiveReceiptRuleSet', parameters: {} },
         policy: cr.AwsCustomResourcePolicy.fromStatements([new iam.PolicyStatement({ actions: ['ses:SetActiveReceiptRuleSet'], resources: ['*'] })]),
       });
@@ -657,27 +664,47 @@ export class PotluckStack extends Stack {
     };
     const five = Duration.minutes(5);
     const hour = Duration.hours(1);
-    alarm('dlq-messages', dlq.metricApproximateNumberOfMessagesVisible({ period: five, statistic: 'Maximum' }), 1,
-      'Recipe imports failed three times and landed in the dead-letter queue.');
-    const fns: [string, lambda.IFunction, number][] = [['api', apiFn, 5], ['webhooks', webhooksFn, 5], ['worker', workerFn, 3], ...(smsFn ? [['sms', smsFn, 3] as [string, lambda.IFunction, number]] : [])];
+    alarm(
+      'dlq-messages',
+      dlq.metricApproximateNumberOfMessagesVisible({ period: five, statistic: 'Maximum' }),
+      1,
+      'Recipe imports failed three times and landed in the dead-letter queue.',
+    );
+    const fns: [string, lambda.IFunction, number][] = [
+      ['api', apiFn, 5],
+      ['webhooks', webhooksFn, 5],
+      ['worker', workerFn, 3],
+      ...(smsFn ? [['sms', smsFn, 3] as [string, lambda.IFunction, number]] : []),
+    ];
     for (const [name, fn, threshold] of fns) {
       alarm(`${name}-errors`, fn.metricErrors({ period: five, statistic: 'Sum' }), threshold, `The ${name} Lambda is throwing errors.`);
       alarm(`${name}-throttles`, fn.metricThrottles({ period: five, statistic: 'Sum' }), 1, `The ${name} Lambda is being throttled.`);
     }
-    alarm('worker-slow', workerFn.metricDuration({ period: five, statistic: 'p95' }), 420_000,
-      'Imports are taking close to the 8 minute Lambda timeout.', 2);
-    alarm('api-5xx', new cloudwatch.Metric({ namespace: 'AWS/ApiGateway', metricName: '5xx', dimensionsMap: { ApiId: httpApi.apiId }, period: five, statistic: 'Sum' }), 10,
-      'The HTTP API is returning server errors.');
+    alarm('worker-slow', workerFn.metricDuration({ period: five, statistic: 'p95' }), 420_000, 'Imports are taking close to the 8 minute Lambda timeout.', 2);
+    alarm(
+      'api-5xx',
+      new cloudwatch.Metric({ namespace: 'AWS/ApiGateway', metricName: '5xx', dimensionsMap: { ApiId: httpApi.apiId }, period: five, statistic: 'Sum' }),
+      10,
+      'The HTTP API is returning server errors.',
+    );
     const potluckMetric = (metricName: string, period: Duration) =>
       new cloudwatch.Metric({ namespace: 'Potluck', metricName, dimensionsMap: { Stage: cfg.stage }, period, statistic: 'Sum' });
     alarm('ai-spend', potluckMetric('AiCostMicros', hour), 1_000_000, 'Gemini spend passed $1.00 in one hour.');
     alarm('imports-failing', potluckMetric('ImportFailed', hour), 10, 'Ten or more recipe imports failed in the last hour.');
     alarm('rate-limited', potluckMetric('RateLimited', hour), 50, 'Many requests are being rate limited, which may mean abuse.');
     if (emailIdentity) {
-      alarm('ses-bounce-rate', new cloudwatch.Metric({ namespace: 'AWS/SES', metricName: 'Reputation.BounceRate', period: hour, statistic: 'Maximum' }), 0.04,
-        'SES bounce rate is near the 5% level where AWS reviews the account.');
-      alarm('ses-complaint-rate', new cloudwatch.Metric({ namespace: 'AWS/SES', metricName: 'Reputation.ComplaintRate', period: hour, statistic: 'Maximum' }), 0.001,
-        'SES complaint rate is near the 0.1% level where AWS reviews the account.');
+      alarm(
+        'ses-bounce-rate',
+        new cloudwatch.Metric({ namespace: 'AWS/SES', metricName: 'Reputation.BounceRate', period: hour, statistic: 'Maximum' }),
+        0.04,
+        'SES bounce rate is near the 5% level where AWS reviews the account.',
+      );
+      alarm(
+        'ses-complaint-rate',
+        new cloudwatch.Metric({ namespace: 'AWS/SES', metricName: 'Reputation.ComplaintRate', period: hour, statistic: 'Maximum' }),
+        0.001,
+        'SES complaint rate is near the 0.1% level where AWS reviews the account.',
+      );
     }
 
     // ---------- Budget alarm ----------

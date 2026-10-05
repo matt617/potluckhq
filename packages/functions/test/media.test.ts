@@ -3,16 +3,21 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { ExtractedRecipe } from '@potluck/core';
+import { independentVideo, type ExtractedRecipe } from '@potluck/core';
 
 const stored = vi.hoisted(() => new Map<string, { bytes: number; type: string; cache?: string }>());
+const copied = vi.hoisted(() => [] as [string, string][]);
 const deleted = vi.hoisted(() => [] as string[]);
 vi.mock('../src/lib/s3.js', () => ({
+  copyObject: async (from: string, to: string) => {
+    if (from !== to) copied.push([from, to]);
+  },
   putObject: async (key: string, body: Uint8Array, type: string, cache?: string) => void stored.set(key, { bytes: body.length, type, cache }),
   deleteObject: async (key: string) => void deleted.push(key),
 }));
 
-const { heroCandidates, planClips, pickHeroFrame, probeDuration, storeTechniqueMedia, mediaKeys, deleteRecipeMedia } = await import('../src/lib/media.js');
+const { heroCandidates, planClips, pickHeroFrame, probeDuration, storeTechniqueMedia, mediaKeys, deleteRecipeMedia, copyRecipeMedia } =
+  await import('../src/lib/media.js');
 const { sanitizeExtraction } = await import('../src/lib/extract.js');
 
 const base: ExtractedRecipe = { isRecipe: true, title: 'x', servings: 2, tags: [], ingredients: [], steps: [], confidence: 1 };
@@ -38,13 +43,19 @@ describe('technique classification', () => {
   });
 
   it('rejects "neither" content and keeps recipes as recipes', () => {
-    expect(sanitizeExtraction({ ...base, kind: 'neither', ingredients: [{ quantity: 1, unit: '', name: 'egg', aisle: 'dairy_eggs' }] } as never)).toMatchObject({ isRecipe: false, isTechnique: false });
+    expect(sanitizeExtraction({ ...base, kind: 'neither', ingredients: [{ quantity: 1, unit: '', name: 'egg', aisle: 'dairy_eggs' }] } as never)).toMatchObject(
+      { isRecipe: false, isTechnique: false },
+    );
     const recipe = sanitizeExtraction({ ...base, kind: 'recipe', ingredients: [{ quantity: 1, unit: '', name: 'egg', aisle: 'dairy_eggs' }] } as never);
     expect(recipe).toMatchObject({ isRecipe: true, isTechnique: false, technique: null });
   });
 
   it('cleans hero moments and the hero photo index', () => {
-    const out = sanitizeExtraction({ ...base, heroMoments: [{ timestampSec: 40 }, { timestampSec: -1 }, { timestampSec: 5, why: 'plated' }, { timestampSec: 9 }, { timestampSec: 11 }], heroImageIndex: 2 } as never);
+    const out = sanitizeExtraction({
+      ...base,
+      heroMoments: [{ timestampSec: 40 }, { timestampSec: -1 }, { timestampSec: 5, why: 'plated' }, { timestampSec: 9 }, { timestampSec: 11 }],
+      heroImageIndex: 2,
+    } as never);
     expect(out.heroMoments).toEqual([{ timestampSec: 40 }, { timestampSec: 5, why: 'plated' }, { timestampSec: 9 }]);
     expect(out.heroImageIndex).toBe(2);
   });
@@ -52,7 +63,10 @@ describe('technique classification', () => {
 
 describe('frame and clip planning', () => {
   it('samples around each ranked moment, clamped to the video', () => {
-    expect(heroCandidates([{ timestampSec: 10 }, { timestampSec: 0.2 }], 30)).toEqual([[9.25, 10, 10.75], [0, 0.2, 0.95]]);
+    expect(heroCandidates([{ timestampSec: 10 }, { timestampSec: 0.2 }], 30)).toEqual([
+      [9.25, 10, 10.75],
+      [0, 0.2, 0.95],
+    ]);
     expect(heroCandidates([{ timestampSec: 30 }], 30)).toEqual([[29.25, 29.8]]);
   });
 
@@ -98,8 +112,26 @@ describe.skipIf(!ffmpegDir)('ffmpeg media pipeline', () => {
     video = join(dir, 'in.mp4');
     // 12 s test pattern with a tone: a stand-in for a downloaded cooking video.
     execFileSync(join(ffmpegDir!, 'ffmpeg'), [
-      '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=24:duration=12',
-      '-f', 'lavfi', '-i', 'sine=frequency=440:duration=12', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', '-y', video,
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-f',
+      'lavfi',
+      '-i',
+      'testsrc2=size=640x360:rate=24:duration=12',
+      '-f',
+      'lavfi',
+      '-i',
+      'sine=frequency=440:duration=12',
+      '-c:v',
+      'libx264',
+      '-pix_fmt',
+      'yuv420p',
+      '-c:a',
+      'aac',
+      '-shortest',
+      '-y',
+      video,
     ]);
   }, 60_000);
   afterAll(async () => {
@@ -122,7 +154,10 @@ describe.skipIf(!ffmpegDir)('ffmpeg media pipeline', () => {
       recipeId: 'r1',
       videoPath: video,
       mimeType: 'video/mp4',
-      steps: [{ text: 'one', timestampSec: 1, endSec: 4 }, { text: 'two', timestampSec: 6 }],
+      steps: [
+        { text: 'one', timestampSec: 1, endSec: 4 },
+        { text: 'two', timestampSec: 6 },
+      ],
     });
     expect(result).toMatchObject({ key: 'private/techniques/r1/video.mp4', mimeType: 'video/mp4', durationSec: 12 });
     expect(result!.clips).toEqual([
@@ -136,4 +171,20 @@ describe.skipIf(!ffmpegDir)('ffmpeg media pipeline', () => {
     await deleteRecipeMedia({ video: result });
     expect(deleted.sort()).toEqual(mediaKeys({ video: result }).sort());
   }, 60_000);
+});
+
+it('copies private technique objects before saving independently owned records', async () => {
+  const video = {
+    key: 'private/techniques/source/video.mp4',
+    mimeType: 'video/mp4',
+    clips: [{ key: 'private/techniques/source/clip.mp4', posterKey: 'private/techniques/source/clip.jpg', startSec: 0, endSec: 4 }],
+  };
+  const target = independentVideo(video, 'saved');
+  copied.length = 0;
+  await copyRecipeMedia({ video }, { video: target });
+  expect(copied).toHaveLength(3);
+  expect(copied.every(([from, to]) => from.startsWith('private/techniques/source/') && to.startsWith('private/techniques/saved/'))).toBe(true);
+  copied.length = 0;
+  await copyRecipeMedia({ video: target }, { video: target });
+  expect(copied).toEqual([]);
 });

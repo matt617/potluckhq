@@ -32,7 +32,7 @@ export function CreateCommunityForm({ onCreated }: { onCreated?: (c: Community) 
 
   return (
     <form className="stack" onSubmit={submit}>
-      <Field label="Community name" hint="A household, office, team or friend group.">
+      <Field label="Kitchen name" hint="The people you plan meals and groceries with.">
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="The Smith kitchen" maxLength={60} required />
       </Field>
       <Field label="Description (optional)">
@@ -40,7 +40,7 @@ export function CreateCommunityForm({ onCreated }: { onCreated?: (c: Community) 
       </Field>
       <ErrorNote error={error} />
       <button className="btn btn-primary" disabled={busy || !name.trim()}>
-        {busy ? 'Creating…' : 'Create community'}
+        {busy ? 'Creating…' : 'Create kitchen'}
       </button>
     </form>
   );

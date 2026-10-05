@@ -36,6 +36,17 @@ jobs:
         run: npm test
       - name: Build web app
         run: npm run build:web
+      - name: Install browser for kitchen journeys
+        run: npx playwright install --with-deps chromium
+      - name: Kitchen browser journeys
+        run: |
+          npm run dev:web -- --host 127.0.0.1 --port 5178 > /tmp/potluck-web.log 2>&1 &
+          kitchen_server_pid=$!
+          trap 'kill "$kitchen_server_pid" 2>/dev/null || true' EXIT
+          curl --retry 20 --retry-connrefused --retry-delay 1 -fsS http://127.0.0.1:5178/ > /dev/null || { cat /tmp/potluck-web.log; exit 1; }
+          npm run test:kitchens:browser
+      - name: Build migration tool
+        run: npm run build:kitchen-migration
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
@@ -69,7 +80,9 @@ jobs:
 
   deploy:
     name: Deploy production
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # This schema transition must be migrated with writers paused before release.
+    # See docs/kitchen-implementation.md; set the repository variable after verification.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.KITCHEN_MIGRATION_COMPLETE == 'true'
     needs: [test, secrets, synth]
     runs-on: ubuntu-latest
     timeout-minutes: 45

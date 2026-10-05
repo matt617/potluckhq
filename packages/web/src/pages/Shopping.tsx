@@ -1,25 +1,27 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { addDays, AISLES, shoppingListText, weekStartOf, type Aisle, type ShoppingItem, type ShoppingList } from '@potluck/core';
+import { addDays, AISLES, shoppingListText, shoppingChanges, weekStartOf, type Aisle, type ShoppingItem, type ShoppingList } from '@potluck/core';
 import { api } from '../api';
 import { Basket, CaretLeft, CaretRight, X } from '@phosphor-icons/react';
 import { Empty, ErrorNote, Flash, PageHeader, Skeleton, useFlash } from '../components/ui';
 import { useAsync, useInterval } from '../lib/hooks';
 import { useCommunity, useSession } from '../lib/session';
 import { copyText, formatDate } from '../lib/util';
+import { kitchenPath, useWeek } from '../lib/kitchen-context';
 
 const aisleLabel = (a: Aisle) => AISLES.find((x) => x.id === a)?.label ?? 'Other';
 
 export function Shopping() {
   const community = useCommunity();
   const { me } = useSession();
-  const [week, setWeek] = useState(() => weekStartOf());
+  const [week, setWeek] = useWeek();
   const state = useAsync(() => api.list(community.id, week), [community.id, week]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<unknown>();
   const [newName, setNewName] = useState('');
   const [newAmount, setNewAmount] = useState('');
   const [flash, setFlash] = useFlash();
+  const [preview, setPreview] = useState<ShoppingList | null>(null);
   const pending = useRef(0);
 
   const list: ShoppingList | undefined = state.data?.list;
@@ -62,7 +64,9 @@ export function Shopping() {
       if (pending.current === 1) state.setData(res);
     } catch (e) {
       setError(e);
-      state.setData((prev) => (prev ? { list: { ...prev.list, items: prev.list.items.map((i) => (i.key === item.key ? { ...i, checked: !checked } : i)) } } : prev!));
+      state.setData((prev) =>
+        prev ? { list: { ...prev.list, items: prev.list.items.map((i) => (i.key === item.key ? { ...i, checked: !checked } : i)) } } : prev!,
+      );
     } finally {
       pending.current--;
     }
@@ -99,6 +103,15 @@ export function Shopping() {
     </li>
   );
 
+  if (community.kind === 'circle')
+    return (
+      <div className="stack">
+        <h1>Shop with your kitchen</h1>
+        <p>Recipe circles exchange ideas. Choose a kitchen for meal plans and groceries.</p>
+        <Link to="/circles">Your circles</Link>
+      </div>
+    );
+
   return (
     <div className="stack-lg">
       <PageHeader
@@ -120,9 +133,9 @@ export function Shopping() {
         <button
           className="btn btn-primary"
           disabled={!!busy}
-          onClick={() => act('gen', async () => state.setData(await api.generateList(community.id, week)))}
+          onClick={() => act('preview', async () => setPreview((await api.previewList(community.id, week)).list))}
         >
-          {busy === 'gen' ? 'Building…' : items.length ? 'Rebuild from plan' : 'Build from plan'}
+          {busy === 'preview' ? 'Reviewing…' : items.length ? 'Review plan changes' : 'Build from plan'}
         </button>
         <button
           className="btn"
@@ -151,6 +164,41 @@ export function Shopping() {
         )}
       </div>
       <ErrorNote error={error} />
+      {state.data?.stale && <p className="note">Your plan or a recipe changed. Review the shopping update before your next trip.</p>}
+      {preview && preview.weekStart === week && preview.communityId === community.id && (
+        <section className="card stack">
+          <h2>Review shopping update</h2>
+          <p className="small muted">
+            Manual items stay on your list. Changed quantities are marked as needing a new check, including items you already purchased.
+          </p>
+          <ul>
+            {shoppingChanges(items, preview.items).map((c, i) => (
+              <li key={i}>
+                <strong>{c.name}</strong>: {c.before} → {c.after}
+              </li>
+            ))}
+          </ul>
+          {!shoppingChanges(items, preview.items).length && <p>No ingredient quantities changed.</p>}
+          <div className="row">
+            <button
+              className="btn btn-primary"
+              disabled={!!busy}
+              onClick={() =>
+                void act('gen', async () => {
+                  state.setData(await api.generateList(community.id, week, preview.planFingerprint!));
+                  setPreview(null);
+                  setFlash('Shopping list updated');
+                })
+              }
+            >
+              Apply update
+            </button>
+            <button className="btn" onClick={() => setPreview(null)}>
+              Keep current list
+            </button>
+          </div>
+        </section>
+      )}
 
       {state.loading && !list && <Skeleton variant="list" label="Loading shopping list" />}
       <ErrorNote error={state.error} onRetry={() => void state.reload()} />
@@ -167,10 +215,8 @@ export function Shopping() {
 
           {!items.length && (
             <Empty title="Nothing on the list yet" icon={<Basket size={22} weight="duotone" />}>
-              <p className="muted">
-                Plan some meals for this week, then build the list. Ingredients are merged across recipes and grouped by aisle.
-              </p>
-              <Link to="/plan" className="btn">
+              <p className="muted">Plan some meals for this week, then build the list. Ingredients are merged across recipes and grouped by aisle.</p>
+              <Link to={kitchenPath('/plan', community.id, week)} className="btn">
                 Go to plan
               </Link>
             </Empty>

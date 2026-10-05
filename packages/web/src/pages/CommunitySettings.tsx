@@ -6,6 +6,8 @@ import { ConfirmButton, ErrorNote, Field, Flash, Spinner, useFlash } from '../co
 import { useAsync } from '../lib/hooks';
 import { canAdmin, useCommunity, useSession } from '../lib/session';
 import { copyText, formatDate } from '../lib/util';
+import { Diners } from '../components/Diners';
+import { KitchenAdministration } from '../components/KitchenAdministration';
 
 export function CommunitySettings() {
   const community = useCommunity();
@@ -36,7 +38,8 @@ export function CommunitySettings() {
   const isOwner = role === 'owner';
   const members = detail.data?.members ?? [];
   const limits = tierConfig(detail.data?.ownerTier);
-  const full = members.length >= limits.maxMembersPerCommunity;
+  const memberLimit = community.kind === 'circle' ? 20 : limits.maxMembersPerCommunity;
+  const full = members.length >= memberLimit;
 
   async function act(label: string, fn: () => Promise<void>, done?: string) {
     setBusy(label);
@@ -53,7 +56,7 @@ export function CommunitySettings() {
 
   async function shareInvite() {
     if (!invite) return;
-    const text = `Join ${community.name} on Potluck to share recipes, meal plans and shopping lists.`;
+    const text = `Join ${community.name} on Potluck to ${community.kind === 'circle' ? 'exchange recipes' : 'share recipes, meal plans and shopping lists'}.`;
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Potluck invite', text, url: invite.url });
@@ -79,7 +82,7 @@ export function CommunitySettings() {
             Members
           </h2>
           <span className="muted small">
-            {members.length} of {limits.maxMembersPerCommunity} on {limits.name}
+            {members.length} of {memberLimit} on {limits.name}
           </span>
         </div>
         <ul className="members">
@@ -96,10 +99,14 @@ export function CommunitySettings() {
                     aria-label={`Role for ${m.displayName}`}
                     value={m.role}
                     onChange={(e) =>
-                      act('role', async () => {
-                        await api.setMemberRole(community.id, m.userId, e.target.value as Role);
-                        await detail.reload();
-                      }, 'Role updated')
+                      act(
+                        'role',
+                        async () => {
+                          await api.setMemberRole(community.id, m.userId, e.target.value as Role);
+                          await detail.reload();
+                        },
+                        'Role updated',
+                      )
                     }
                   >
                     <option value="member">Member</option>
@@ -113,10 +120,14 @@ export function CommunitySettings() {
                     className="btn btn-ghost btn-small"
                     confirmLabel="Remove?"
                     onConfirm={() =>
-                      act('remove', async () => {
-                        await api.removeMember(community.id, m.userId);
-                        await detail.reload();
-                      }, 'Member removed')
+                      act(
+                        'remove',
+                        async () => {
+                          await api.removeMember(community.id, m.userId);
+                          await detail.reload();
+                        },
+                        'Member removed',
+                      )
                     }
                   >
                     Remove
@@ -131,7 +142,11 @@ export function CommunitySettings() {
           <div className="stack invite-box">
             <h3 className="h4">Invite someone</h3>
             {full ? (
-              <p className="muted small">This community is full. The owner can upgrade the plan to add more people.</p>
+              <p className="muted small">
+                {community.kind === 'circle'
+                  ? 'This circle has reached its 20-member limit.'
+                  : 'This kitchen is full. The owner can upgrade the plan to add more people.'}
+              </p>
             ) : (
               <div className="row wrap">
                 <select aria-label="Invite role" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as 'member' | 'admin')}>
@@ -165,6 +180,8 @@ export function CommunitySettings() {
         )}
       </section>
 
+      {community.kind !== 'circle' && <Diners />}
+      <KitchenAdministration />
       {admin && (
         <section className="card stack" aria-labelledby="settings-title">
           <h2 id="settings-title" className="h3">
@@ -176,21 +193,30 @@ export function CommunitySettings() {
           <Field label="Description">
             <input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} />
           </Field>
-          <Field label="Pantry staples" hint="One per line. These are tucked away on shopping lists, e.g. salt, olive oil, rice.">
-            <textarea rows={6} value={staples} onChange={(e) => setStaples(e.target.value)} />
-          </Field>
+          {community.kind !== 'circle' && (
+            <Field label="Pantry staples" hint="One per line. These are tucked away on shopping lists, e.g. salt, olive oil, rice.">
+              <textarea rows={6} value={staples} onChange={(e) => setStaples(e.target.value)} />
+            </Field>
+          )}
           <button
             className="btn btn-primary"
             disabled={busy === 'save' || !name.trim()}
             onClick={() =>
-              act('save', async () => {
-                await api.updateCommunity(community.id, {
-                  name: name.trim(),
-                  description: description.trim(),
-                  pantryStaples: staples.split('\n').map((s) => s.trim()).filter(Boolean),
-                });
-                await Promise.all([refreshMe(), detail.reload()]);
-              }, 'Saved')
+              act(
+                'save',
+                async () => {
+                  await api.updateCommunity(community.id, {
+                    name: name.trim(),
+                    description: description.trim(),
+                    pantryStaples: staples
+                      .split('\n')
+                      .map((s) => s.trim())
+                      .filter(Boolean),
+                  });
+                  await Promise.all([refreshMe(), detail.reload()]);
+                },
+                'Saved',
+              )
             }
           >
             Save settings
@@ -200,11 +226,14 @@ export function CommunitySettings() {
 
       <section className="card stack danger-zone" aria-labelledby="danger-title">
         <h2 id="danger-title" className="h3">
-          {isOwner ? 'Delete community' : 'Leave community'}
+          {isOwner ? 'Delete this kitchen or circle' : 'Leave this kitchen or circle'}
         </h2>
         {isOwner ? (
           <>
-            <p className="muted small">Deletes the plans and shopping lists. Recipes stay in their owners' accounts.</p>
+            <p className="muted small">
+              Deletes this shared space and its plans, shopping lists and local recipe versions. Personal saves and independent copies elsewhere remain.
+              Transfer ownership above to let the group continue.
+            </p>
             <ConfirmButton
               confirmLabel={`Delete ${community.name}?`}
               onConfirm={() =>
@@ -215,7 +244,7 @@ export function CommunitySettings() {
                 })
               }
             >
-              Delete community
+              Delete {community.kind === 'circle' ? 'circle' : 'kitchen'}
             </ConfirmButton>
           </>
         ) : (

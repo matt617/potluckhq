@@ -30,13 +30,22 @@ export function buildShoppingList(
     const recipeId = entry.leftoverOf ? (byId.get(entry.leftoverOf)?.recipeId ?? entry.recipeId) : entry.recipeId;
     if (!recipeId) continue;
     const recipe = recipes.get(recipeId);
-    if (!recipe) continue;
+    if (!recipe || recipe.kind === 'technique') continue;
     for (const ing of recipe.ingredients) {
       const key = ingredientKey(ing.name);
       if (!key) continue;
       let b = buckets.get(key);
       if (!b) {
-        b = { key, name: ing.name.trim(), aisle: ing.aisle ?? guessAisle(ing.name), volumeMl: 0, weightG: 0, counts: new Map(), untracked: false, recipeIds: new Set() };
+        b = {
+          key,
+          name: ing.name.trim(),
+          aisle: ing.aisle ?? guessAisle(ing.name),
+          volumeMl: 0,
+          weightG: 0,
+          counts: new Map(),
+          untracked: false,
+          recipeIds: new Set(),
+        };
         buckets.set(key, b);
       }
       b.recipeIds.add(recipe.id);
@@ -63,7 +72,8 @@ export function buildShoppingList(
     const parts: { quantity: number; unit: string }[] = [];
     if (b.weightG > 0) parts.push(fromBase(b.weightG, 'weight', opts.units));
     if (b.volumeMl > 0) parts.push(fromBase(b.volumeMl, 'volume', opts.units));
-    for (const [unit, q] of b.counts) parts.push({ quantity: Math.ceil(round(q, 2) * 4) / 4, unit: unit && q > 1 && !unit.endsWith('s') ? pluralUnit(unit) : unit });
+    for (const [unit, q] of b.counts)
+      parts.push({ quantity: Math.ceil(round(q, 2) * 4) / 4, unit: unit && q > 1 && !unit.endsWith('s') ? pluralUnit(unit) : unit });
     const display = parts.length ? parts.map((p) => formatAmount(p.quantity, p.unit)).join(' + ') + (b.untracked ? ' + to taste' : '') : 'as needed';
     const first = parts[0];
     items.push({
@@ -72,7 +82,7 @@ export function buildShoppingList(
       quantity: parts.length === 1 && first ? first.quantity : null,
       unit: parts.length === 1 && first ? first.unit : '',
       aisle: b.aisle,
-      checked: previous.get(b.key)?.checked ?? false,
+      checked: previous.get(b.key)?.display === display ? (previous.get(b.key)?.checked ?? false) : false,
       staple: staples.has(b.key) || undefined,
       recipeIds: [...b.recipeIds],
       display,
