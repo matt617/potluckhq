@@ -19,7 +19,7 @@
     "deploy": "bash scripts/deploy.sh"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^26.6.4",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   },
