@@ -1,4 +1,5 @@
 import { budgetFor, costMicros, splitCharge, tierConfig, type TokenUsage, type UserProfile } from '@potluck/core';
+import { emitMetric } from './metrics.js';
 import * as repo from './repo.js';
 
 /**
@@ -11,6 +12,7 @@ export async function chargeAi(payer: UserProfile, args: { model: string; usage:
   const tier = tierConfig(payer.tier);
   const budget = budgetFor(payer);
   const { fromCreditsMicros } = tier.aiFeatures ? splitCharge(budget, micros) : { fromCreditsMicros: 0 };
+  emitMetric('AiCostMicros', micros, 'None', { Kind: args.kind });
   await repo.recordUsage(payer.id, { aiMicros: micros, imports: args.countImport ? 1 : 0, creditMicros: fromCreditsMicros });
   await repo.addLedger(payer.id, {
     kind: tier.aiFeatures ? args.kind : `${args.kind}:platform`,

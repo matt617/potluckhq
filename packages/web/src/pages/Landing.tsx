@@ -2,6 +2,7 @@ import { useEffect, useRef, type CSSProperties } from 'react';
 import { Navigate } from 'react-router-dom';
 import { ArrowRight, ChatText, Check, TelegramLogo, WhatsappLogo } from '@phosphor-icons/react';
 import { TIER_ORDER, TIERS, formatUsd } from '@potluck/core';
+import { ConsentNote, SiteFooter } from '../components/SiteFooter';
 import { login } from '../lib/auth';
 import { useSession } from '../lib/session';
 import { cents } from '../lib/util';
@@ -245,24 +246,24 @@ export function Landing() {
               );
             })}
           </div>
-          <p className="muted small reveal">Used your AI allowance early? Add credits from $5 any time. Cancel whenever you like.</p>
+          <div className="reveal stack">
+            <p className="muted small">Used your AI allowance early? Add credits from $5 any time. Paid plans renew monthly until you cancel.</p>
+            <ConsentNote />
+          </div>
         </section>
 
         <section className="lp-section lp-final reveal">
           <h2 className="lp-h2">Start with tonight's dinner.</h2>
-          <button type="button" className="btn btn-primary btn-large" onClick={start}>
-            Start free
-          </button>
+          <div className="stack lp-final-cta">
+            <button type="button" className="btn btn-primary btn-large" onClick={start}>
+              Start free
+            </button>
+            <ConsentNote />
+          </div>
         </section>
       </main>
 
-      <footer className="lp-footer">
-        <span className="brand">
-          <img src="/icon.svg" alt="" width={22} height={22} />
-          <span>Potluck</span>
-        </span>
-        <span className="muted small">Recipes from the videos you already watch.</span>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

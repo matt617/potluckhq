@@ -1820,3 +1820,132 @@ details.card summary {
     transform: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* legal pages, footers and account data controls                     */
+/* ------------------------------------------------------------------ */
+.legal-links,
+.app-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+.legal-links a,
+.app-footer a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.legal-links a:hover,
+.app-footer a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.app-footer {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 var(--gutter) 24px;
+}
+@media (min-width: 860px) {
+  .app-footer {
+    padding: 0 32px 32px;
+  }
+}
+.consent-note a {
+  color: inherit;
+}
+.lp-final-cta {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.legal {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px var(--gutter) 96px;
+}
+.legal-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+}
+.legal-head h1 {
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  letter-spacing: -0.035em;
+}
+.legal-intro p {
+  color: var(--text-2);
+  max-width: 62ch;
+}
+.legal-toc {
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border);
+}
+.legal-toc ol {
+  margin: 0;
+  padding-left: 1.4em;
+  columns: 2 220px;
+  column-gap: 32px;
+  font-size: 0.92rem;
+}
+.legal-toc li {
+  padding: 3px 0;
+  break-inside: avoid;
+}
+.legal-toc a {
+  text-decoration: none;
+}
+.legal-toc a:hover {
+  text-decoration: underline;
+}
+.legal-sections {
+  margin: 0;
+  padding-left: 1.4em;
+}
+.legal-sections > li {
+  padding-top: 32px;
+  scroll-margin-top: 80px;
+}
+.legal-sections > li::marker {
+  font-weight: 600;
+  font-size: 1.15rem;
+}
+.legal-sections h2 {
+  font-size: 1.15rem;
+  margin-bottom: 12px;
+}
+.legal-sections p,
+.legal-sections ul {
+  color: var(--text-2);
+  max-width: 68ch;
+  margin: 0 0 12px;
+}
+.legal-sections ul {
+  padding-left: 1.2em;
+}
+.legal-sections li li,
+.legal-sections ul li {
+  margin-bottom: 6px;
+}
+.legal-caps {
+  font-size: 0.86rem;
+  letter-spacing: 0.01em;
+  color: var(--text) !important;
+}
+
+.danger-delete {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.danger-list {
+  margin: 0;
+  padding-left: 1.2em;
+  color: var(--text-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.danger-zone input {
+  max-width: 260px;
+}

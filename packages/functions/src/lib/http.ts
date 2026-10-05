@@ -9,6 +9,7 @@ export class HttpError extends Error {
 export const badRequest = (msg: string) => new HttpError(400, msg, 'bad_request');
 export const forbidden = (msg = 'You do not have access to this') => new HttpError(403, msg, 'forbidden');
 export const notFound = (msg = 'Not found') => new HttpError(404, msg, 'not_found');
+export const tooMany = (msg: string) => new HttpError(429, msg, 'rate_limited');
 export const paymentRequired = (msg: string, code: 'ai_tier' | 'ai_allowance' | 'import_quota' | 'tier_limit') => new HttpError(402, msg, code);
 
 export interface Ctx {

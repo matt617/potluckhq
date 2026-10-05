@@ -1,0 +1,128 @@
+name: Pipeline
+
+# Pull requests: test, scan and synthesize.
+# Pushes to main: the same checks, then deploy to production and smoke-test the live site.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit, handler and infrastructure tests
+        run: npm test
+      - name: Build web app
+        run: npm run build:web
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  synth:
+    name: Synth
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # No AWS credentials here: synthesize without the custom domain, which needs a Route 53 lookup.
+      - name: Synthesize CloudFormation
+        working-directory: infra
+        run: npx cdk synth Potluck-prod -c stage=prod -c skipYtdlp=true --quiet
+
+  deploy:
+    name: Deploy production
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [test, secrets, synth]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: production
+      url: https://${{ vars.DOMAIN_NAME }}
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Fetch yt-dlp and ffmpeg for the worker layer
+        run: npm run fetch:ytdlp
+      - name: Build web app
+        run: npm run build:web
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: potluck-deploy-${{ github.run_id }}
+      - name: Deploy
+        working-directory: infra
+        env:
+          CDK_DEFAULT_REGION: ${{ vars.AWS_REGION }}
+        run: >-
+          npx cdk deploy Potluck-prod
+          --require-approval never
+          --outputs-file cdk-outputs.json
+          -c stage=prod
+          -c domainName=${{ vars.DOMAIN_NAME }}
+          -c alertEmail=${{ vars.ALERT_EMAIL }}
+          -c cognitoUseSes=${{ vars.COGNITO_USE_SES }}
+      - name: Smoke test
+        env:
+          APP: https://${{ vars.DOMAIN_NAME }}
+        run: |
+          set -euo pipefail
+          check() {
+            local code
+            code=$(curl -s -o /dev/null -w '%{http_code}' --retry 3 --retry-delay 5 "$1")
+            echo "$1 -> $code"
+            [ "$code" = "$2" ] || { echo "::error::$1 returned $code, expected $2"; exit 1; }
+          }
+          check "$APP/" 200
+          check "$APP/config.json" 200
+          check "$APP/public/config" 200
+          check "$APP/terms" 200
+          check "$APP/api/me" 401

@@ -3,6 +3,7 @@ import { payerFor, requireMember } from './access.js';
 import { badRequest, paymentRequired } from './http.js';
 import { newId, nowIso } from './ids.js';
 import { enqueueImport } from './queue.js';
+import { enforceLimit } from './ratelimit.js';
 import * as repo from './repo.js';
 
 export interface NewImport {
@@ -19,6 +20,8 @@ export interface NewImport {
 /** Validate access and quota, persist the job and queue it for the worker. */
 export async function createImport(input: NewImport): Promise<ImportJob> {
   const { community } = await requireMember(input.communityId, input.userId);
+  await enforceLimit('importsPer10Min', input.userId, 'That is a lot of recipes at once. Please wait a few minutes and send the rest.');
+  await enforceLimit('importsPerDay', input.userId, 'You have reached the daily import limit. Try again tomorrow.');
   const payer = await payerFor(community);
   const gate = canImport(budgetFor(payer));
   if (!gate.ok) {

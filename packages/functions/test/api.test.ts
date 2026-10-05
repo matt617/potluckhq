@@ -10,6 +10,16 @@ const db = vi.hoisted(() => ({
 
 vi.mock('../src/lib/secrets.js', () => ({ secrets: async () => ({}) }));
 vi.mock('../src/lib/queue.js', () => ({ enqueueImport: vi.fn(async () => undefined) }));
+const limits = vi.hoisted(() => ({ blocked: new Set<string>() }));
+vi.mock('../src/lib/ratelimit.js', () => ({
+  enforceLimit: async (name: string, _subject: string, message: string) => {
+    if (limits.blocked.has(name)) {
+      const { HttpError } = await import('../src/lib/http.js');
+      throw new HttpError(429, message, 'rate_limited');
+    }
+  },
+  allowLimit: async () => true,
+}));
 vi.mock('../src/lib/repo.js', async () => {
   const { defaultProfile } = await vi.importActual<typeof import('../src/lib/repo.js')>('../src/lib/repo.js');
   return {
@@ -55,6 +65,7 @@ async function call(method: string, path: string, body?: unknown, sub: string | 
 }
 
 beforeEach(() => {
+  limits.blocked.clear();
   db.users.clear();
   db.communities.clear();
   db.members.length = 0;
@@ -101,6 +112,15 @@ describe('api handler', () => {
   it('validates week keys', async () => {
     const c = await call('POST', '/api/communities', { name: 'Home' });
     expect((await call('GET', `/api/communities/${c.body.id}/plans/2026-10-06`)).status).toBe(400);
+  });
+
+  it('returns 429 when a rate limit is hit', async () => {
+    const c = await call('POST', '/api/communities', { name: 'Home' });
+    db.users.set('u1', { ...db.users.get('u1')!, tier: 'plus' });
+    limits.blocked.add('planSuggestPerHour');
+    const res = await call('POST', `/api/communities/${c.body.id}/plans/2026-10-05/suggest`, { constraints: [] });
+    expect(res.status).toBe(429);
+    expect(res.body.code).toBe('rate_limited');
   });
 
   it('serves public invite previews without auth and 404s unknown tokens', async () => {

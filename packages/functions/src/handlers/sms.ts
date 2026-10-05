@@ -18,7 +18,7 @@ export async function handler(event: SNSEvent): Promise<void> {
     }
     try {
       const reply = await handleInbound({ channel: 'sms', address: sms.originationNumber, text });
-      await sendSms(sms.originationNumber, reply);
+      if (reply) await sendSms(sms.originationNumber, reply);
     } catch (err) {
       await repo.unmarkEvent('sms', sms.inboundMessageId).catch(() => undefined);
       throw err;

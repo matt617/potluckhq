@@ -167,3 +167,46 @@ Vite proxies `/api`, `/public` and `/config.json` to the deployed stack, and Cog
 
 `cdk destroy` keeps the DynamoDB table, user pool and media bucket because they hold user data.
 Delete them by hand if you really want them gone.
+
+## 11. Continuous delivery
+
+Every change goes through GitHub. Pull requests run the **Test**, **Secret scan** and **Synth** jobs in
+`.github/workflows/pipeline.yml`, and `main` only accepts changes through a pull request with those checks green.
+Merging to `main` runs the same checks again, then deploys to the `production` GitHub environment and smoke-tests
+the live site.
+
+There are no AWS keys in GitHub. The deploy job signs in with GitHub's OIDC token, which only the `production`
+environment of `matt617/potluckhq` can exchange for the `potluck-github-deploy-production` role. That role can only
+assume the CDK bootstrap roles. It is created once by hand:
+
+```bash
+cd infra && npx cdk deploy PotluckGithubDeploy -c githubRepo=matt617/potluckhq
+```
+
+Deployment settings are GitHub environment variables on `production`:
+
+| Variable | Purpose |
+|---|---|
+| `AWS_DEPLOY_ROLE_ARN` | Role the deploy job assumes |
+| `AWS_REGION` | `us-east-1` |
+| `DOMAIN_NAME` | `potluckhq.app` |
+| `ALERT_EMAIL` | Receives CloudWatch alarms, the budget alert and forwarded support mail |
+| `COGNITO_USE_SES` | `true` once SES production access is approved, so sign-up codes come from no-reply@potluckhq.app |
+
+To require a manual approval before each production deploy, add yourself as a required reviewer on the
+`production` environment in the repository settings.
+
+Dependabot opens weekly update pull requests, and secret scanning with push protection blocks committed keys.
+
+## 12. Email
+
+SES sends from potluckhq.app with DKIM, a `mail.potluckhq.app` MAIL FROM domain and a DMARC policy, all created by
+the stack. Mail to support@, privacy@, legal@ and hello@potluckhq.app is received by SES, stored for 30 days and
+forwarded to `ALERT_EMAIL`. While the SES account is in the sandbox, it can only deliver to verified addresses, so
+keep `COGNITO_USE_SES` false until production access is approved.
+
+## 13. Alarms
+
+CloudWatch alarms email `ALERT_EMAIL` through the `AlertTopicArn` SNS topic. Confirm the subscription email once.
+They cover the dead-letter queue, Lambda errors and throttles, slow imports, API 5xx errors, Gemini spend over
+$1.00 in an hour, failing imports, heavy rate limiting, and SES bounce and complaint rates.
