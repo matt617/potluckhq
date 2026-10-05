@@ -70,7 +70,13 @@ export interface UploadUrlRequest { contentType: string }
 export interface UploadUrlResponse { key: string; uploadUrl: string }
 
 export interface RecipeListResponse { recipes: RecipeSummary[] }
-export interface RecipeResponse { recipe: Recipe; canEdit: boolean }
+/** Short-lived playback URLs for a technique's stored video, signed for the viewer. */
+export interface RecipeMedia {
+  videoUrl: string;
+  clips: { startSec: number; endSec: number; url: string; posterUrl?: string }[];
+  expiresAt: string;
+}
+export interface RecipeResponse { recipe: Recipe; canEdit: boolean; media?: RecipeMedia }
 export type UpdateRecipeRequest = Partial<Pick<Recipe, 'title' | 'description' | 'servings' | 'prepMin' | 'cookMin' | 'tags' | 'ingredients' | 'steps' | 'tips' | 'cuisine'>>;
 export interface ShareRecipeRequest { communityId: string }
 

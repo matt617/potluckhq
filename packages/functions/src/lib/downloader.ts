@@ -22,7 +22,8 @@ export const MAX_DURATION_SEC = 20 * 60;
 
 /**
  * Download a social video with yt-dlp into /tmp. Picks a small file with audio, merging
- * separate video and audio streams with the bundled ffmpeg when needed. Video is deleted by `cleanup` and never stored.
+ * separate video and audio streams with the bundled ffmpeg when needed. Video is deleted by `cleanup`; only technique
+ * videos are kept, as a separate copy made by media.ts.
  */
 export async function downloadVideo(url: string): Promise<DownloadedVideo> {
   const dir = await mkdtemp(join(tmpdir(), 'dl-'));

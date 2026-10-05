@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
-import type { ImportJob } from '@potluck/core';
+import type { ImportJob, RecipeKind } from '@potluck/core';
 import { api } from '../api';
 import { AddRecipe } from '../components/AddRecipe';
 import { ImportList } from '../components/ImportList';
 import { CookingPot, MagnifyingGlass, Plus, X } from '@phosphor-icons/react';
 import { Chip, Empty, ErrorNote, PageHeader, Skeleton } from '../components/ui';
+
+type KindFilter = 'all' | RecipeKind;
+const KIND_LABEL: Record<KindFilter, string> = { all: 'Everything', recipe: 'Recipes', technique: 'Techniques' };
 import { useAsync, useInterval } from '../lib/hooks';
 import { useCommunity, useSession } from '../lib/session';
 import { mediaUrl, minutes } from '../lib/util';
@@ -26,6 +29,7 @@ export function RecipeBook() {
   const imports = useAsync(() => api.imports(), []);
   const [query, setQuery] = useState('');
   const [tag, setTag] = useState<string | null>(null);
+  const [kind, setKind] = useState<KindFilter>('all');
   const [showAdd, setShowAdd] = useState(false);
   const lastDone = useRef<Set<string>>(new Set());
 
@@ -65,9 +69,11 @@ export function RecipeBook() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return list
+      .filter((r) => kind === 'all' || (r.kind ?? 'recipe') === kind)
       .filter((r) => (!tag || r.tags.includes(tag)) && (!q || r.title.toLowerCase().includes(q) || r.tags.some((t) => t.includes(q))))
       .sort((a, b) => b.addedAt.localeCompare(a.addedAt));
-  }, [list, query, tag]);
+  }, [list, query, tag, kind]);
+  const techniqueCount = list.filter((r) => r.kind === 'technique').length;
 
   return (
     <div className="stack-lg">
@@ -89,6 +95,15 @@ export function RecipeBook() {
           <MagnifyingGlass size={18} aria-hidden />
           <input type="search" placeholder="Search recipes or tags" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search recipes" />
         </div>
+        {techniqueCount > 0 && (
+          <div className="segmented" role="tablist" aria-label="Show">
+            {(['all', 'recipe', 'technique'] as KindFilter[]).map((k) => (
+              <button key={k} type="button" role="tab" aria-selected={kind === k} className={kind === k ? 'on' : ''} onClick={() => setKind(k)}>
+                {KIND_LABEL[k]}
+              </button>
+            ))}
+          </div>
+        )}
         {tags.length > 0 && (
           <div className="chips" aria-label="Filter by tag">
             {tags.map((t) => (
@@ -122,6 +137,7 @@ export function RecipeBook() {
               <li key={r.id} className="rise" style={{ '--i': Math.min(idx, 12) } as CSSProperties}>
                 <Link to={`/book/${r.id}`} className="recipe-card">
                   <div className="thumb" data-tone={toneOf(r.id)}>
+                    {r.kind === 'technique' && <span className="thumb-flag">Technique</span>}
                     {thumb ? (
                       <img src={thumb} alt="" loading="lazy" />
                     ) : (
@@ -133,7 +149,9 @@ export function RecipeBook() {
                   <div className="recipe-card-body">
                     <h3>{r.title}</h3>
                     <p className="muted small">
-                      {[minutes(r.totalMin), `${r.servings} servings`, r.proteinG ? `${Math.round(r.proteinG)} g protein` : '']
+                      {(r.kind === 'technique'
+                        ? ['Cooking technique']
+                        : [minutes(r.totalMin), `${r.servings} servings`, r.proteinG ? `${Math.round(r.proteinG)} g protein` : ''])
                         .filter(Boolean)
                         .join(' · ')}
                     </p>

@@ -51,7 +51,40 @@ export interface Step {
   text: string;
   /** Seconds into the source video where this step starts, when known. */
   timestampSec?: number | null;
+  /** Seconds into the source video where this step's action ends; used to cut technique clips. */
+  endSec?: number | null;
   durationMin?: number | null;
+}
+
+/** Recipes are planned and shopped for; techniques teach a cooking method and are only watched. */
+export type RecipeKind = 'recipe' | 'technique';
+
+export interface TechniqueDetails {
+  /** One or two sentences on what the technique is. */
+  summary?: string;
+  /** The food science or reason it works, when the video explains it. */
+  whyItWorks?: string;
+  /** Dishes or ingredients the technique is used for, e.g. "beef stir-fry". */
+  appliesTo: string[];
+  /** Common mistakes the video warns about. */
+  mistakes: string[];
+}
+
+/** Short muted loop of one moment in a stored video. */
+export interface VideoClip {
+  startSec: number;
+  endSec: number;
+  /** Private media key; served through short-lived signed URLs. */
+  key: string;
+  posterKey?: string;
+}
+
+/** A video kept for playback (technique videos only). Keys are private; never served from /media. */
+export interface StoredVideo {
+  key: string;
+  mimeType: string;
+  durationSec?: number;
+  clips: VideoClip[];
 }
 
 export interface Nutrition {
@@ -83,6 +116,8 @@ export type Platform =
 
 export interface Recipe {
   id: string;
+  /** Missing on older records, which are all recipes. */
+  kind?: RecipeKind;
   ownerId: string;
   title: string;
   description?: string;
@@ -98,6 +133,8 @@ export interface Recipe {
   nutrition?: Nutrition | null;
   equipment?: string[];
   tips?: string[];
+  technique?: TechniqueDetails;
+  video?: StoredVideo;
   source: RecipeSource;
   communityIds: string[];
   /** Overall extraction confidence 0..1 reported by the model. */
@@ -109,6 +146,7 @@ export interface Recipe {
 /** Lightweight copy stored per community for list views. */
 export interface RecipeSummary {
   id: string;
+  kind?: RecipeKind;
   title: string;
   ownerId: string;
   addedBy: string;
@@ -278,8 +316,15 @@ export interface ShoppingList {
 }
 
 /** Shape Gemini must return when extracting a recipe. */
+export interface HeroMoment {
+  timestampSec: number;
+  why?: string;
+}
+
 export interface ExtractedRecipe {
   isRecipe: boolean;
+  /** True when the video teaches a cooking method rather than a complete dish. */
+  isTechnique?: boolean;
   reason?: string;
   title: string;
   description?: string;
@@ -297,4 +342,9 @@ export interface ExtractedRecipe {
   confidence: number;
   /** Other dishes found in the same video, if more than one was made. */
   additionalDishes?: string[];
+  technique?: TechniqueDetails | null;
+  /** Best moments for the preview image, best first. */
+  heroMoments?: HeroMoment[];
+  /** For photo imports: index of the most appetizing photo. */
+  heroImageIndex?: number | null;
 }

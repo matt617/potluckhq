@@ -27,6 +27,7 @@ import {
   type PlanResponse,
   type PublicConfig,
   type Recipe,
+  type RecipeMedia,
   type RecipeResponse,
   type Role,
   type Step,
@@ -61,7 +62,8 @@ import { createImport } from '../lib/imports.js';
 import { listText } from '../lib/messages.js';
 import { suggestPlan } from '../lib/planner.js';
 import * as repo from '../lib/repo.js';
-import { ALLOWED_UPLOAD_TYPES, presignUpload, uploadKey } from '../lib/s3.js';
+import { ALLOWED_UPLOAD_TYPES, presignGet, presignUpload, uploadKey } from '../lib/s3.js';
+import { deleteRecipeMedia } from '../lib/media.js';
 import { secrets } from '../lib/secrets.js';
 import { priceForTier, stripeApi } from '../lib/stripe.js';
 
@@ -343,9 +345,29 @@ router.on('GET', '/api/recipes/:rid', async (ctx) => {
   const u = me(ctx);
   const recipe = await repo.getRecipe(ctx.params.rid!);
   if (!recipe || !(await canReadRecipe(recipe, u.id))) throw notFound('Recipe not found');
-  const res: RecipeResponse = { recipe, canEdit: await canEditRecipe(recipe, u.id) };
+  const res: RecipeResponse = { recipe, canEdit: await canEditRecipe(recipe, u.id), media: await signMedia(recipe) };
   return res;
 });
+
+const MEDIA_URL_TTL_SEC = 3600;
+
+/** Signed playback URLs for a stored technique video. Only issued after the caller passed canReadRecipe. */
+async function signMedia(recipe: Recipe): Promise<RecipeMedia | undefined> {
+  if (!recipe.video) return undefined;
+  const sign = (key: string) => presignGet(key, MEDIA_URL_TTL_SEC);
+  return {
+    videoUrl: await sign(recipe.video.key),
+    clips: await Promise.all(
+      recipe.video.clips.map(async (c) => ({
+        startSec: c.startSec,
+        endSec: c.endSec,
+        url: await sign(c.key),
+        ...(c.posterKey ? { posterUrl: await sign(c.posterKey) } : {}),
+      })),
+    ),
+    expiresAt: new Date(Date.now() + MEDIA_URL_TTL_SEC * 1000).toISOString(),
+  };
+}
 
 /** Owners and admins of any community holding the recipe can fix extraction mistakes. */
 async function canEditRecipe(recipe: Recipe, userId: string): Promise<boolean> {
@@ -385,6 +407,7 @@ function parseSteps(v: unknown): Step[] | undefined {
     return {
       text: str(o.text, `steps[${i}].text`, { max: 1000 })!,
       timestampSec: num(o.timestampSec, 'timestampSec', { min: 0, optional: true }) ?? null,
+      endSec: num(o.endSec, 'endSec', { min: 0, optional: true }) ?? null,
       durationMin: num(o.durationMin, 'durationMin', { min: 0, optional: true }) ?? null,
     };
   }).filter((s) => s.text);
@@ -410,7 +433,7 @@ router.on('PATCH', '/api/recipes/:rid', async (ctx) => {
   const total = (next.prepMin ?? 0) + (next.cookMin ?? 0);
   next.totalMin = total > 0 ? total : null;
   await repo.saveRecipeAndSummaries(next);
-  const res: RecipeResponse = { recipe: next, canEdit: true };
+  const res: RecipeResponse = { recipe: next, canEdit: true, media: await signMedia(next) };
   return res;
 });
 
@@ -420,6 +443,7 @@ router.on('DELETE', '/api/recipes/:rid', async (ctx) => {
   if (!recipe || !(await canReadRecipe(recipe, u.id))) throw notFound('Recipe not found');
   if (recipe.ownerId !== u.id) throw forbidden('Only the person who added a recipe can delete it');
   await repo.deleteRecipe(recipe);
+  await deleteRecipeMedia(recipe);
   return { ok: true };
 });
 
@@ -566,7 +590,8 @@ router.on('POST', '/api/communities/:cid/plans/:week/suggest', async (ctx) => {
     servings: num(b.servings, 'servings', { min: 1, max: 40, optional: true }),
     allowNewIdeas: Boolean(b.allowNewIdeas),
   };
-  const catalog = await repo.listCommunityRecipes(community.id);
+  // Techniques teach a method; they are never planned as meals.
+  const catalog = (await repo.listCommunityRecipes(community.id)).filter((r) => r.kind !== 'technique');
   if (catalog.length < 3) throw badRequest('Add at least 3 recipes to the book before asking for a plan.');
   const members = await repo.listMembers(community.id);
   const profiles = (await Promise.all(members.map((m) => repo.getUser(m.userId)))).filter(Boolean);

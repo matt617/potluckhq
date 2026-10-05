@@ -179,8 +179,15 @@ const TERMS: Section[] = [
           resulting recipes. Use Potluck for your personal, non-commercial cooking.
         </p>
         <p>
-          We do not keep the videos you send. We download a video only long enough to analyze it, then delete it. We store the
-          extracted recipe, a link to the original, the creator's name when available, and a thumbnail image.
+          For recipes, we do not keep the videos you send. We download a video only long enough to analyze it, then delete it.
+          We store the extracted recipe, a link to the original, the creator's name when available, and a preview image, which
+          may be a still frame from the video.
+        </p>
+        <p>
+          For cooking technique videos, which teach a method rather than a single dish, we keep a copy of the video and short
+          clips from it so members of the communities you share the technique with can watch it in Potluck. These copies are
+          private to those communities and are deleted when the technique is deleted or when its owner deletes their account. If
+          you are a creator and want a stored video removed, contact support@potluckhq.app.
         </p>
         <p>
           We respect intellectual property rights and expect you to do the same. Potluck is not affiliated with or endorsed by
@@ -601,7 +608,11 @@ const PRIVACY: Section[] = [
     title: 'How long we keep information',
     body: (
       <ul>
-        <li>Videos are never stored. They are deleted as soon as a recipe is extracted.</li>
+        <li>Recipe videos are never stored. They are deleted as soon as a recipe is extracted.</li>
+        <li>
+          Technique videos and their clips are kept for playback by the communities they are shared with, until the technique
+          or its owner's account is deleted.
+        </li>
         <li>Photos and videos you upload are deleted once processing finishes, and in any case within 7 days.</li>
         <li>Import records are kept for 30 days.</li>
         <li>AI usage records are kept for up to 400 days for billing and abuse prevention.</li>

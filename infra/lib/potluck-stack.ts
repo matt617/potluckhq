@@ -163,7 +163,8 @@ export class PotluckStack extends Stack {
       enforceSSL: true,
     });
     const ingestQueue = new sqs.Queue(this, 'IngestQueue', {
-      visibilityTimeout: Duration.minutes(6),
+      // Must exceed the worker timeout so a message is not redelivered while still being processed.
+      visibilityTimeout: Duration.minutes(10),
       retentionPeriod: Duration.days(4),
       enforceSSL: true,
       deadLetterQueue: { queue: dlq, maxReceiveCount: 3 },
@@ -488,9 +489,10 @@ export class PotluckStack extends Stack {
     }
 
     const workerFn = makeFn('WorkerFn', 'worker', {
-      description: 'Recipe ingest worker: yt-dlp + Gemini',
+      description: 'Recipe ingest worker: yt-dlp + Gemini + ffmpeg',
       memorySize: 1536,
-      timeout: Duration.minutes(5),
+      // Download, Gemini, then ffmpeg for the preview frame and technique clips.
+      timeout: Duration.minutes(8),
       ephemeralStorageSize: Size.mebibytes(2048),
       layers: ytdlpLayer ? [ytdlpLayer] : [],
       environment: { YTDLP_PATH: '/opt/bin/yt-dlp', FFMPEG_DIR: '/opt/bin', HOME: '/tmp', XDG_CACHE_HOME: '/tmp' },
@@ -541,12 +543,16 @@ export class PotluckStack extends Stack {
     mediaBucket.grantPut(apiFn, 'uploads/*');
     mediaBucket.grantRead(apiFn, 'media/*');
     mediaBucket.grantDelete(apiFn, 'media/*');
+    // Technique videos: the API signs playback URLs for members and deletes them with the recipe or account.
+    mediaBucket.grantRead(apiFn, 'private/*');
+    mediaBucket.grantDelete(apiFn, 'private/*');
     mediaBucket.grantPut(webhooksFn, 'uploads/*');
     if (smsFn) mediaBucket.grantPut(smsFn, 'uploads/*');
     mediaBucket.grantRead(workerFn, 'uploads/*');
     mediaBucket.grantDelete(workerFn, 'uploads/*');
     mediaBucket.grantPut(workerFn, 'media/*');
     mediaBucket.grantRead(workerFn, 'media/*');
+    mediaBucket.grantPut(workerFn, 'private/*');
 
     if (cfg.sesFromEmail) {
       apiFn.addToRolePolicy(new iam.PolicyStatement({
@@ -658,8 +664,8 @@ export class PotluckStack extends Stack {
       alarm(`${name}-errors`, fn.metricErrors({ period: five, statistic: 'Sum' }), threshold, `The ${name} Lambda is throwing errors.`);
       alarm(`${name}-throttles`, fn.metricThrottles({ period: five, statistic: 'Sum' }), 1, `The ${name} Lambda is being throttled.`);
     }
-    alarm('worker-slow', workerFn.metricDuration({ period: five, statistic: 'p95' }), 240_000,
-      'Imports are taking close to the 5 minute Lambda timeout.', 2);
+    alarm('worker-slow', workerFn.metricDuration({ period: five, statistic: 'p95' }), 420_000,
+      'Imports are taking close to the 8 minute Lambda timeout.', 2);
     alarm('api-5xx', new cloudwatch.Metric({ namespace: 'AWS/ApiGateway', metricName: '5xx', dimensionsMap: { ApiId: httpApi.apiId }, period: five, statistic: 'Sum' }), 10,
       'The HTTP API is returning server errors.');
     const potluckMetric = (metricName: string, period: Duration) =>

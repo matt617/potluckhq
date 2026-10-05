@@ -190,7 +190,7 @@ export function Planner() {
         <EntryEditor
           entry={editing.entry}
           isNew={editing.isNew}
-          recipes={recipesState.data?.recipes ?? []}
+          recipes={(recipesState.data?.recipes ?? []).filter((r) => r.kind !== 'technique')}
           others={entries.filter((e) => e.id !== editing.entry.id && (e.recipeId || e.label) && !e.leftoverOf)}
           titleOf={entryTitle}
           onClose={() => setEditing(null)}
