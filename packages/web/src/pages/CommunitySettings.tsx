@@ -1,13 +1,15 @@
+import { MemberNominations } from '../components/MemberNominations';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tierConfig, type InviteResponse, type Role } from '@potluck/core';
 import { api } from '../api';
-import { ConfirmButton, ErrorNote, Field, Flash, Spinner, useFlash } from '../components/ui';
+import { ConfirmAction, ErrorNote, Field, Spinner } from '../components/ui';
 import { useAsync } from '../lib/hooks';
 import { canAdmin, useCommunity, useSession } from '../lib/session';
 import { copyText, formatDate } from '../lib/util';
 import { Diners } from '../components/Diners';
 import { KitchenAdministration } from '../components/KitchenAdministration';
+import { toast } from 'sonner';
 
 export function CommunitySettings() {
   const community = useCommunity();
@@ -21,7 +23,6 @@ export function CommunitySettings() {
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
   const [error, setError] = useState<unknown>();
   const [busy, setBusy] = useState<string | null>(null);
-  const [flash, setFlash] = useFlash();
 
   useEffect(() => {
     const c = detail.data?.community;
@@ -46,7 +47,7 @@ export function CommunitySettings() {
     setError(undefined);
     try {
       await fn();
-      if (done) setFlash(done);
+      if (done) toast(done);
     } catch (e) {
       setError(e);
     } finally {
@@ -59,13 +60,17 @@ export function CommunitySettings() {
     const text = `Join ${community.name} on Potluck to ${community.kind === 'circle' ? 'exchange recipes' : 'share recipes, meal plans and shopping lists'}.`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Potluck invite', text, url: invite.url });
+        await navigator.share({
+          title: 'Potluck invite',
+          text,
+          url: invite.url,
+        });
         return;
       } catch {
         /* cancelled; fall back to copy */
       }
     }
-    setFlash((await copyText(invite.url)) ? 'Invite link copied' : 'Copy failed');
+    toast((await copyText(invite.url)) ? 'Invite link copied' : 'Copy failed');
   }
 
   if (detail.loading && !detail.data) return <Spinner />;
@@ -116,9 +121,11 @@ export function CommunitySettings() {
                   <span className="badge">{m.role}</span>
                 )}
                 {admin && !self && m.role !== 'owner' && (role === 'owner' || m.role === 'member') && (
-                  <ConfirmButton
+                  <ConfirmAction
                     className="btn btn-ghost btn-small"
-                    confirmLabel="Remove?"
+                    title={`Remove ${m.displayName}?`}
+                    description="They lose access to this space’s recipes and plans. You can nominate them again later."
+                    confirmLabel="Remove"
                     onConfirm={() =>
                       act(
                         'remove',
@@ -131,16 +138,21 @@ export function CommunitySettings() {
                     }
                   >
                     Remove
-                  </ConfirmButton>
+                  </ConfirmAction>
                 )}
               </li>
             );
           })}
         </ul>
 
+        {admin && <MemberNominations full={full} />}
         {admin && (
-          <div className="stack invite-box">
-            <h3 className="h4">Invite someone</h3>
+          <details className="stack invite-box">
+            <summary className="h4">Invite someone new to Potluck</summary>
+            <p className="small muted">
+              Use a shareable link when someone doesn’t have an account. Anyone with this link can join with the selected role until it expires or is
+              revoked.
+            </p>
             {full ? (
               <p className="muted small">
                 {community.kind === 'circle'
@@ -151,12 +163,20 @@ export function CommunitySettings() {
               <div className="row wrap">
                 <select aria-label="Invite role" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as 'member' | 'admin')}>
                   <option value="member">as member</option>
-                  <option value="admin">as admin</option>
+                  {isOwner && <option value="admin">as admin</option>}
                 </select>
                 <button
                   className="btn btn-primary"
                   disabled={busy === 'invite'}
-                  onClick={() => act('invite', async () => setInvite(await api.createInvite(community.id, { role: inviteRole })))}
+                  onClick={() =>
+                    act('invite', async () =>
+                      setInvite(
+                        await api.createInvite(community.id, {
+                          role: inviteRole,
+                        }),
+                      ),
+                    )
+                  }
                 >
                   Create invite link
                 </button>
@@ -166,7 +186,7 @@ export function CommunitySettings() {
               <div className="stack">
                 <input readOnly value={invite.url} aria-label="Invite link" onFocus={(e) => e.currentTarget.select()} />
                 <div className="row wrap">
-                  <button className="btn" onClick={async () => setFlash((await copyText(invite.url)) ? 'Copied' : 'Copy failed')}>
+                  <button className="btn" onClick={async () => toast((await copyText(invite.url)) ? 'Copied' : 'Copy failed')}>
                     Copy link
                   </button>
                   <button className="btn" onClick={() => void shareInvite()}>
@@ -176,7 +196,7 @@ export function CommunitySettings() {
                 </div>
               </div>
             )}
-          </div>
+          </details>
         )}
       </section>
 
@@ -231,11 +251,13 @@ export function CommunitySettings() {
         {isOwner ? (
           <>
             <p className="muted small">
-              Deletes this shared space and its plans, shopping lists and local recipe versions. Personal saves and independent copies elsewhere remain.
-              Transfer ownership above to let the group continue.
+              Deletes this shared space and its plans, shopping lists and local recipe versions. Personal saves and independent copies elsewhere
+              remain. Transfer ownership above to let the group continue.
             </p>
-            <ConfirmButton
-              confirmLabel={`Delete ${community.name}?`}
+            <ConfirmAction
+              title={`Delete ${community.name}?`}
+              description="Its plans, shopping lists and local recipe versions are deleted for everyone. Personal saves and independent copies elsewhere remain. This cannot be undone."
+              confirmLabel={`Delete ${community.kind === 'circle' ? 'circle' : 'kitchen'}`}
               onConfirm={() =>
                 act('delete', async () => {
                   await api.deleteCommunity(community.id);
@@ -245,11 +267,13 @@ export function CommunitySettings() {
               }
             >
               Delete {community.kind === 'circle' ? 'circle' : 'kitchen'}
-            </ConfirmButton>
+            </ConfirmAction>
           </>
         ) : (
-          <ConfirmButton
-            confirmLabel="Leave for sure?"
+          <ConfirmAction
+            title={`Leave ${community.name}?`}
+            description="You lose access to its shared recipes and plans until you accept a new nomination or invitation."
+            confirmLabel="Leave"
             onConfirm={() =>
               act('leave', async () => {
                 if (!me) return;
@@ -260,10 +284,9 @@ export function CommunitySettings() {
             }
           >
             Leave {community.name}
-          </ConfirmButton>
+          </ConfirmAction>
         )}
       </section>
-      <Flash message={flash} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { registerMemberLinkRoutes, userNominations } from '../lib/member-links.js';
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import {
   AISLES,
@@ -62,6 +63,7 @@ import { emitMetric } from '../lib/metrics.js';
 
 const router = new Router();
 registerKitchenRoutes(router);
+registerMemberLinkRoutes(router);
 
 function me(ctx: Ctx) {
   if (!ctx.user) throw forbidden('Sign in required');
@@ -170,7 +172,7 @@ router.on('PATCH', '/api/me', async (ctx) => {
 router.on('GET', '/api/me/export', async (ctx) => {
   const u = me(ctx);
   await enforceLimit('exportsPerHour', u.id, 'You can download your data a few times an hour. Please try again later.');
-  const data = await exportAccount(u.id);
+  const data = { ...(await exportAccount(u.id)), membershipNominations: await userNominations(u.id) };
   return json(200, data, { 'content-disposition': `attachment; filename="potluck-export-${new Date().toISOString().slice(0, 10)}.json"` });
 });
 

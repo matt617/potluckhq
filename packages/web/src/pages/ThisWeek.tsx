@@ -54,7 +54,7 @@ export function ThisWeek() {
           <p className="muted">Decide together. Cook together.</p>
         </div>
         <Link className="btn" to={kitchenPath('/community', c.id)}>
-          Invite someone
+          Manage members
         </Link>
       </div>
       <div className="row wrap">

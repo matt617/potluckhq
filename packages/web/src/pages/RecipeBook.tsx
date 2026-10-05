@@ -5,7 +5,7 @@ import { api } from '../api';
 import { AddRecipe, type AddMode } from '../components/AddRecipe';
 import { ImportList, isActiveImport, needsAttention } from '../components/ImportList';
 import { CookingPot, MagnifyingGlass, Plus, X } from '@phosphor-icons/react';
-import { Chip, Empty, ErrorNote, Flash, PageHeader, Skeleton, useFlash } from '../components/ui';
+import { Chip, Empty, ErrorNote, PageHeader, Skeleton } from '../components/ui';
 
 type KindFilter = 'all' | RecipeKind;
 const KIND_LABEL: Record<KindFilter, string> = { all: 'Everything', recipe: 'Recipes', technique: 'Techniques' };
@@ -13,6 +13,7 @@ import { useAsync, useInterval } from '../lib/hooks';
 import { useCommunity, useSession } from '../lib/session';
 import { mediaUrl, minutes } from '../lib/util';
 import { kitchenPath } from '../lib/kitchen-context';
+import { toast } from 'sonner';
 
 /** Stable warm placeholder tone (0-3) for recipes without a thumbnail. */
 function toneOf(id: string): number {
@@ -33,7 +34,6 @@ export function RecipeBook() {
   const [kind, setKind] = useState<KindFilter>('all');
   const [addMode, setAddMode] = useState<AddMode | null>(() => (new URLSearchParams(window.location.search).has('add') ? 'link' : null));
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
-  const [flash, setFlash] = useFlash();
   const lastDone = useRef<Set<string>>(new Set());
   const showAdd = addMode !== null;
 
@@ -55,7 +55,7 @@ export function RecipeBook() {
         const added = newlyDone.filter((j) => j.communityId === community.id && j.recipeId);
         if (added.length) {
           setJustAdded((prev) => new Set([...prev, ...added.map((j) => j.recipeId!)]));
-          setFlash(added.length === 1 ? 'New recipe added to the book' : `${added.length} new recipes added to the book`);
+          toast(added.length === 1 ? 'New recipe added to the book' : `${added.length} new recipes added to the book`);
         }
       }
     },
@@ -103,7 +103,7 @@ export function RecipeBook() {
           My recipes
         </Link>
         <Link className="btn" to={kitchenPath('/community', community.id)}>
-          Invite someone
+          Manage members
         </Link>
       </div>
 
@@ -211,7 +211,6 @@ export function RecipeBook() {
         </ul>
       )}
       {recipes.data && list.length > 0 && filtered.length === 0 && <p className="muted">No recipes match that search.</p>}
-      <Flash message={flash} />
     </div>
   );
 }

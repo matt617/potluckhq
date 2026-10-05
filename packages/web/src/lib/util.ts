@@ -24,13 +24,6 @@ export function timeAgo(iso: string): string {
   return `${Math.floor(s / 86400)} d ago`;
 }
 
-export function splitList(text: string): string[] {
-  return text
-    .split(/[\n,]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 export function formatDate(iso: string, opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }): string {
   return new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString(undefined, { timeZone: 'UTC', ...opts });
 }

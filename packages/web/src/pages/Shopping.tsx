@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import { addDays, AISLES, shoppingListText, shoppingChanges, weekStartOf, type Aisle, type ShoppingItem, type ShoppingList } from '@potluck/core';
 import { api } from '../api';
 import { Basket, CaretLeft, CaretRight, X } from '@phosphor-icons/react';
-import { Empty, ErrorNote, Flash, PageHeader, Skeleton, useFlash } from '../components/ui';
+import { Empty, ErrorNote, PageHeader, Skeleton } from '../components/ui';
 import { useAsync, useInterval } from '../lib/hooks';
 import { useCommunity, useSession } from '../lib/session';
 import { copyText, formatDate } from '../lib/util';
 import { kitchenPath, useWeek } from '../lib/kitchen-context';
+import { toast } from 'sonner';
 
 const aisleLabel = (a: Aisle) => AISLES.find((x) => x.id === a)?.label ?? 'Other';
 
@@ -20,7 +21,6 @@ export function Shopping() {
   const [error, setError] = useState<unknown>();
   const [newName, setNewName] = useState('');
   const [newAmount, setNewAmount] = useState('');
-  const [flash, setFlash] = useFlash();
   const [preview, setPreview] = useState<ShoppingList | null>(null);
   const pending = useRef(0);
 
@@ -140,7 +140,7 @@ export function Shopping() {
         <button
           className="btn"
           disabled={!items.length}
-          onClick={async () => setFlash((await copyText(shoppingListText(items, aisleLabel))) ? 'Copied' : 'Copy failed')}
+          onClick={async () => toast((await copyText(shoppingListText(items, aisleLabel))) ? 'Copied' : 'Copy failed')}
         >
           Copy as text
         </button>
@@ -151,7 +151,7 @@ export function Shopping() {
             onClick={() =>
               act('send', async () => {
                 const res = await api.sendList(community.id, week);
-                setFlash(res.sentTo ? `Sent to ${res.sentTo}` : 'Sent');
+                toast(res.sentTo ? `Sent to ${res.sentTo}` : 'Sent');
               })
             }
           >
@@ -187,7 +187,7 @@ export function Shopping() {
                 void act('gen', async () => {
                   state.setData(await api.generateList(community.id, week, preview.planFingerprint!));
                   setPreview(null);
-                  setFlash('Shopping list updated');
+                  toast('Shopping list updated');
                 })
               }
             >
@@ -247,7 +247,6 @@ export function Shopping() {
           {list.generatedAt && <p className="small muted">Built from the plan {new Date(list.generatedAt).toLocaleString()}.</p>}
         </>
       )}
-      <Flash message={flash} />
     </div>
   );
 }

@@ -1,16 +1,17 @@
+import { RecordPicker } from '../components/RecordPicker';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { formatUsd, tierConfig, type LinkCodeResponse, type TierId } from '@potluck/core';
 import { api } from '../api';
-import { ConfirmButton, ErrorNote, Field, Flash, Spinner, useFlash } from '../components/ui';
+import { ConfirmAction, ConfirmButton, ErrorNote, Field, Spinner, TagInput } from '../components/ui';
 import { logout } from '../lib/auth';
 import { useSession } from '../lib/session';
-import { cents, formatDate, splitList } from '../lib/util';
+import { cents, formatDate } from '../lib/util';
+import { toast } from 'sonner';
 
 export function Account() {
   const { me, setMe, publicConfig, refreshMe } = useSession();
   const location = useLocation();
-  const [flash, setFlash] = useFlash();
 
   useEffect(() => {
     const id = location.hash.slice(1);
@@ -21,10 +22,10 @@ export function Account() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('checkout') === 'success') {
-      setFlash('Payment received. Your plan is updated.');
+      toast('Payment received. Your plan is updated.');
       void refreshMe();
     }
-  }, [location.search, refreshMe, setFlash]);
+  }, [location.search, refreshMe]);
 
   if (!me) return <Spinner />;
   return (
@@ -35,12 +36,11 @@ export function Account() {
           Sign out
         </button>
       </div>
-      <ProfileSection onSaved={(m) => (setMe(m), setFlash('Saved'))} />
+      <ProfileSection onSaved={(m) => (setMe(m), toast('Saved'))} />
       <ChatsSection />
       <UsageSection />
       {publicConfig && <BillingSection />}
       <DangerZone />
-      <Flash message={flash} />
     </div>
   );
 }
@@ -51,9 +51,9 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
   const [displayName, setDisplayName] = useState(u.displayName);
   const [units, setUnits] = useState(u.units);
   const [defaultCommunityId, setDefaultCommunityId] = useState(u.defaultCommunityId ?? '');
-  const [allergies, setAllergies] = useState(u.diet.allergies.join(', '));
-  const [diets, setDiets] = useState(u.diet.diets.join(', '));
-  const [dislikes, setDislikes] = useState(u.diet.dislikes.join(', '));
+  const [allergies, setAllergies] = useState(u.diet.allergies);
+  const [diets, setDiets] = useState(u.diet.diets);
+  const [dislikes, setDislikes] = useState(u.diet.dislikes);
   const [goals, setGoals] = useState(u.diet.goals ?? '');
   const [glp1, setGlp1] = useState(!!u.diet.glp1);
   const [protein, setProtein] = useState(u.diet.dailyProteinTargetG?.toString() ?? '');
@@ -69,9 +69,9 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
         units,
         defaultCommunityId: defaultCommunityId || undefined,
         diet: {
-          allergies: splitList(allergies),
-          diets: splitList(diets),
-          dislikes: splitList(dislikes),
+          allergies,
+          diets,
+          dislikes,
           goals: goals.trim() || undefined,
           glp1,
           dailyProteinTargetG: protein.trim() ? Math.max(0, Number(protein) || 0) : null,
@@ -102,32 +102,36 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
           </select>
         </Field>
         <Field label="Default kitchen for chat imports" hint="Browsing another kitchen does not change this destination.">
-          <select value={defaultCommunityId} onChange={(e) => setDefaultCommunityId(e.target.value)}>
-            <option value="">Choose a kitchen</option>
-            {me!.communities
+          <RecordPicker
+            label="Import destinations"
+            value={defaultCommunityId}
+            onChange={setDefaultCommunityId}
+            placeholder="Choose a kitchen"
+            empty="Create or join a kitchen to choose an import destination."
+            options={me!.communities
               .filter((c) => c.kind !== 'circle')
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-          </select>
+              .map((c) => ({
+                value: c.id,
+                label: c.name,
+                detail: `${c.memberCount} members · ${c.role}`,
+              }))}
+          />
         </Field>
       </div>
       <h3 className="h4">Food profile</h3>
       <p className="muted small">
-        These preferences are private. In each kitchen’s settings, choose which food requirements to share as a diner. Joining a kitchen or circle does not
-        share them automatically.
+        These preferences are private. In each kitchen’s settings, choose which food requirements to share as a diner. Joining a kitchen or circle
+        does not share them automatically.
       </p>
       <div className="form-grid">
-        <Field label="Allergies" hint="Comma separated">
-          <input value={allergies} onChange={(e) => setAllergies(e.target.value)} placeholder="peanuts, shellfish" />
+        <Field label="Allergies">
+          <TagInput value={allergies} onChange={setAllergies} placeholder="peanuts, shellfish" />
         </Field>
-        <Field label="Diets" hint="Comma separated">
-          <input value={diets} onChange={(e) => setDiets(e.target.value)} placeholder="vegetarian, low-carb" />
+        <Field label="Diets">
+          <TagInput value={diets} onChange={setDiets} placeholder="vegetarian, low-carb" />
         </Field>
-        <Field label="Dislikes" hint="Comma separated">
-          <input value={dislikes} onChange={(e) => setDislikes(e.target.value)} placeholder="cilantro, olives" />
+        <Field label="Dislikes">
+          <TagInput value={dislikes} onChange={setDislikes} placeholder="cilantro, olives" />
         </Field>
         <Field label="Daily protein target (g)">
           <input type="number" min={0} value={protein} onChange={(e) => setProtein(e.target.value)} />
@@ -141,7 +145,9 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
         fiber-rich portions.
       </label>
       {glp1 && (
-        <p className="small muted">Potluck's suggestions are general food ideas, not medical advice. Follow your clinician's guidance on diet and dosing.</p>
+        <p className="small muted">
+          Potluck's suggestions are general food ideas, not medical advice. Follow your clinician's guidance on diet and dosing.
+        </p>
       )}
       <ErrorNote error={error} />
       <div>
@@ -180,8 +186,8 @@ function ChatsSection() {
         Linked chats
       </h2>
       <p className="muted small">
-        Link a private chat with the bot, then forward a recipe. It lands in your chosen kitchen. The bot receives direct messages; it does not join your group
-        chat.
+        Link a private chat with the bot, then forward a recipe. It lands in your chosen kitchen. The bot receives direct messages; it does not join
+        your group chat.
       </p>
       {me!.channels.length > 0 ? (
         <ul className="members">
@@ -230,7 +236,12 @@ function ChatsSection() {
                   </a>
                 )}
                 {wa && (
-                  <a className="btn btn-primary" href={`https://wa.me/${wa}?text=${encodeURIComponent(`link ${code.code}`)}`} target="_blank" rel="noreferrer">
+                  <a
+                    className="btn btn-primary"
+                    href={`https://wa.me/${wa}?text=${encodeURIComponent(`link ${code.code}`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     Open WhatsApp
                   </a>
                 )}
@@ -347,7 +358,11 @@ function BillingSection() {
                   Switch in portal
                 </button>
               ) : (
-                <button className="btn btn-primary" disabled={!!busy} onClick={() => go(t.id, () => api.checkout({ tier: t.id as Exclude<TierId, 'free'> }))}>
+                <button
+                  className="btn btn-primary"
+                  disabled={!!busy}
+                  onClick={() => go(t.id, () => api.checkout({ tier: t.id as Exclude<TierId, 'free'> }))}
+                >
                   {busy === t.id ? 'Opening…' : `Upgrade to ${t.name}`}
                 </button>
               )
@@ -359,8 +374,8 @@ function BillingSection() {
         <>
           <h3 className="h4">AI credits</h3>
           <p className="small muted">
-            Imports and AI planning share your account’s allowance across all kitchens and circles you own. Credit packs extend both. Credits stay with your
-            account when you transfer a kitchen.
+            Imports and AI planning share your account’s allowance across all kitchens and circles you own. Credit packs extend both. Credits stay
+            with your account when you transfer a kitchen.
           </p>
           <div className="row wrap">
             {cfg.creditPacks.map((p) => (
@@ -391,7 +406,9 @@ function DangerZone() {
     setError(undefined);
     try {
       const data = await api.exportMe();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: 'application/json',
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -423,7 +440,8 @@ function DangerZone() {
       <div className="stack">
         <h3 className="h4">Download my data</h3>
         <p className="small muted">
-          A JSON file with your profile, personal recipes and notes, kitchens and circles, shared recipes, meal plans, shopping lists and linked chats.
+          A JSON file with your profile, personal recipes and notes, kitchens and circles, shared recipes, meal plans, shopping lists and linked
+          chats.
         </p>
         <div>
           <button type="button" className="btn" disabled={exporting} onClick={() => void download()}>
@@ -435,7 +453,9 @@ function DangerZone() {
         <h3 className="h4">Delete account</h3>
         <p className="small">Deleting your account is permanent and cannot be undone. When you delete it:</p>
         <ul className="small danger-list">
-          <li>Your personal recipes, private notes and shared contributions are deleted. Independent recipe copies already saved by others remain.</li>
+          <li>
+            Your personal recipes, private notes and shared contributions are deleted. Independent recipe copies already saved by others remain.
+          </li>
           <li>You leave every kitchen and circle you belong to.</li>
           {owned.length > 0 ? (
             <li>
@@ -455,15 +475,27 @@ function DangerZone() {
           </p>
         )}
         <Field label="Type DELETE to confirm">
-          <input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" spellCheck={false} aria-describedby="delete-help" />
+          <input
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            aria-describedby="delete-help"
+          />
         </Field>
         <p id="delete-help" className="small muted">
           The delete button unlocks when the box says DELETE.
         </p>
         <div>
-          <ConfirmButton disabled={confirmText.trim() !== 'DELETE'} confirmLabel="Tap again to delete forever" onConfirm={remove}>
+          <ConfirmAction
+            disabled={confirmText.trim() !== 'DELETE'}
+            title="Delete your account?"
+            description="Your profile, personal recipes and notes are deleted. Kitchens you own are deleted for everyone. This cannot be undone."
+            confirmLabel="Delete forever"
+            onConfirm={remove}
+          >
             Delete my account
-          </ConfirmButton>
+          </ConfirmAction>
         </div>
       </div>
       <ErrorNote error={error} />

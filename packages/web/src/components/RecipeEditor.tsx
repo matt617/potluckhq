@@ -1,8 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { formatAmount, parseIngredientLine, type Ingredient, type Recipe, type Step } from '@potluck/core';
 import { api } from '../api';
-import { splitList } from '../lib/util';
-import { ErrorNote, Field } from './ui';
+import { ErrorNote, Field, TagInput } from './ui';
 
 function ingredientLine(i: Ingredient): string {
   const amount = formatAmount(i.quantity, i.unit);
@@ -64,7 +63,7 @@ export function RecipeEditor({ recipe, onCancel, onSaved }: { recipe: Recipe; on
   const [prep, setPrep] = useState(recipe.prepMin?.toString() ?? '');
   const [cook, setCook] = useState(recipe.cookMin?.toString() ?? '');
   const [cuisine, setCuisine] = useState(recipe.cuisine ?? '');
-  const [tags, setTags] = useState(recipe.tags.join(', '));
+  const [tags, setTags] = useState(recipe.tags);
   const [ingredients, setIngredients] = useState(() => ingredientsToText(recipe.ingredients));
   const [steps, setSteps] = useState(() => stepsToText(recipe.steps));
   const [tips, setTips] = useState((recipe.tips ?? []).join('\n'));
@@ -84,7 +83,7 @@ export function RecipeEditor({ recipe, onCancel, onSaved }: { recipe: Recipe; on
         prepMin: num(prep),
         cookMin: num(cook),
         cuisine: cuisine.trim() || undefined,
-        tags: splitList(tags).map((t) => t.toLowerCase()),
+        tags,
         ingredients: textToIngredients(ingredients, recipe.ingredients),
         steps: textToSteps(steps, recipe.steps),
         tips: tips
@@ -135,8 +134,8 @@ export function RecipeEditor({ recipe, onCancel, onSaved }: { recipe: Recipe; on
             <input value={cuisine} onChange={(e) => setCuisine(e.target.value)} />
           </Field>
         </div>
-        <Field label="Tags" hint="Comma separated, e.g. chicken, weeknight, high-protein">
-          <input value={tags} onChange={(e) => setTags(e.target.value)} />
+        <Field label="Tags" hint="Press Enter or comma to add a tag">
+          <TagInput value={tags} onChange={setTags} lowercase placeholder="chicken, weeknight, high-protein" />
         </Field>
       </div>
       <div className="card stack">

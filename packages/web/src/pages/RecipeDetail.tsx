@@ -1,3 +1,4 @@
+import { RecordPicker } from '../components/RecordPicker';
 import { useMemo, useState } from 'react';
 import { ArrowLeft } from '@phosphor-icons/react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -5,12 +6,13 @@ import { formatAmount, scaleQuantity, type Ingredient, type Recipe } from '@potl
 import { api } from '../api';
 import { RecipeEditor } from '../components/RecipeEditor';
 import { TechniqueView } from '../components/TechniqueView';
-import { ConfirmButton, ErrorNote, Flash, Spinner, useFlash } from '../components/ui';
+import { ConfirmAction, ErrorNote, Spinner } from '../components/ui';
 import { useAsync } from '../lib/hooks';
 import { useCommunity, useSession, canAdmin } from '../lib/session';
 import { clock, mediaUrl, minutes, youtubeAt } from '../lib/util';
 import { AddToPlan, RecipeParticipation } from '../components/RecipeParticipation';
 import { kitchenPath } from '../lib/kitchen-context';
+import { toast } from 'sonner';
 
 function groupIngredients(list: Ingredient[]): [string, Ingredient[]][] {
   const groups = new Map<string, Ingredient[]>();
@@ -33,7 +35,6 @@ export function RecipeDetail() {
   const [editing, setEditing] = useState(false);
   const [shareTo, setShareTo] = useState('');
   const [error, setError] = useState<unknown>();
-  const [flash, setFlash] = useFlash();
 
   const recipe = state.data?.recipe;
   const target = servings ?? recipe?.servings ?? 1;
@@ -59,7 +60,7 @@ export function RecipeDetail() {
     setError(undefined);
     try {
       await fn();
-      if (done) setFlash(done);
+      if (done) toast(done);
     } catch (e) {
       setError(e);
     }
@@ -71,10 +72,14 @@ export function RecipeDetail() {
         recipe={recipe}
         onCancel={() => setEditing(false)}
         onSaved={(r: Recipe) => {
-          state.setData((prev) => ({ canEdit: prev?.canEdit ?? true, recipe: r, media: prev?.media }));
+          state.setData((prev) => ({
+            canEdit: prev?.canEdit ?? true,
+            recipe: r,
+            media: prev?.media,
+          }));
           setServings(null);
           setEditing(false);
-          setFlash('Recipe saved');
+          toast('Recipe saved');
         }}
       />
     );
@@ -244,7 +249,10 @@ export function RecipeDetail() {
               className="btn"
               onClick={() =>
                 void run(async () => {
-                  const next = await api.updateRecipe(recipe.id, { updatedAt: recipe.updatedAt, archived: false });
+                  const next = await api.updateRecipe(recipe.id, {
+                    updatedAt: recipe.updatedAt,
+                    archived: false,
+                  });
                   state.setData(next);
                 }, 'Restored to the recipe book')
               }
@@ -259,17 +267,20 @@ export function RecipeDetail() {
           )}
           {shareable.length > 0 && (
             <div className="row">
-              <select aria-label="Save to kitchen or circle" value={shareTo} onChange={(e) => setShareTo(e.target.value)}>
-                <option value="">Save an independent copy to…</option>
-                {shareable.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <RecordPicker
+                label="Save to kitchen or circle"
+                value={shareTo}
+                onChange={setShareTo}
+                placeholder="Save an independent copy to…"
+                options={shareable.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                  detail: `${c.kind === 'circle' ? 'Recipe circle' : 'Kitchen'} · ${c.memberCount} members`,
+                }))}
+              />
               <button
                 className="btn"
-                disabled={!shareTo}
+                disabled={!shareable.some((c) => c.id === shareTo)}
                 onClick={() =>
                   run(async () => {
                     const result = await api.shareRecipe(recipe.id, shareTo);
@@ -283,8 +294,11 @@ export function RecipeDetail() {
             </div>
           )}
           {inThisCommunity && community && (isOwner || canAdmin(community.role)) && (
-            <ConfirmButton
+            <ConfirmAction
               className="btn"
+              title={`Archive in ${community.name}?`}
+              description="It leaves this space’s recipe book and future plans. Copies people saved elsewhere stay."
+              confirmLabel="Archive"
               onConfirm={() =>
                 run(async () => {
                   await api.removeFromCommunity(community.id, recipe.id);
@@ -293,11 +307,13 @@ export function RecipeDetail() {
               }
             >
               Archive in {community.name}
-            </ConfirmButton>
+            </ConfirmAction>
           )}
           {isOwner && (
-            <ConfirmButton
-              confirmLabel="Delete everywhere?"
+            <ConfirmAction
+              title={`Delete ${recipe.title}?`}
+              description="It is removed everywhere it appears. Independent copies other people saved stay. This cannot be undone."
+              confirmLabel={`Delete ${isTechnique ? 'technique' : 'recipe'}`}
               onConfirm={() =>
                 run(async () => {
                   await api.deleteRecipe(recipe.id);
@@ -306,7 +322,7 @@ export function RecipeDetail() {
               }
             >
               Delete {isTechnique ? 'technique' : 'recipe'}
-            </ConfirmButton>
+            </ConfirmAction>
           )}
         </div>
       </section>
@@ -318,7 +334,6 @@ export function RecipeDetail() {
           void state.reload();
         }}
       />
-      <Flash message={flash} />
     </article>
   );
 }

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { RecordPicker } from '../components/RecordPicker';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   addDays,
@@ -17,12 +18,18 @@ import {
 import { api } from '../api';
 import { AiResult, AiSuggest } from '../components/AiSuggest';
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
-import { ErrorNote, Field, Flash, PageHeader, Sheet, Skeleton, useFlash } from '../components/ui';
+import { ErrorNote, Field, FormDialog, PageHeader, Skeleton } from '../components/ui';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAsync, useInterval } from '../lib/hooks';
 import { useCommunity, useSession } from '../lib/session';
 import { formatDate, newId } from '../lib/util';
 import { kitchenPath, useWeek } from '../lib/kitchen-context';
 import { readStore, writeStore } from '../lib/storage';
+import { toast } from 'sonner';
 
 export function Planner() {
   const community = useCommunity();
@@ -37,15 +44,28 @@ export function Planner() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<unknown>();
-  const [editing, setEditing] = useState<{ entry: PlanEntry; isNew: boolean } | null>(null);
+  const [editing, setEditing] = useState<{
+    entry: PlanEntry;
+    isNew: boolean;
+  } | null>(null);
   const [aiResult, setAiResult] = useState<SuggestPlanResponse | null>(null);
-  const [flash, setFlash] = useFlash();
   const draftKey = `potluck.planDraft:${me?.user.id}:${community.id}:${week}`;
-  const [recoverable, setRecoverable] = useState<{ entries: PlanEntry[]; revision: number } | null>(null);
+  const [recoverable, setRecoverable] = useState<{
+    entries: PlanEntry[];
+    revision: number;
+  } | null>(null);
   const [draftRevision, setDraftRevision] = useState<number | null>(null);
   useInterval(() => void planState.reload(), 15000, !dirty && !saving && !editing);
   useEffect(() => {
-    if (dirty) writeStore(draftKey, JSON.stringify({ entries, revision: draftRevision ?? planState.data?.plan.revision ?? 0 }), 'session');
+    if (dirty)
+      writeStore(
+        draftKey,
+        JSON.stringify({
+          entries,
+          revision: draftRevision ?? planState.data?.plan.revision ?? 0,
+        }),
+        'session',
+      );
   }, [entries, dirty, draftKey, draftRevision, planState.data]);
   function setWeek(next: string) {
     if (!dirty || window.confirm('Leave this draft? You can restore it when you return to this week.')) {
@@ -153,7 +173,7 @@ export function Planner() {
       setRecoverable(null);
       setDraftRevision(null);
       planState.setData(res);
-      setFlash('Plan saved');
+      toast('Plan saved');
     } catch (e) {
       setError(e);
     } finally {
@@ -273,7 +293,11 @@ export function Planner() {
                     <div key={slot} className="plan-cell" role="row">
                       <span className="plan-slot">{slot}</span>
                       {cell.map((e) => (
-                        <button key={e.id} className={`plan-entry${e.leftoverOf ? ' leftover' : ''}`} onClick={() => setEditing({ entry: e, isNew: false })}>
+                        <button
+                          key={e.id}
+                          className={`plan-entry${e.leftoverOf ? ' leftover' : ''}`}
+                          onClick={() => setEditing({ entry: e, isNew: false })}
+                        >
                           <span>{entryTitle(e)}</span>
                           <span className="muted small">×{e.servings}</span>
                           {!e.leftoverOf && batchPortions(entries, e.id) > e.servings && (
@@ -282,7 +306,9 @@ export function Planner() {
                             </span>
                           )}
                           {e.cookId && (
-                            <span className="small">Cook: {detail.data?.members.find((m) => m.userId === e.cookId)?.displayName ?? 'Former member'}</span>
+                            <span className="small">
+                              Cook: {detail.data?.members.find((m) => m.userId === e.cookId)?.displayName ?? 'Former member'}
+                            </span>
                           )}
                         </button>
                       ))}
@@ -365,7 +391,6 @@ export function Planner() {
           }}
         />
       )}
-      <Flash message={flash} />
     </div>
   );
 }
@@ -399,14 +424,15 @@ function EntryEditor({
   const [label, setLabel] = useState(entry.label ?? '');
   const [servings, setServings] = useState(entry.servings);
   const [note, setNote] = useState(entry.note ?? '');
-  const [filter, setFilter] = useState('');
   const [dinerIds, setDinerIds] = useState(entry.dinerIds ?? diners.filter((d) => d.usual).map((d) => d.id));
   const [cookId, setCookId] = useState(entry.cookId ?? '');
+  const baseId = useId();
 
-  const sorted = recipes.filter((r) => !filter || r.title.toLowerCase().includes(filter.toLowerCase())).sort((a, b) => a.title.localeCompare(b.title));
   const earlier = others.filter((o) => o.day < entry.day || (o.day === entry.day && MEAL_SLOTS.indexOf(o.slot) < MEAL_SLOTS.indexOf(entry.slot)));
 
-  const valid = kind === 'recipe' ? !!recipeId : kind === 'leftover' ? !!leftoverOf : !!label.trim();
+  const valid =
+    (kind === 'recipe' ? recipes.some((r) => r.id === recipeId) : kind === 'leftover' ? earlier.some((o) => o.id === leftoverOf) : !!label.trim()) &&
+    (!cookId || members.some((m) => m.userId === cookId));
 
   function save() {
     const leftoverSrc = others.find((o) => o.id === leftoverOf);
@@ -419,122 +445,122 @@ function EntryEditor({
       leftoverOf: kind === 'leftover' ? leftoverOf : undefined,
       label: kind === 'label' ? label.trim() : undefined,
       note: note.trim() || undefined,
-      dinerIds: diners.length ? dinerIds : undefined,
+      dinerIds: diners.length ? dinerIds.filter((id) => diners.some((d) => d.id === id)) : undefined,
       cookId: cookId || undefined,
     });
   }
 
   return (
-    <Sheet title={`${DAY_NAMES[entry.day]} ${entry.slot}`} onClose={onClose}>
-      <div className="stack">
-        <div className="segmented" role="tablist" aria-label="Entry type">
-          <button type="button" role="tab" aria-selected={kind === 'recipe'} className={kind === 'recipe' ? 'on' : ''} onClick={() => setKind('recipe')}>
-            Recipe
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={kind === 'leftover'}
-            className={kind === 'leftover' ? 'on' : ''}
-            onClick={() => setKind('leftover')}
-            disabled={!earlier.length}
-          >
-            Leftovers
-          </button>
-          <button type="button" role="tab" aria-selected={kind === 'label'} className={kind === 'label' ? 'on' : ''} onClick={() => setKind('label')}>
-            Other
-          </button>
-        </div>
-        {kind === 'recipe' && (
-          <>
-            <input type="search" placeholder="Filter recipes" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Filter recipes" />
-            <ul className="pick-list" role="listbox" aria-label="Recipes">
-              {sorted.map((r) => (
-                <li key={r.id}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={recipeId === r.id}
-                    className={recipeId === r.id ? 'on' : ''}
-                    onClick={() => {
-                      setRecipeId(r.id);
-                      if (isNew && !dinerIds.length) setServings(r.servings);
-                    }}
-                  >
-                    {r.title}
-                  </button>
-                </li>
-              ))}
-              {!sorted.length && <li className="muted small">No recipes match.</li>}
-            </ul>
-          </>
-        )}
-        {kind === 'leftover' && (
-          <Field label="Leftovers from">
-            <select value={leftoverOf} onChange={(e) => setLeftoverOf(e.target.value)}>
-              <option value="">Choose a meal…</option>
-              {earlier.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {DAY_NAMES[o.day]?.slice(0, 3)} {o.slot}: {titleOf(o)}
-                </option>
-              ))}
-            </select>
-          </Field>
-        )}
-        {kind === 'label' && (
-          <Field label="What's happening?" hint="e.g. Eat out, Takeout, Office lunch">
-            <input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={60} />
-          </Field>
-        )}
-        <div className="form-grid">
-          <Field label="Who’s cooking?">
-            <select value={cookId} onChange={(e) => setCookId(e.target.value)}>
-              <option value="">Unassigned</option>
-              {members.map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.displayName}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Servings">
-            <input type="number" min={0.25} step={0.25} max={50} value={servings} onChange={(e) => setServings(Number(e.target.value) || 1)} />
-          </Field>
-          <Field label="Note">
-            <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={120} />
-          </Field>
-        </div>
-        <fieldset className="fieldset">
-          <legend>Who’s eating?</legend>
-          {diners.map((d) => (
-            <label className="check" key={d.id}>
-              <input
-                type="checkbox"
-                checked={dinerIds.includes(d.id)}
-                onChange={(e) => {
-                  const ids = e.target.checked ? [...dinerIds, d.id] : dinerIds.filter((id) => id !== d.id);
-                  setDinerIds(ids);
-                  setServings(diners.filter((x) => ids.includes(x.id)).reduce((n, x) => n + x.portions, 0) || 1);
-                }}
-              />
-              {d.name}
-            </label>
-          ))}
-          {!diners.length && <Link to="/community">Add yourself, children or guests in kitchen settings</Link>}
-        </fieldset>
-        <div className="row between">
-          {!isNew ? (
-            <button type="button" className="btn btn-danger" onClick={onRemove}>
+    <FormDialog
+      title={`${DAY_NAMES[entry.day]} ${entry.slot}`}
+      onClose={onClose}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (valid) save();
+      }}
+      footer={
+        <>
+          {!isNew && (
+            <Button type="button" variant="destructive" className="sm:mr-auto" onClick={onRemove}>
               Remove
-            </button>
-          ) : (
-            <span />
+            </Button>
           )}
-          <button type="button" className="btn btn-primary" disabled={!valid} onClick={save}>
+          <Button type="submit" variant="default" disabled={!valid}>
             {isNew ? 'Add' : 'Update'}
-          </button>
-        </div>
+          </Button>
+        </>
+      }
+    >
+      <Tabs value={kind} onValueChange={(v) => setKind(v as typeof kind)} className="gap-4">
+        <TabsList aria-label="Entry type">
+          <TabsTrigger value="recipe">Recipe</TabsTrigger>
+          <TabsTrigger value="leftover" disabled={!earlier.length}>
+            Leftovers
+          </TabsTrigger>
+          <TabsTrigger value="label">Other</TabsTrigger>
+        </TabsList>
+        <TabsContent value="recipe" className="flex flex-col gap-2">
+          <Field label="Recipe" hint="Choose a recipe from this kitchen’s book. Your selection stays visible when you search again.">
+            <RecordPicker
+              label="Recipes"
+              value={recipeId}
+              placeholder="Choose a recipe"
+              empty="No recipes match. Add a recipe to this kitchen’s book first."
+              options={recipes.map((r) => ({
+                value: r.id,
+                label: r.title,
+                detail: `${r.servings} servings${r.totalMin ? ` · ${r.totalMin} min` : ''}`,
+              }))}
+              onChange={(id) => {
+                setRecipeId(id);
+                if (isNew && !dinerIds.length) setServings(recipes.find((r) => r.id === id)!.servings);
+              }}
+            />
+          </Field>
+        </TabsContent>
+        <TabsContent value="leftover">
+          <Field label="Leftovers from">
+            <RecordPicker
+              label="Earlier meals"
+              value={leftoverOf}
+              onChange={setLeftoverOf}
+              placeholder="Choose an earlier meal"
+              options={earlier.map((o) => ({
+                value: o.id,
+                label: titleOf(o),
+                detail: `${DAY_NAMES[o.day]} ${o.slot}`,
+              }))}
+            />
+          </Field>
+        </TabsContent>
+        <TabsContent value="label">
+          <Field label="What's happening?" hint="e.g. Eat out, Takeout, Office lunch">
+            <Input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={60} />
+          </Field>
+        </TabsContent>
+      </Tabs>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Who’s cooking?" hint="Assigns a kitchen member to this meal.">
+          <RecordPicker
+            label="Cooks"
+            value={cookId}
+            onChange={setCookId}
+            placeholder="Unassigned"
+            clearLabel="Unassigned"
+            options={members.map((m) => ({
+              value: m.userId,
+              label: m.displayName,
+              detail: m.role,
+            }))}
+          />
+        </Field>
+        <Field label="Servings">
+          <Input type="number" min={0.25} step={0.25} max={50} value={servings} onChange={(e) => setServings(Number(e.target.value) || 1)} />
+        </Field>
+        <Field label="Note" className="col-span-2">
+          <Input value={note} onChange={(e) => setNote(e.target.value)} maxLength={120} />
+        </Field>
       </div>
-    </Sheet>
+      <fieldset className="m-0 flex flex-col gap-3 border-0 p-0">
+        <legend className="mb-3 p-0 text-[0.9rem] font-medium">Who’s eating?</legend>
+        {diners.map((d) => (
+          <div className="flex items-center gap-3" key={d.id}>
+            <Checkbox
+              id={`${baseId}-${d.id}`}
+              checked={dinerIds.includes(d.id)}
+              onCheckedChange={(v) => {
+                const ids = v === true ? [...dinerIds, d.id] : dinerIds.filter((id) => id !== d.id);
+                setDinerIds(ids);
+                setServings(diners.filter((x) => ids.includes(x.id)).reduce((n, x) => n + x.portions, 0) || 1);
+              }}
+            />
+            <Label htmlFor={`${baseId}-${d.id}`} className="text-base font-normal">
+              {d.name}
+            </Label>
+          </div>
+        ))}
+        {!diners.length && <Link to="/community">Add yourself, children or guests in kitchen settings</Link>}
+      </fieldset>
+    </FormDialog>
   );
 }

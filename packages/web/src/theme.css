@@ -1,0 +1,85 @@
+/*
+ * Tailwind theme mapped onto the cookbook tokens defined on :root in styles.css.
+ * Names follow shadcn/ui, so its components pick up the palette:
+ *   primary = paprika accent, accent = soft paprika highlight, muted = oat surface,
+ *   muted-foreground = muted text. App-only colors keep descriptive names.
+ * `inline` makes utilities reference the runtime variables, so dark mode follows
+ * the same prefers-color-scheme and data-theme rules as the rest of the app.
+ */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) {
+      @slot;
+    }
+  }
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-foreground-2: var(--text-2);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--accent);
+  --color-primary-hover: var(--accent-hover);
+  --color-primary-foreground: var(--accent-ink);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--accent-soft);
+  --color-accent-foreground: var(--accent-text);
+  --color-destructive: var(--danger);
+  --color-destructive-soft: var(--danger-soft);
+  --color-destructive-foreground: var(--surface);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--border-strong);
+  --color-ring: var(--accent);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-ink-hover: var(--ink-hover);
+  --color-ink-foreground: var(--ink-text);
+  --color-success: var(--ok);
+  --color-success-soft: var(--ok-soft);
+  --color-warning-soft: var(--warn-soft);
+  --color-warning-foreground: var(--warn-ink);
+  --color-info-soft: var(--info-soft);
+  --color-info-foreground: var(--info-ink);
+
+  /* Shape rule: small marks 8px, controls 12px, cards 16px, big containers 22px, buttons and chips fully round. */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
+
+  --font-sans: var(--font);
+  --font-serif: var(--display);
+  --font-mono: var(--mono);
+
+  --shadow-card: var(--shadow);
+  --shadow-lift: var(--shadow-hover);
+  --shadow-float: var(--shadow-pop);
+  --shadow-glow: var(--shadow-accent);
+
+  --ease-smooth: var(--ease);
+  --ease-spring: var(--spring);
+
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  @keyframes shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
+}

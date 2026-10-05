@@ -95,7 +95,8 @@ await page.route('**/api/**', async (route) => {
   requests.push({ p, method, b });
   let data = { ok: true };
   let status = 200;
-  if (p === '/api/me') {
+  if (p === '/api/me/nominations') data = { nominations: [] };
+  else if (p === '/api/me') {
     if (method === 'PATCH') Object.assign(user, b);
     data = { user, budget, communities, channels: [] };
   } else if (p === '/api/kitchens/start') {
@@ -149,6 +150,7 @@ await page.route('**/api/**', async (route) => {
       if (method === 'POST') activities.push({ ...b, id: 'action', actorId: 'u1', actorName: 'Sam', at: '2026-10-04' });
       data = { activity: activities };
     } else if (kind === 'transfer') data = { transfer: null };
+    else if (kind === 'nominations') data = { nominations: [] };
     else if (kind === 'invites') data = { invites: [] };
     else if (kind === 'participation') data = { weeks: [] };
     else if (kind === 'plans') {
@@ -243,7 +245,8 @@ try {
     assert.equal(plans.get(`home:${week}`).entries.length, 2);
     // A rejected write stays recoverable across navigation and preserves its revision.
     await page.getByRole('button', { name: 'Add dinner on Wednesday', exact: true }).click();
-    await page.getByRole('dialog').getByRole('option', { name: 'Roast tomatoes', exact: true }).click();
+    await page.getByRole('dialog').getByRole('combobox', { name: 'Recipe', exact: true }).click();
+    await page.getByRole('option', { name: /Roast tomatoes/ }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Add', exact: true }).click();
     failSave = true;
     await page.getByRole('button', { name: 'Save plan', exact: true }).click();
