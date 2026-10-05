@@ -33,7 +33,7 @@ Steps that change interaction also have a manual keyboard pass: Tab order, focus
 ## Step 0: Baseline and harness
 
 - Settle the package changes from the shadcn MCP install. Revert `package-lock.json` and reinstall with the repo's npm version, so the lockfile diff in this PR only shows real changes.
-- Add `scripts/visual-check.mjs`, which reuses the fixture routing from `kitchen-browser-check.mjs`. Move the shared fixtures into `scripts/fixtures.mjs`.
+- Add `scripts/visual-check.mjs` with its own read-only fixtures. They're richer than the browser check's (diet lists, collections, a changed origin) and leave that passing test untouched. The script starts its own dev server on port 5179.
 - Screen matrix, captured in light and dark themes at 1366×900 and 390×844:
   - Routes: `/`, `/privacy`, `/terms`, `/invite/:token`, `/week`, `/library`, `/circles`, `/book`, `/book/:rid` (kitchen, personal and technique), `/plan`, `/shop`, `/community`, `/account`, and a 404 page.
   - Open states: each of the 5 sheets, each `<details>` expanded, an armed `ConfirmButton`, a `TagInput` with items, the error and quota notes, and skeletons.
