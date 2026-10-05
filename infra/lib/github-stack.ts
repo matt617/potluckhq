@@ -7,6 +7,12 @@ export interface GithubDeployStackProps extends StackProps {
   repo: string;
   /** GitHub environment allowed to deploy, e.g. production */
   environment: string;
+  /**
+   * Subject prefix GitHub puts in the token. Repos using immutable subjects send
+   * repo:<owner>@<ownerId>/<repo>@<repoId>; read it from
+   * GET /repos/{owner}/{repo}/actions/oidc/customization/sub (sub_claim_prefix).
+   */
+  subjectPrefix?: string;
 }
 
 /**
@@ -30,7 +36,7 @@ export class GithubDeployStack extends Stack {
       assumedBy: new iam.WebIdentityPrincipal(provider.openIdConnectProviderArn, {
         StringEquals: {
           'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-          'token.actions.githubusercontent.com:sub': `repo:${props.repo}:environment:${props.environment}`,
+          'token.actions.githubusercontent.com:sub': `${props.subjectPrefix ?? `repo:${props.repo}`}:environment:${props.environment}`,
         },
       }),
     });

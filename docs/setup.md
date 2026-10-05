@@ -180,7 +180,8 @@ environment of `matt617/potluckhq` can exchange for the `potluck-github-deploy-p
 assume the CDK bootstrap roles. It is created once by hand:
 
 ```bash
-cd infra && npx cdk deploy PotluckGithubDeploy -c githubRepo=matt617/potluckhq
+cd infra && npx cdk deploy PotluckGithubDeploy -c githubRepo=matt617/potluckhq \
+  -c githubSubjectPrefix="$(gh api repos/matt617/potluckhq/actions/oidc/customization/sub --jq .sub_claim_prefix)"
 ```
 
 Deployment settings are GitHub environment variables on `production`:

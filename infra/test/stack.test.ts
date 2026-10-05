@@ -158,6 +158,14 @@ describe('PotluckStack with a custom domain', () => {
 });
 
 describe('GithubDeployStack', () => {
+  it('accepts GitHub immutable subjects', async () => {
+    const { GithubDeployStack } = await import('../lib/github-stack.js');
+    const stack = new GithubDeployStack(new App(), 'Gh2', { repo: 'owner/repo', environment: 'production', subjectPrefix: 'repo:owner@1/repo@2', env: { account: '123456789012', region: 'us-east-1' } });
+    Template.fromStack(stack).hasResourceProperties('AWS::IAM::Role', {
+      AssumeRolePolicyDocument: { Statement: [Match.objectLike({ Condition: { StringEquals: Match.objectLike({ 'token.actions.githubusercontent.com:sub': 'repo:owner@1/repo@2:environment:production' }) } })] },
+    });
+  });
+
   it('trusts only the production environment of one repo and can only assume CDK roles', async () => {
     const { GithubDeployStack } = await import('../lib/github-stack.js');
     const app = new App();

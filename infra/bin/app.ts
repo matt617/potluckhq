@@ -15,12 +15,14 @@ new PotluckStack(app, `Potluck-${config.stage}`, {
   description: `Potluck recipe communities (${config.stage})`,
 });
 
-// One-time setup, deployed by hand: cdk deploy PotluckGithubDeploy -c githubRepo=owner/repo
+// One-time setup, deployed by hand:
+//   cdk deploy PotluckGithubDeploy -c githubRepo=owner/repo -c githubSubjectPrefix=repo:owner@id/repo@id
 const githubRepo = app.node.tryGetContext('githubRepo');
 if (githubRepo) {
   new GithubDeployStack(app, 'PotluckGithubDeploy', {
     repo: String(githubRepo),
     environment: String(app.node.tryGetContext('githubEnvironment') ?? 'production'),
+    subjectPrefix: app.node.tryGetContext('githubSubjectPrefix'),
     env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION ?? 'us-east-1' },
   });
 }
