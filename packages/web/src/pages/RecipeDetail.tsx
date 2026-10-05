@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { formatAmount, scaleQuantity, type Ingredient, type Recipe } from '@potluck/core';
 import { api } from '../api';
 import { RecipeEditor } from '../components/RecipeEditor';
+import { TechniqueView } from '../components/TechniqueView';
 import { ConfirmButton, ErrorNote, Flash, Spinner, useFlash } from '../components/ui';
 import { useAsync } from '../lib/hooks';
 import { useCommunity, useSession, canAdmin } from '../lib/session';
@@ -43,6 +44,12 @@ export function RecipeDetail() {
   const inThisCommunity = recipe.communityIds.includes(community.id);
   const thumb = mediaUrl(publicConfig?.mediaBaseUrl, recipe.source.thumbnailKey);
   const anyEstimated = recipe.ingredients.some((i) => i.estimated);
+  const isTechnique = recipe.kind === 'technique';
+  // Playback URLs are signed for an hour; fetch fresh ones once if a video fails to load after that.
+  const refreshMedia = () => {
+    const expires = state.data?.media?.expiresAt;
+    if (expires && Date.parse(expires) - Date.now() < 5 * 60_000) void state.reload();
+  };
 
   async function run(fn: () => Promise<unknown>, done?: string) {
     setError(undefined);
@@ -60,7 +67,7 @@ export function RecipeDetail() {
         recipe={recipe}
         onCancel={() => setEditing(false)}
         onSaved={(r: Recipe) => {
-          state.setData((prev) => ({ canEdit: prev?.canEdit ?? true, recipe: r }));
+          state.setData((prev) => ({ canEdit: prev?.canEdit ?? true, recipe: r, media: prev?.media }));
           setServings(null);
           setEditing(false);
           setFlash('Recipe saved');
@@ -73,146 +80,152 @@ export function RecipeDetail() {
     <article className="stack-lg recipe">
       <Link to="/book" className="back">
         <ArrowLeft size={16} weight="bold" aria-hidden />
-        All recipes
+        {isTechnique ? 'Back to the book' : 'All recipes'}
       </Link>
-      <header className="recipe-head">
-        {thumb && <img className="recipe-hero" src={thumb} alt={recipe.title} />}
-        <div className="stack">
-          <h1>{recipe.title}</h1>
-          {recipe.description && <p className="lead">{recipe.description}</p>}
-          <p className="muted">
-            {[
-              recipe.prepMin ? `Prep ${minutes(recipe.prepMin)}` : '',
-              recipe.cookMin ? `Cook ${minutes(recipe.cookMin)}` : '',
-              recipe.totalMin ? `Total ${minutes(recipe.totalMin)}` : '',
-              recipe.cuisine ?? '',
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-          {recipe.tags.length > 0 && (
-            <div className="tags">
-              {recipe.tags.map((t) => (
-                <span key={t} className="badge">
-                  {t}
-                </span>
-              ))}
-            </div>
-          )}
-          {recipe.source.url && (
-            <p className="small">
-              Source:{' '}
-              <a href={recipe.source.url} target="_blank" rel="noreferrer">
-                {recipe.source.author ? `${recipe.source.author} on ${recipe.source.platform}` : recipe.source.platform}
-              </a>
+      {isTechnique ? (
+        <TechniqueView recipe={recipe} media={state.data?.media} thumb={thumb} onMediaExpired={refreshMedia} />
+      ) : (
+        <>
+        <header className="recipe-head">
+          {thumb && <img className="recipe-hero" src={thumb} alt={recipe.title} />}
+          <div className="stack">
+            <h1>{recipe.title}</h1>
+            {recipe.description && <p className="lead">{recipe.description}</p>}
+            <p className="muted">
+              {[
+                recipe.prepMin ? `Prep ${minutes(recipe.prepMin)}` : '',
+                recipe.cookMin ? `Cook ${minutes(recipe.cookMin)}` : '',
+                recipe.totalMin ? `Total ${minutes(recipe.totalMin)}` : '',
+                recipe.cuisine ?? '',
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </p>
-          )}
-        </div>
-      </header>
-
-      <div className="recipe-cols">
-        <section className="card stack" aria-labelledby="ing-title">
-          <div className="row between wrap">
-            <h2 id="ing-title">Ingredients</h2>
-            <div className="stepper" aria-label="Servings">
-              <button type="button" className="btn btn-small" aria-label="Fewer servings" onClick={() => setServings(Math.max(1, target - 1))}>
-                −
-              </button>
-              <span>
-                {target} {target === 1 ? 'serving' : 'servings'}
-              </span>
-              <button type="button" className="btn btn-small" aria-label="More servings" onClick={() => setServings(target + 1)}>
-                +
-              </button>
-            </div>
+            {recipe.tags.length > 0 && (
+              <div className="tags">
+                {recipe.tags.map((t) => (
+                  <span key={t} className="badge">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
+            {recipe.source.url && (
+              <p className="small">
+                Source:{' '}
+                <a href={recipe.source.url} target="_blank" rel="noreferrer">
+                  {recipe.source.author ? `${recipe.source.author} on ${recipe.source.platform}` : recipe.source.platform}
+                </a>
+              </p>
+            )}
           </div>
-          {groups.map(([group, items]) => (
-            <div key={group || 'main'}>
-              {group && <h3 className="h4">{group}</h3>}
-              <ul className="ingredients">
-                {items.map((i, idx) => (
-                  <li key={`${i.name}-${idx}`}>
-                    <span className="amount">{formatAmount(scaleQuantity(i.quantity, recipe.servings, target), i.unit)}</span>
-                    <span>
-                      {i.name}
-                      {i.note && <span className="muted">, {i.note}</span>}
-                      {i.estimated && (
-                        <span className="badge badge-warn" title="The video did not say how much; this amount is estimated.">
-                          est.
-                        </span>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-          {anyEstimated && <p className="small muted">Amounts marked "est." were not stated in the video and were estimated.</p>}
-          {recipe.equipment && recipe.equipment.length > 0 && (
-            <p className="small">
-              <strong>Equipment:</strong> {recipe.equipment.join(', ')}
-            </p>
-          )}
-        </section>
+        </header>
 
-        <section className="card stack" aria-labelledby="steps-title">
-          <h2 id="steps-title">Steps</h2>
-          <ol className="steps">
-            {recipe.steps.map((s, idx) => (
-              <li key={idx}>
-                <p>{s.text}</p>
-                <p className="small muted">
-                  {typeof s.timestampSec === 'number' && recipe.source.url && (
-                    <a href={youtubeAt(recipe.source.url, s.timestampSec)} target="_blank" rel="noreferrer">
-                      ▶ {clock(s.timestampSec)} in video
-                    </a>
-                  )}
-                  {s.durationMin ? `  ·  ${minutes(s.durationMin)}` : ''}
-                </p>
-              </li>
+        <div className="recipe-cols">
+          <section className="card stack" aria-labelledby="ing-title">
+            <div className="row between wrap">
+              <h2 id="ing-title">Ingredients</h2>
+              <div className="stepper" aria-label="Servings">
+                <button type="button" className="btn btn-small" aria-label="Fewer servings" onClick={() => setServings(Math.max(1, target - 1))}>
+                  −
+                </button>
+                <span>
+                  {target} {target === 1 ? 'serving' : 'servings'}
+                </span>
+                <button type="button" className="btn btn-small" aria-label="More servings" onClick={() => setServings(target + 1)}>
+                  +
+                </button>
+              </div>
+            </div>
+            {groups.map(([group, items]) => (
+              <div key={group || 'main'}>
+                {group && <h3 className="h4">{group}</h3>}
+                <ul className="ingredients">
+                  {items.map((i, idx) => (
+                    <li key={`${i.name}-${idx}`}>
+                      <span className="amount">{formatAmount(scaleQuantity(i.quantity, recipe.servings, target), i.unit)}</span>
+                      <span>
+                        {i.name}
+                        {i.note && <span className="muted">, {i.note}</span>}
+                        {i.estimated && (
+                          <span className="badge badge-warn" title="The video did not say how much; this amount is estimated.">
+                            est.
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ol>
-          {recipe.tips && recipe.tips.length > 0 && (
-            <>
-              <h3 className="h4">Tips</h3>
-              <ul className="tips">
-                {recipe.tips.map((t, idx) => (
-                  <li key={idx}>{t}</li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-      </div>
+            {anyEstimated && <p className="small muted">Amounts marked "est." were not stated in the video and were estimated.</p>}
+            {recipe.equipment && recipe.equipment.length > 0 && (
+              <p className="small">
+                <strong>Equipment:</strong> {recipe.equipment.join(', ')}
+              </p>
+            )}
+          </section>
 
-      {recipe.nutrition && (
-        <section className="card" aria-labelledby="nut-title">
-          <h2 id="nut-title" className="h3">
-            Nutrition per serving <span className="badge">AI estimate</span>
-          </h2>
-          <dl className="nutrition">
-            <div>
-              <dt>Calories</dt>
-              <dd>{Math.round(recipe.nutrition.calories)}</dd>
-            </div>
-            <div>
-              <dt>Protein</dt>
-              <dd>{Math.round(recipe.nutrition.proteinG)} g</dd>
-            </div>
-            <div>
-              <dt>Carbs</dt>
-              <dd>{Math.round(recipe.nutrition.carbsG)} g</dd>
-            </div>
-            <div>
-              <dt>Fat</dt>
-              <dd>{Math.round(recipe.nutrition.fatG)} g</dd>
-            </div>
-            <div>
-              <dt>Fiber</dt>
-              <dd>{Math.round(recipe.nutrition.fiberG)} g</dd>
-            </div>
-          </dl>
-        </section>
+          <section className="card stack" aria-labelledby="steps-title">
+            <h2 id="steps-title">Steps</h2>
+            <ol className="steps">
+              {recipe.steps.map((s, idx) => (
+                <li key={idx}>
+                  <p>{s.text}</p>
+                  <p className="small muted">
+                    {typeof s.timestampSec === 'number' && recipe.source.url && (
+                      <a href={youtubeAt(recipe.source.url, s.timestampSec)} target="_blank" rel="noreferrer">
+                        ▶ {clock(s.timestampSec)} in video
+                      </a>
+                    )}
+                    {s.durationMin ? `  ·  ${minutes(s.durationMin)}` : ''}
+                  </p>
+                </li>
+              ))}
+            </ol>
+            {recipe.tips && recipe.tips.length > 0 && (
+              <>
+                <h3 className="h4">Tips</h3>
+                <ul className="tips">
+                  {recipe.tips.map((t, idx) => (
+                    <li key={idx}>{t}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
+        </div>
+
+        {recipe.nutrition && (
+          <section className="card" aria-labelledby="nut-title">
+            <h2 id="nut-title" className="h3">
+              Nutrition per serving <span className="badge">AI estimate</span>
+            </h2>
+            <dl className="nutrition">
+              <div>
+                <dt>Calories</dt>
+                <dd>{Math.round(recipe.nutrition.calories)}</dd>
+              </div>
+              <div>
+                <dt>Protein</dt>
+                <dd>{Math.round(recipe.nutrition.proteinG)} g</dd>
+              </div>
+              <div>
+                <dt>Carbs</dt>
+                <dd>{Math.round(recipe.nutrition.carbsG)} g</dd>
+              </div>
+              <div>
+                <dt>Fat</dt>
+                <dd>{Math.round(recipe.nutrition.fatG)} g</dd>
+              </div>
+              <div>
+                <dt>Fiber</dt>
+                <dd>{Math.round(recipe.nutrition.fiberG)} g</dd>
+              </div>
+            </dl>
+          </section>
+        )}
+        </>
       )}
 
       <section className="card stack" aria-label="Recipe actions">
@@ -220,7 +233,7 @@ export function RecipeDetail() {
         <div className="row wrap">
           {canEdit && (
             <button className="btn" onClick={() => setEditing(true)}>
-              Edit recipe
+              Edit {isTechnique ? 'technique' : 'recipe'}
             </button>
           )}
           {shareable.length > 0 && (
@@ -271,7 +284,7 @@ export function RecipeDetail() {
                 })
               }
             >
-              Delete recipe
+              Delete {isTechnique ? 'technique' : 'recipe'}
             </ConfirmButton>
           )}
         </div>

@@ -2,6 +2,7 @@ import { AdminDeleteUserCommand, CognitoIdentityProviderClient } from '@aws-sdk/
 import { env } from './env.js';
 import * as repo from './repo.js';
 import { stripeApi } from './stripe.js';
+import { deleteRecipeMedia } from './media.js';
 
 const cognito = new CognitoIdentityProviderClient({});
 
@@ -70,7 +71,10 @@ export async function deleteAccount(userId: string): Promise<DeletionSummary> {
   }
 
   const recipes = await repo.listUserRecipes(userId);
-  for (const r of recipes) await repo.deleteRecipe(r);
+  for (const r of recipes) {
+    await repo.deleteRecipe(r);
+    await deleteRecipeMedia(r);
+  }
 
   for (const c of await repo.listUserChannels(userId)) await repo.deleteChannel(c.kind, c.address);
   await repo.purgeUserRecords(userId, user?.stripeCustomerId);

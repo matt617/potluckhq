@@ -80,9 +80,11 @@ that feature instead of failing. Set them with `scripts/set-secrets.sh`.
 | Prefix | Lifetime | Purpose |
 |---|---|---|
 | `uploads/<userId>/` | expires after 7 days | Photo uploads for cookbook pages and comment screenshots |
-| `media/thumbs/` | kept | Recipe thumbnails, served at `/media/*` |
+| `media/thumbs/` | kept | Recipe thumbnails, served at `/media/*`. Video imports use the frame Gemini picks as most appetizing (`<hash>-hero.jpg`) |
+| `private/techniques/<recipeId>/` | until the technique or its owner is deleted | Technique videos: `video.mp4` (faststart remux), `clip-<n>.mp4` muted step loops and `clip-<n>.jpg` posters. Never served from `/media`; the API returns one-hour presigned URLs to readers |
 
-Videos are never stored. They live in the worker's `/tmp` for the length of one invocation.
+Recipe videos are never stored. They live in the worker's `/tmp` for the length of one invocation. Technique videos
+(content Gemini classifies as teaching a method, such as velveting) are kept under `private/` for playback.
 The bucket allows CORS `PUT` from `APP_URL` and `http://localhost:5173` for presigned uploads.
 
 ## DynamoDB single-table design

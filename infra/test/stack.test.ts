@@ -76,9 +76,13 @@ describe('PotluckStack', () => {
     });
     template.hasResourceProperties('AWS::Lambda::Function', {
       MemorySize: 1536,
-      Timeout: 300,
+      Timeout: 480,
       EphemeralStorage: { Size: 2048 },
     });
+  });
+
+  it('keeps the ingest queue visibility above the worker timeout', () => {
+    template.hasResourceProperties('AWS::SQS::Queue', { VisibilityTimeout: 600 });
   });
 
   it('adds the SMS handler, topic and budget when enabled', () => {

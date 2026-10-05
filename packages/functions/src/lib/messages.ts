@@ -14,6 +14,12 @@ export function recipeReadyText(recipe: Recipe, communityName: string): string {
   return `*${recipe.title}* is in ${communityName}'s book.\nServes ${recipe.servings}${time}${protein}\n${recipe.ingredients.length} ingredients, ${recipe.steps.length} steps.${estimated}\n\n${recipeLink(recipe.id)}`;
 }
 
+export function techniqueReadyText(recipe: Recipe, communityName: string): string {
+  const clips = recipe.video?.clips.length ? ` with ${recipe.video.clips.length} clips` : '';
+  const summary = recipe.technique?.summary ? `\n${recipe.technique.summary}` : '';
+  return `*${recipe.title}* is saved as a technique in ${communityName}'s book${clips}.${summary}\n${recipe.steps.length} steps to practice.\n\n${recipeLink(recipe.id)}`;
+}
+
 export function planText(plan: MealPlan | undefined, recipes: Map<string, RecipeSummary>, communityName: string): string {
   const week = plan?.weekStart ?? weekStartOf();
   if (!plan || !plan.entries.length) return `No meals planned for the week of ${week} in ${communityName} yet.\nPlan it here: ${env.appUrl}/plan`;

@@ -358,6 +358,7 @@ export async function getInvite(token: string): Promise<Invite | undefined> {
 export function summaryOf(r: Recipe, addedBy: string): RecipeSummary {
   return {
     id: r.id,
+    ...(r.kind === 'technique' ? { kind: r.kind } : {}),
     title: r.title,
     ownerId: r.ownerId,
     addedBy,

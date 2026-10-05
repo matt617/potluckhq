@@ -26,6 +26,11 @@ export async function getObjectBytes(key: string): Promise<{ bytes: Uint8Array; 
   return { bytes, contentType: res.ContentType ?? 'application/octet-stream' };
 }
 
+/** Short-lived GET URL for a private object, e.g. technique video playback. */
+export async function presignGet(key: string, expiresIn = 3600): Promise<string> {
+  return getSignedUrl(s3, new GetObjectCommand({ Bucket: env.mediaBucket, Key: key }), { expiresIn });
+}
+
 export async function deleteObject(key: string): Promise<void> {
   await s3.send(new DeleteObjectCommand({ Bucket: env.mediaBucket, Key: key })).catch(() => undefined);
 }

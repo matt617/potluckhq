@@ -10,21 +10,32 @@ import {
   type Recipe,
   type TokenUsage,
 } from '@potluck/core';
-import { writeFile } from 'node:fs/promises';
+import { rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { payerFor } from './access.js';
 import { sendToChannel } from './channels/index.js';
 import { chargeAi } from './charge.js';
-import { downloadVideo, fetchPageText } from './downloader.js';
+import { downloadVideo, fetchPageText, type DownloadedVideo } from './downloader.js';
 import { env } from './env.js';
 import { extractRecipe } from './extract.js';
 import { RetryableError, UserFacingError, videoPartFromFile, type Part } from './gemini.js';
 import { newId, nowIso } from './ids.js';
-import { recipeReadyText, recipeLink } from './messages.js';
+import { pickHeroFrame, storeTechniqueMedia } from './media.js';
+import { recipeReadyText, recipeLink, techniqueReadyText } from './messages.js';
 import { emitMetric } from './metrics.js';
 import * as repo from './repo.js';
-import { deleteObject, getObjectBytes, storeThumbnail } from './s3.js';
+import { deleteObject, getObjectBytes, putObject, storeThumbnail } from './s3.js';
+
+/** A video file on local disk, kept until the import finishes so technique media can be cut from it. */
+interface LocalVideo {
+  path: string;
+  mimeType: string;
+  durationSec?: number;
+  cleanup: () => Promise<void>;
+}
+
+const PUBLIC_IMMUTABLE = 'public, max-age=31536000, immutable';
 
 interface Extraction {
   extracted: ExtractedRecipe;
@@ -34,6 +45,7 @@ interface Extraction {
   thumbnailKey?: string;
   author?: string;
   fromCache: boolean;
+  localVideo?: LocalVideo;
 }
 
 /**
@@ -47,6 +59,7 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
   if (!community) return fail(job, 'The community no longer exists.');
   const payer = await payerFor(community);
   let keepUploads = false;
+  let ex: Extraction | undefined;
 
   try {
     const urlHash = job.url ? hashKey(normalizeUrl(job.url)) : undefined;
@@ -65,9 +78,10 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
     }
 
     const cached = urlHash ? await repo.getCachedExtraction(urlHash) : undefined;
-    let ex: Extraction;
     if (cached) {
       ex = { extracted: cached.extracted, platform: detectPlatform(job.url!), thumbnailKey: cached.thumbnailKey, author: cached.author, fromCache: true };
+      // The extraction is reused, but each technique keeps its own copy of the video, so fetch it again.
+      if (cached.extracted.isTechnique && ex.platform !== 'web') ex.localVideo = await downloadVideo(job.url!).catch(() => undefined);
     } else {
       const gate = canImport(budgetFor(payer));
       if (!gate.ok) {
@@ -82,8 +96,8 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
       await chargeAi(payer, { model: ex.model, usage: ex.usage, kind: 'import', ref: job.id, actorId: job.userId, countImport: true });
     }
 
-    if (!ex.extracted.isRecipe) {
-      return fail(job, `That doesn't look like a recipe${ex.extracted.reason ? `: ${ex.extracted.reason}` : '.'}`);
+    if (!ex.extracted.isRecipe && !ex.extracted.isTechnique) {
+      return fail(job, `That doesn't look like a recipe or a cooking technique${ex.extracted.reason ? `: ${ex.extracted.reason}` : '.'}`);
     }
 
     if (urlHash && !cached) {
@@ -91,12 +105,24 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
     }
 
     const recipe = toRecipe(job, ex);
+    if (recipe.kind === 'technique' && ex.localVideo) {
+      recipe.video = await storeTechniqueMedia({
+        recipeId: recipe.id,
+        videoPath: ex.localVideo.path,
+        mimeType: ex.localVideo.mimeType,
+        steps: recipe.steps,
+        durationSec: ex.localVideo.durationSec,
+      }).catch((err) => {
+        console.warn('Technique media failed; saving without playback', job.id, err);
+        return undefined;
+      });
+    }
     await repo.putRecipe(recipe);
     await repo.shareRecipe(recipe, job.communityId, job.userId);
     if (urlHash) await repo.putCommunitySourceRecipe(job.communityId, urlHash, recipe.id);
     await repo.updateImport(job.id, { status: 'done', recipeId: recipe.id });
     emitMetric('ImportSucceeded', 1, 'Count');
-    let text = recipeReadyText(recipe, community.name);
+    let text = recipe.kind === 'technique' ? techniqueReadyText(recipe, community.name) : recipeReadyText(recipe, community.name);
     if (ex.extracted.additionalDishes?.length) text += `\n\nThis video also showed: ${ex.extracted.additionalDishes.join(', ')}.`;
     await reply(job, text);
   } catch (err) {
@@ -109,9 +135,27 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
     console.error('Import failed', job.id, err);
     return fail(job, 'Something went wrong while reading that recipe. Please try again.');
   } finally {
+    await ex?.localVideo?.cleanup().catch(() => undefined);
     if (!keepUploads) for (const key of [...(job.imageKeys ?? []), ...(job.videoKey ? [job.videoKey] : [])]) await deleteObject(key);
   }
 }
+
+/** Save Gemini's choice of the most appetizing frame as the public thumbnail. Failures fall back to the platform thumbnail. */
+async function heroThumbnail(video: LocalVideo | undefined, extracted: ExtractedRecipe, name: string): Promise<string | undefined> {
+  if (!video) return undefined;
+  try {
+    const bytes = await pickHeroFrame(video.path, extracted.heroMoments, video.durationSec);
+    if (!bytes) return undefined;
+    const key = `media/thumbs/${name}-hero.jpg`;
+    await putObject(key, bytes, 'image/jpeg', PUBLIC_IMMUTABLE);
+    return key;
+  } catch (err) {
+    console.warn('Hero frame failed', err);
+    return undefined;
+  }
+}
+
+const asLocal = (v: DownloadedVideo): LocalVideo => ({ path: v.path, mimeType: v.mimeType, durationSec: v.durationSec, cleanup: v.cleanup });
 
 async function runExtraction(job: ImportJob, urlHash: string | undefined): Promise<Extraction> {
   const model = env.geminiModel;
@@ -123,8 +167,13 @@ async function runExtraction(job: ImportJob, urlHash: string | undefined): Promi
       const id = normalizeUrl(job.url).split('v=')[1];
       await repo.updateImport(job.id, { status: 'extracting' });
       const res = await extractRecipe({ model, parts: [{ fileData: { fileUri: `https://www.youtube.com/watch?v=${id}` } }], sourceUrl: job.url });
-      const thumbnailKey = id ? await storeThumbnail(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`, urlHash ?? newId()) : undefined;
-      return { extracted: res.data, usage: res.usage, model, platform, thumbnailKey, author: res.data.author, fromCache: false };
+      // Gemini watched it by URL. A small local copy is only needed to grab the chosen frame and keep technique videos.
+      const downloaded = await downloadVideo(job.url).catch(() => undefined);
+      const localVideo = downloaded && asLocal(downloaded);
+      const name = urlHash ?? newId();
+      const thumbnailKey =
+        (await heroThumbnail(localVideo, res.data, name)) ?? (id ? await storeThumbnail(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`, name) : undefined);
+      return { extracted: res.data, usage: res.usage, model, platform, thumbnailKey, author: res.data.author, fromCache: false, localVideo };
     }
     if (platform === 'web') {
       const page = await fetchPageText(job.url);
@@ -137,15 +186,19 @@ async function runExtraction(job: ImportJob, urlHash: string | undefined): Promi
     try {
       await repo.updateImport(job.id, { status: 'extracting' });
       const { part, cleanup } = await videoPartFromFile(video.path, video.mimeType);
+      let res: Awaited<ReturnType<typeof extractRecipe>>;
       try {
-        const res = await extractRecipe({ model, parts: [part], caption: video.caption, sourceUrl: job.url });
-        const thumbnailKey = await storeThumbnail(video.thumbnailUrl, urlHash ?? newId());
-        return { extracted: res.data, usage: res.usage, model, platform, thumbnailKey, author: res.data.author ?? video.author, fromCache: false };
+        res = await extractRecipe({ model, parts: [part], caption: video.caption, sourceUrl: job.url });
       } finally {
         await cleanup();
       }
-    } finally {
+      const localVideo = asLocal(video);
+      const name = urlHash ?? newId();
+      const thumbnailKey = (await heroThumbnail(localVideo, res.data, name)) ?? (await storeThumbnail(video.thumbnailUrl, name));
+      return { extracted: res.data, usage: res.usage, model, platform, thumbnailKey, author: res.data.author ?? video.author, fromCache: false, localVideo };
+    } catch (err) {
       await video.cleanup();
+      throw err;
     }
   }
 
@@ -153,29 +206,39 @@ async function runExtraction(job: ImportJob, urlHash: string | undefined): Promi
     const { bytes, contentType } = await getObjectBytes(job.videoKey);
     const path = join(tmpdir(), `${job.id}.mp4`);
     await writeFile(path, bytes);
-    const { part, cleanup } = await videoPartFromFile(path, contentType.startsWith('video/') ? contentType : 'video/mp4');
+    const mimeType = contentType.startsWith('video/') ? contentType : 'video/mp4';
+    const localVideo: LocalVideo = { path, mimeType, cleanup: () => rm(path, { force: true }) };
     try {
-      const res = await extractRecipe({ model, parts: [part], caption: job.text });
-      return { extracted: res.data, usage: res.usage, model, platform: 'upload', author: res.data.author, fromCache: false };
-    } finally {
-      await cleanup();
+      const { part, cleanup } = await videoPartFromFile(path, mimeType);
+      let res: Awaited<ReturnType<typeof extractRecipe>>;
+      try {
+        res = await extractRecipe({ model, parts: [part], caption: job.text });
+      } finally {
+        await cleanup();
+      }
+      const thumbnailKey = await heroThumbnail(localVideo, res.data, job.id);
+      return { extracted: res.data, usage: res.usage, model, platform: 'upload', thumbnailKey, author: res.data.author, fromCache: false, localVideo };
+    } catch (err) {
+      await localVideo.cleanup();
+      throw err;
     }
   }
 
   if (job.kind === 'image' && job.imageKeys?.length) {
     const parts: Part[] = [];
-    let first: { bytes: Uint8Array; contentType: string } | undefined;
+    const photos: { bytes: Uint8Array; contentType: string }[] = [];
     for (const key of job.imageKeys) {
       const obj = await getObjectBytes(key);
-      first ??= obj;
+      photos.push(obj);
       parts.push({ inlineData: { mimeType: obj.contentType.startsWith('image/') ? obj.contentType : 'image/jpeg', data: Buffer.from(obj.bytes).toString('base64') } });
     }
     const res = await extractRecipe({ model, parts, caption: job.text, lowMediaResolution: false });
+    // Use the photo Gemini judged most appetizing, falling back to the first one.
+    const hero = photos[res.data.heroImageIndex ?? 0] ?? photos[0];
     let thumbnailKey: string | undefined;
-    if (first && first.bytes.length < 5 * 1024 * 1024) {
-      const { putObject } = await import('./s3.js');
+    if (hero && hero.bytes.length < 5 * 1024 * 1024) {
       thumbnailKey = `media/thumbs/${job.id}.jpg`;
-      await putObject(thumbnailKey, first.bytes, first.contentType, 'public, max-age=31536000, immutable');
+      await putObject(thumbnailKey, hero.bytes, hero.contentType, PUBLIC_IMMUTABLE);
     }
     return { extracted: res.data, usage: res.usage, model, platform: 'photo', thumbnailKey, author: res.data.author, fromCache: false };
   }
@@ -194,6 +257,7 @@ export function toRecipe(job: ImportJob, ex: Extraction): Recipe {
   const total = (e.prepMin ?? 0) + (e.cookMin ?? 0);
   return {
     id: newId(),
+    kind: e.isTechnique ? 'technique' : 'recipe',
     ownerId: job.userId,
     title: e.title,
     description: e.description,
@@ -208,6 +272,7 @@ export function toRecipe(job: ImportJob, ex: Extraction): Recipe {
     nutrition: e.nutrition ?? null,
     equipment: e.equipment,
     tips: e.tips,
+    ...(e.isTechnique && e.technique ? { technique: e.technique } : {}),
     source: { url: job.url, platform: ex.platform, author: ex.author, thumbnailKey: ex.thumbnailKey },
     communityIds: [],
     confidence: e.confidence,
