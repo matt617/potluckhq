@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { SessionProvider } from './lib/session';
@@ -15,6 +16,9 @@ import { Shopping } from './pages/Shopping';
 import { Library } from './pages/Library';
 import { ThisWeek } from './pages/ThisWeek';
 import { Circles } from './pages/Circles';
+
+// Dev-only component gallery; the import is dropped from production builds.
+const UiGallery = import.meta.env.DEV ? lazy(() => import('./pages/UiGallery')) : null;
 
 export function App() {
   return (
@@ -37,6 +41,16 @@ export function App() {
             <Route path="/community" element={<CommunitySettings />} />
             <Route path="/account" element={<Account />} />
           </Route>
+          {UiGallery && (
+            <Route
+              path="/__ui"
+              element={
+                <Suspense>
+                  <UiGallery />
+                </Suspense>
+              }
+            />
+          )}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

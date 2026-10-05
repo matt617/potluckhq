@@ -56,6 +56,10 @@ const screens = [
   { name: 'shop', path: `/shop?kitchen=home&week=${week}`, wait: (p) => p.getByText('tomatoes').first() },
   { name: 'community', path: '/community?kitchen=home', wait: (p) => p.getByRole('heading', { name: 'Who eats here?' }) },
   { name: 'account', path: '/account', wait: (p) => p.getByRole('heading', { name: 'Profile', exact: true }) },
+  // Dev-only shadcn gallery in the cookbook theme.
+  { name: 'ui-gallery', path: '/__ui', signedOut: true, wait: (p) => p.getByRole('heading', { name: 'UI gallery' }) },
+  { name: 'ui-dialog', path: '/__ui?open=dialog', signedOut: true, full: false, wait: (p) => p.getByRole('dialog') },
+  { name: 'ui-alert', path: '/__ui?open=alert', signedOut: true, full: false, wait: (p) => p.getByRole('alertdialog') },
   // Open states.
   {
     name: 'dialog-add-to-plan',

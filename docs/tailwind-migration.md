@@ -135,3 +135,7 @@ Agreed on 2026-10-05:
 - **Selector drift.** The browser check finds elements by role and name. Component swaps that change accessible names will break it. That is a useful signal, but each break needs a deliberate fix.
 - **Rules that work together.** Some current CSS relies on the cascade across sections (for example, landing rules layered over base rules). Deleting a section can affect another page, which is why every group runs the full matrix.
 - **PR size.** One PR will be large. One commit per step, each with its gate results, keeps it reviewable.
+
+## Follow-ups found during the migration
+
+- **Muted text contrast.** `--muted` (#7c7064) on `--bg` (#f6f1e8) is 4.28:1, below the 4.5:1 AA minimum for body text. It's behind most of the 23 color-contrast findings in the step 0 baseline. Darken it slightly once visual parity is no longer required (step 5 or later), and record the drop in axe findings.
