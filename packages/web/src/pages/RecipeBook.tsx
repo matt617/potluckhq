@@ -2,18 +2,16 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom';
 import type { ImportJob, RecipeKind } from '@potluck/core';
 import { api } from '../api';
-import { AddRecipe } from '../components/AddRecipe';
-import { ImportList } from '../components/ImportList';
+import { AddRecipe, type AddMode } from '../components/AddRecipe';
+import { ImportList, isActiveImport, needsAttention } from '../components/ImportList';
 import { CookingPot, MagnifyingGlass, Plus, X } from '@phosphor-icons/react';
-import { Chip, Empty, ErrorNote, PageHeader, Skeleton } from '../components/ui';
+import { Chip, Empty, ErrorNote, Flash, PageHeader, Skeleton, useFlash } from '../components/ui';
 
 type KindFilter = 'all' | RecipeKind;
 const KIND_LABEL: Record<KindFilter, string> = { all: 'Everything', recipe: 'Recipes', technique: 'Techniques' };
 import { useAsync, useInterval } from '../lib/hooks';
 import { useCommunity, useSession } from '../lib/session';
 import { mediaUrl, minutes } from '../lib/util';
-
-const ACTIVE = new Set(['queued', 'downloading', 'extracting']);
 
 /** Stable warm placeholder tone (0-3) for recipes without a thumbnail. */
 function toneOf(id: string): number {
@@ -30,14 +28,17 @@ export function RecipeBook() {
   const [query, setQuery] = useState('');
   const [tag, setTag] = useState<string | null>(null);
   const [kind, setKind] = useState<KindFilter>('all');
-  const [showAdd, setShowAdd] = useState(false);
+  const [addMode, setAddMode] = useState<AddMode | null>(null);
+  const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
+  const [flash, setFlash] = useFlash();
   const lastDone = useRef<Set<string>>(new Set());
+  const showAdd = addMode !== null;
 
-  const recentImports: ImportJob[] = useMemo(
-    () => (imports.data?.imports ?? []).filter((j) => j.communityId === community.id).slice(0, 8),
+  const pendingImports: ImportJob[] = useMemo(
+    () => (imports.data?.imports ?? []).filter((j) => j.communityId === community.id && needsAttention(j)),
     [imports.data, community.id],
   );
-  const anyActive = recentImports.some((j) => ACTIVE.has(j.status));
+  const anyActive = pendingImports.some(isActiveImport);
 
   useInterval(
     async () => {
@@ -48,6 +49,11 @@ export function RecipeBook() {
       if (newlyDone.length) {
         newlyDone.forEach((j) => lastDone.current.add(j.id));
         void recipes.reload();
+        const added = newlyDone.filter((j) => j.communityId === community.id && j.recipeId);
+        if (added.length) {
+          setJustAdded((prev) => new Set([...prev, ...added.map((j) => j.recipeId!)]));
+          setFlash(added.length === 1 ? 'New recipe added to the book' : `${added.length} new recipes added to the book`);
+        }
       }
     },
     4000,
@@ -81,14 +87,21 @@ export function RecipeBook() {
         eyebrow={recipes.data ? `${list.length} ${list.length === 1 ? 'recipe' : 'recipes'} in the book` : 'Recipe book'}
         title={`${community.name}'s recipes`}
       >
-        <button className="btn btn-primary" onClick={() => setShowAdd((s) => !s)} aria-expanded={showAdd}>
+        <button className="btn btn-primary" onClick={() => setAddMode(showAdd ? null : 'link')} aria-expanded={showAdd}>
           {showAdd ? <X size={16} weight="bold" aria-hidden /> : <Plus size={16} weight="bold" aria-hidden />}
           {showAdd ? 'Close' : 'Add recipe'}
         </button>
       </PageHeader>
 
-      {showAdd && <AddRecipe communityId={community.id} onQueued={() => void imports.reload()} />}
-      <ImportList imports={recentImports} />
+      {addMode && <AddRecipe key={addMode} communityId={community.id} initialMode={addMode} onQueued={() => void imports.reload()} />}
+      <ImportList
+        imports={pendingImports}
+        onChanged={() => void imports.reload()}
+        onUseInstead={(mode) => {
+          setAddMode(mode);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
 
       <div className="stack">
         <div className="search">
@@ -122,7 +135,7 @@ export function RecipeBook() {
         <Empty title="No recipes yet" icon={<CookingPot size={22} weight="duotone" />}>
           <p>Paste a cooking video link, or send one to the Potluck bot from your phone. Recipes usually land in under a minute.</p>
           {!showAdd && (
-            <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+            <button className="btn btn-primary" onClick={() => setAddMode('link')}>
               Add your first recipe
             </button>
           )}
@@ -138,6 +151,7 @@ export function RecipeBook() {
                 <Link to={`/book/${r.id}`} className="recipe-card">
                   <div className="thumb" data-tone={toneOf(r.id)}>
                     {r.kind === 'technique' && <span className="thumb-flag">Technique</span>}
+                    {justAdded.has(r.id) && <span className="thumb-new">Just added</span>}
                     {thumb ? (
                       <img src={thumb} alt="" loading="lazy" />
                     ) : (
@@ -172,6 +186,7 @@ export function RecipeBook() {
         </ul>
       )}
       {recipes.data && list.length > 0 && filtered.length === 0 && <p className="muted">No recipes match that search.</p>}
+      <Flash message={flash} />
     </div>
   );
 }

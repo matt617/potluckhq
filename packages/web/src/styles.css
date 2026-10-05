@@ -1207,61 +1207,72 @@ summary:focus-visible {
 }
 .imports {
   list-style: none;
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
 }
-.imports li {
+.import {
   display: grid;
-  grid-template-columns: 9.5rem 1fr auto;
+  grid-template-columns: 22px 1fr;
   gap: 12px;
-  align-items: center;
-  padding: 10px 0;
+  align-items: start;
+  padding: 12px 0;
   border-top: 1px solid var(--border);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
+}
+.import-icon {
+  display: grid;
+  place-items: center;
+  height: 22px;
+  color: var(--warn-ink);
+}
+.import-failed .import-icon {
+  color: var(--danger);
+}
+.import-body {
+  min-width: 0;
+}
+.import-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-height: 22px;
 }
 .import-src {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 600;
 }
-.import-src a {
+.import-head .badge {
+  margin-left: 0;
+}
+.import-link {
+  display: inline-grid;
+  place-items: center;
+  color: var(--muted);
+  border-radius: 4px;
+}
+.import-link:hover {
   color: var(--text);
-  text-decoration-color: var(--border-strong);
 }
 .import-meta {
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
 }
-.import-meta a {
-  font-weight: 600;
-  text-decoration: none;
+.import-error {
+  margin: 4px 0 0;
+  color: var(--text-2);
+  line-height: 1.45;
 }
-.status {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
+.import-actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  font-weight: 500;
-  font-size: 0.78rem;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--warn-soft);
-  color: var(--warn-ink);
-}
-.status-done {
-  color: var(--ok);
-  background: var(--ok-soft);
-}
-.status-failed {
-  color: var(--danger);
-  background: var(--danger-soft);
+  margin-top: 10px;
 }
 .pulse {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: currentColor;
   animation: pulse 1.2s ease-in-out infinite;
@@ -1272,14 +1283,18 @@ summary:focus-visible {
     transform: scale(0.7);
   }
 }
-@media (max-width: 520px) {
-  .imports li {
-    grid-template-columns: 1fr auto;
-  }
-  .imports .status {
-    grid-column: 1 / -1;
-    justify-self: start;
-  }
+.thumb-new {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 /* recipe detail */

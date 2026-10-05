@@ -1,11 +1,12 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Community, Membership, UserProfile } from '@potluck/core';
+import type { Community, ImportJob, Membership, UserProfile } from '@potluck/core';
 
 const db = vi.hoisted(() => ({
   users: new Map<string, UserProfile>(),
   communities: new Map<string, Community>(),
   members: [] as Membership[],
+  imports: new Map<string, ImportJob>(),
 }));
 
 vi.mock('../src/lib/secrets.js', () => ({ secrets: async () => ({}) }));
@@ -43,7 +44,13 @@ vi.mock('../src/lib/repo.js', async () => {
     listMembers: async (cid: string) => db.members.filter((m) => m.communityId === cid),
     listCommunityRecipes: async () => [],
     getInvite: async () => undefined,
-    putImport: async () => undefined,
+    putImport: async (job: ImportJob) => {
+      db.imports.set(job.id, job);
+    },
+    getImport: async (id: string) => db.imports.get(id),
+    updateImport: async (id: string, patch: Partial<ImportJob>) => {
+      db.imports.set(id, { ...db.imports.get(id)!, ...patch });
+    },
   };
 });
 
@@ -69,7 +76,27 @@ beforeEach(() => {
   db.users.clear();
   db.communities.clear();
   db.members.length = 0;
+  db.imports.clear();
 });
+
+function failedImport(communityId: string, patch: Partial<ImportJob> = {}): ImportJob {
+  const job: ImportJob = {
+    id: 'imp1',
+    userId: 'u1',
+    communityId,
+    status: 'failed',
+    kind: 'url',
+    url: 'https://www.tiktok.com/@chef/video/1',
+    channel: 'web',
+    error: 'Could not download that video.',
+    errorCode: 'download',
+    createdAt: '2026-10-01T00:00:00.000Z',
+    updatedAt: '2026-10-01T00:00:00.000Z',
+    ...patch,
+  };
+  db.imports.set(job.id, job);
+  return job;
+}
 
 describe('api handler', () => {
   it('rejects /api calls without a verified token', async () => {
@@ -125,5 +152,33 @@ describe('api handler', () => {
 
   it('serves public invite previews without auth and 404s unknown tokens', async () => {
     expect((await call('GET', '/public/invites/nope', undefined, null)).status).toBe(404);
+  });
+
+  it('retries a failed link import as a new job and hides the old one', async () => {
+    const c = await call('POST', '/api/communities', { name: 'Home' });
+    failedImport(c.body.id);
+    const res = await call('POST', '/api/imports/imp1/retry');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ status: 'queued', kind: 'url', url: 'https://www.tiktok.com/@chef/video/1', communityId: c.body.id });
+    expect(res.body.id).not.toBe('imp1');
+    expect(db.imports.get('imp1')!.dismissedAt).toBeTruthy();
+  });
+
+  it('refuses to retry uploads, unfinished imports, or someone else\'s import', async () => {
+    const c = await call('POST', '/api/communities', { name: 'Home' });
+    failedImport(c.body.id, { kind: 'image', url: undefined, imageKeys: ['uploads/u1/a.jpg'] });
+    expect((await call('POST', '/api/imports/imp1/retry')).status).toBe(400);
+    failedImport(c.body.id, { status: 'extracting' });
+    expect((await call('POST', '/api/imports/imp1/retry')).status).toBe(400);
+    failedImport(c.body.id);
+    expect((await call('POST', '/api/imports/imp1/retry', undefined, 'stranger')).status).toBe(404);
+    expect((await call('POST', '/api/imports/imp1/dismiss', undefined, 'stranger')).status).toBe(404);
+  });
+
+  it('dismisses a failed import', async () => {
+    const c = await call('POST', '/api/communities', { name: 'Home' });
+    failedImport(c.body.id);
+    expect((await call('POST', '/api/imports/imp1/dismiss')).status).toBe(200);
+    expect(db.imports.get('imp1')!.dismissedAt).toBeTruthy();
   });
 });

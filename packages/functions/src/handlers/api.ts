@@ -498,6 +498,30 @@ router.on('GET', '/api/imports/:id', async (ctx) => {
   return job satisfies ImportJob;
 });
 
+async function ownFailedImport(id: string, userId: string): Promise<ImportJob> {
+  const job = await repo.getImport(id);
+  if (!job || job.userId !== userId) throw notFound('Import not found');
+  if (job.status !== 'failed') throw badRequest('Only failed imports can be retried or dismissed');
+  return job;
+}
+
+router.on('POST', '/api/imports/:id/retry', async (ctx) => {
+  const u = me(ctx);
+  const job = await ownFailedImport(ctx.params.id!, u.id);
+  // Uploaded files are deleted once an import fails, so only links and pasted text can be re-run.
+  if (job.kind !== 'url' && job.kind !== 'text') throw badRequest('Uploads cannot be retried. Please upload the files again.');
+  const next = await createImport({ userId: u.id, communityId: job.communityId, url: job.url, text: job.text, channel: 'web' });
+  await repo.updateImport(job.id, { dismissedAt: nowIso() });
+  return next;
+});
+
+router.on('POST', '/api/imports/:id/dismiss', async (ctx) => {
+  const u = me(ctx);
+  const job = await ownFailedImport(ctx.params.id!, u.id);
+  await repo.updateImport(job.id, { dismissedAt: nowIso() });
+  return { ok: true };
+});
+
 /* ------------------------------------ plans ---------------------------------- */
 
 function requireWeek(week: string): string {

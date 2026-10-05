@@ -1,5 +1,5 @@
 import { readFile, stat } from 'node:fs/promises';
-import { assertAllowedModel, type TokenUsage } from '@potluck/core';
+import { assertAllowedModel, type ImportErrorCode, type TokenUsage } from '@potluck/core';
 import { secrets } from './secrets.js';
 
 const BASE = 'https://generativelanguage.googleapis.com';
@@ -7,7 +7,11 @@ const BASE = 'https://generativelanguage.googleapis.com';
 /** Thrown for failures worth retrying through SQS (rate limits, 5xx). */
 export class RetryableError extends Error {}
 /** Thrown for failures the user should hear about instead of a retry. */
-export class UserFacingError extends Error {}
+export class UserFacingError extends Error {
+  constructor(message: string, readonly code: ImportErrorCode = 'unreadable') {
+    super(message);
+  }
+}
 
 export type Part =
   | { text: string }

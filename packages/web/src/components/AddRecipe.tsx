@@ -3,11 +3,11 @@ import { api, uploadToPresigned } from '../api';
 import { useSession } from '../lib/session';
 import { ErrorNote, Field } from './ui';
 
-type Mode = 'link' | 'photos' | 'text';
+export type AddMode = 'link' | 'photos' | 'text';
 
-export function AddRecipe({ communityId, onQueued }: { communityId: string; onQueued: () => void }) {
+export function AddRecipe({ communityId, initialMode = 'link', onQueued }: { communityId: string; initialMode?: AddMode; onQueued: () => void }) {
   const { publicConfig } = useSession();
-  const [mode, setMode] = useState<Mode>('link');
+  const [mode, setMode] = useState<AddMode>(initialMode);
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -61,7 +61,7 @@ export function AddRecipe({ communityId, onQueued }: { communityId: string; onQu
       <div className="row between wrap">
         <h2 id="add-recipe-title">Add a recipe</h2>
         <div className="segmented" role="tablist" aria-label="Import type">
-          {(['link', 'photos', 'text'] as Mode[]).map((m) => (
+          {(['link', 'photos', 'text'] as AddMode[]).map((m) => (
             <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? 'on' : ''} onClick={() => setMode(m)}>
               {m === 'link' ? 'Link' : m === 'photos' ? 'Upload' : 'Text'}
             </button>

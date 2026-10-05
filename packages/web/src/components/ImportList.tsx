@@ -1,50 +1,186 @@
-import { Link } from 'react-router-dom';
-import type { ImportJob, ImportStatus } from '@potluck/core';
+import { useState } from 'react';
+import { ArrowSquareOut, WarningCircle } from '@phosphor-icons/react';
+import { detectPlatform, type ChannelKind, type ImportJob, type ImportStatus, type Platform } from '@potluck/core';
+import { api } from '../api';
 import { timeAgo } from '../lib/util';
+import { ErrorNote } from './ui';
 
-const LABEL: Record<ImportStatus, string> = {
-  queued: 'Queued',
+export type AlternativeMode = 'photos' | 'text';
+
+const ACTIVE_LABEL: Partial<Record<ImportStatus, string>> = {
+  queued: 'Waiting to start',
   downloading: 'Downloading video',
   extracting: 'Reading recipe',
-  done: 'Added',
-  failed: 'Failed',
 };
 
-export function ImportList({ imports }: { imports: ImportJob[] }) {
+const PLATFORM_NAME: Partial<Record<Platform, string>> = {
+  tiktok: 'TikTok',
+  instagram: 'Instagram',
+  youtube: 'YouTube',
+  facebook: 'Facebook',
+  pinterest: 'Pinterest',
+  x: 'X',
+};
+
+const CHANNEL_NAME: Record<ChannelKind, string> = { telegram: 'Telegram', whatsapp: 'WhatsApp', sms: 'text message', web: 'web' };
+
+export function isActiveImport(job: ImportJob): boolean {
+  return job.status in ACTIVE_LABEL;
+}
+
+/** Imports worth showing above the book: running ones and failures the user has not dismissed. */
+export function needsAttention(job: ImportJob): boolean {
+  return isActiveImport(job) || (job.status === 'failed' && !job.dismissedAt);
+}
+
+function platformName(url: string): string | undefined {
+  const p = detectPlatform(url);
+  return PLATFORM_NAME[p];
+}
+
+/** A human name for what was imported, e.g. "TikTok video" or "seriouseats.com". */
+function sourceLabel(job: ImportJob): string {
+  if (job.kind === 'url' && job.url) {
+    const name = platformName(job.url);
+    if (name) return `${name} video`;
+    try {
+      return new URL(job.url).hostname.replace(/^www\./, '');
+    } catch {
+      return 'Recipe page';
+    }
+  }
+  if (job.kind === 'image') {
+    const n = job.imageKeys?.length ?? 0;
+    return n === 1 ? '1 photo' : `${n || 'Some'} photos`;
+  }
+  if (job.kind === 'video') return 'Uploaded video';
+  return 'Pasted text';
+}
+
+/** Web wording for a failure. Server messages are written for chat bots, so known codes get their own copy. */
+function failureMessage(job: ImportJob): string {
+  const who = (job.url && platformName(job.url)) ?? 'The site';
+  switch (job.errorCode) {
+    case 'blocked':
+      return `${who} wouldn't let us download this video. It may be private or need a login.`;
+    case 'too_long':
+      return 'This video is longer than 20 minutes, which is too long to read.';
+    case 'unsupported':
+      return "We can't import from this link. TikTok, Instagram, YouTube, Facebook and Pinterest links work.";
+    case 'download':
+      return "We couldn't download this. It may be a temporary problem.";
+    case 'busy':
+      return 'The recipe reader was too busy to get to this one.';
+    case 'internal':
+      return 'Something went wrong while reading this recipe.';
+    default:
+      return job.error ?? 'This import failed.';
+  }
+}
+
+interface Action {
+  label: string;
+  run: () => void | Promise<void>;
+  primary?: boolean;
+}
+
+export function ImportList({
+  imports,
+  onChanged,
+  onUseInstead,
+}: {
+  imports: ImportJob[];
+  onChanged: () => void;
+  onUseInstead: (mode: AlternativeMode) => void;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>();
   if (!imports.length) return null;
+
+  async function act(id: string, fn: () => Promise<unknown>) {
+    setBusy(id);
+    setError(undefined);
+    try {
+      await fn();
+      onChanged();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function actionsFor(job: ImportJob): Action[] {
+    const actions: Action[] = [];
+    const rerunnable = job.kind === 'url' || job.kind === 'text';
+    const code = job.errorCode;
+    const retryable = rerunnable && (code === undefined || code === 'download' || code === 'busy' || code === 'internal');
+    if (retryable) actions.push({ label: 'Try again', primary: true, run: () => act(job.id, () => api.retryImport(job.id)) });
+    if (job.kind === 'url' && (code === 'blocked' || code === 'download')) {
+      actions.push({ label: 'Upload the video', primary: !retryable, run: () => onUseInstead('photos') });
+      actions.push({ label: 'Paste the caption', run: () => onUseInstead('text') });
+    } else if (job.kind === 'url' && (code === 'too_long' || code === 'unsupported' || code === 'not_recipe')) {
+      actions.push({ label: 'Paste the recipe', primary: true, run: () => onUseInstead('text') });
+    } else if (job.kind === 'image' || job.kind === 'video') {
+      actions.push({ label: 'Upload again', primary: true, run: () => onUseInstead('photos') });
+    }
+    actions.push({ label: 'Dismiss', run: () => act(job.id, () => api.dismissImport(job.id)) });
+    return actions;
+  }
+
+  const failed = imports.filter((j) => j.status === 'failed').length;
+  const title = failed === imports.length ? (failed === 1 ? "Couldn't import" : `${failed} imports failed`) : failed ? 'Imports' : 'Importing';
+
   return (
-    <section className="card" aria-labelledby="imports-title">
+    <section className="card imports-card" aria-labelledby="imports-title">
       <h2 id="imports-title" className="h3">
-        Recent imports
+        {title}
       </h2>
-      <ul className="imports">
-        {imports.map((job) => (
-          <li key={job.id}>
-            <span className={`status status-${job.status}`}>
-              {(job.status === 'queued' || job.status === 'downloading' || job.status === 'extracting') && <span className="pulse" aria-hidden />}
-              {LABEL[job.status]}
-            </span>
-            <span className="import-src">
-              {job.url ? (
-                <a href={job.url} target="_blank" rel="noreferrer">
-                  {job.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 48)}
-                </a>
-              ) : job.kind === 'image' ? (
-                `${job.imageKeys?.length ?? 0} photo(s)`
-              ) : job.kind === 'video' ? (
-                'Uploaded video'
-              ) : (
-                'Pasted text'
-              )}
-              {job.channel !== 'web' && <span className="badge">{job.channel}</span>}
-              {job.error && <span className="error-text"> {job.error}</span>}
-            </span>
-            <span className="import-meta">
-              {job.status === 'done' && job.recipeId ? <Link to={`/book/${job.recipeId}`}>Open</Link> : timeAgo(job.createdAt)}
-            </span>
-          </li>
-        ))}
+      <ul className="imports" aria-live="polite">
+        {imports.map((job) => {
+          const isFailed = job.status === 'failed';
+          return (
+            <li key={job.id} className={isFailed ? 'import import-failed' : 'import'}>
+              <span className="import-icon" aria-hidden>
+                {isFailed ? <WarningCircle size={20} weight="fill" /> : <span className="pulse" />}
+              </span>
+              <div className="import-body">
+                <div className="import-head">
+                  <strong className="import-src">{sourceLabel(job)}</strong>
+                  {job.channel !== 'web' && <span className="badge">via {CHANNEL_NAME[job.channel]}</span>}
+                  {job.url && (
+                    <a className="import-link" href={job.url} target="_blank" rel="noreferrer" aria-label="Open the original">
+                      <ArrowSquareOut size={15} aria-hidden />
+                    </a>
+                  )}
+                  <span className="import-meta">
+                    {isFailed ? 'Failed' : ACTIVE_LABEL[job.status]} · {timeAgo(job.createdAt)}
+                  </span>
+                </div>
+                {isFailed && (
+                  <>
+                    <p className="import-error">{failureMessage(job)}</p>
+                    <div className="import-actions">
+                      {actionsFor(job).map((a) => (
+                        <button
+                          key={a.label}
+                          type="button"
+                          className={a.primary ? 'btn btn-small' : 'btn btn-small btn-ghost'}
+                          disabled={busy === job.id}
+                          onClick={() => void a.run()}
+                        >
+                          {a.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
+      <ErrorNote error={error} />
     </section>
   );
 }

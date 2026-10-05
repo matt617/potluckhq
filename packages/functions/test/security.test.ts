@@ -79,4 +79,12 @@ describe('yt-dlp errors', () => {
     expect(classifyYtdlpError('ERROR: [Instagram] login required')).toBeInstanceOf(UserFacingError);
     expect(classifyYtdlpError('ERROR: HTTP Error 503')).toBeInstanceOf(RetryableError);
   });
+
+  it('tags user-facing download errors with a code clients can act on', () => {
+    const code = (stderr: string) => (classifyYtdlpError(stderr) as UserFacingError).code;
+    expect(code('ERROR: [Instagram] login required')).toBe('blocked');
+    expect(code('ERROR: video does not pass filter (duration < 1200)')).toBe('too_long');
+    expect(code('ERROR: Unsupported URL: https://example.com')).toBe('unsupported');
+    expect(code('ERROR: something odd')).toBe('download');
+  });
 });
