@@ -82,7 +82,7 @@ export function Landing() {
         <section className="lp-hero">
           <div className="lp-hero-copy">
             <h1>
-              <span>Cooking videos in.</span> <span>Dinner plans out.</span>
+              <span>Cooking videos in.</span> <span><em>Dinner plans</em> out.</span>
             </h1>
             <p className="lp-sub">
               Send a recipe video to the Potluck bot. It writes the recipe, plans the week and builds the shopping list.

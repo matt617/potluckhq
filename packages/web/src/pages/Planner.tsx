@@ -14,7 +14,7 @@ import {
 import { api } from '../api';
 import { AiResult, AiSuggest } from '../components/AiSuggest';
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
-import { ErrorNote, Field, Flash, Sheet, Skeleton, useFlash } from '../components/ui';
+import { ErrorNote, Field, Flash, PageHeader, Sheet, Skeleton, useFlash } from '../components/ui';
 import { useAsync } from '../lib/hooks';
 import { useCommunity, useSession } from '../lib/session';
 import { formatDate, newId } from '../lib/util';
@@ -91,11 +91,11 @@ export function Planner() {
   }
 
   const thisWeek = weekStartOf();
+  const todayIndex = week === thisWeek ? (new Date().getDay() + 6) % 7 : -1;
 
   return (
     <div className="stack-lg">
-      <div className="row between wrap">
-        <h1>Meal plan</h1>
+      <PageHeader eyebrow={week === thisWeek ? 'This week' : week < thisWeek ? 'Past week' : 'Coming up'} title="Meal plan">
         <div className="row week-nav">
           <button className="btn btn-small" aria-label="Previous week" onClick={() => setWeek(addDays(week, -7))}>
             <CaretLeft size={16} weight="bold" aria-hidden />
@@ -112,7 +112,7 @@ export function Planner() {
             </button>
           )}
         </div>
-      </div>
+      </PageHeader>
 
       <AiSuggest
         key={`${community.id}-${week}`}
@@ -139,9 +139,11 @@ export function Planner() {
         <>
           <div className="planner" role="table" aria-label="Week plan">
             {DAY_NAMES.map((day, d) => (
-              <section key={day} className="plan-day" role="rowgroup" aria-label={day}>
+              <section key={day} className={`plan-day${d === todayIndex ? ' today' : ''}`} role="rowgroup" aria-label={day}>
                 <h2 className="plan-day-title">
-                  {day.slice(0, 3)} <span className="muted">{formatDate(addDays(week, d))}</span>
+                  <span className="plan-day-name">{day.slice(0, 3)}</span>
+                  <span className="plan-day-date">{formatDate(addDays(week, d))}</span>
+                  {d === todayIndex && <span className="plan-today">Today</span>}
                 </h2>
                 {MEAL_SLOTS.map((slot) => {
                   const cell = entries.filter((e) => e.day === d && e.slot === slot);

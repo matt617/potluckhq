@@ -1,16 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import type { ImportJob } from '@potluck/core';
 import { api } from '../api';
 import { AddRecipe } from '../components/AddRecipe';
 import { ImportList } from '../components/ImportList';
-import { CookingPot, Plus, X } from '@phosphor-icons/react';
-import { Chip, Empty, ErrorNote, Skeleton } from '../components/ui';
+import { CookingPot, MagnifyingGlass, Plus, X } from '@phosphor-icons/react';
+import { Chip, Empty, ErrorNote, PageHeader, Skeleton } from '../components/ui';
 import { useAsync, useInterval } from '../lib/hooks';
 import { useCommunity, useSession } from '../lib/session';
 import { mediaUrl, minutes } from '../lib/util';
 
 const ACTIVE = new Set(['queued', 'downloading', 'extracting']);
+
+/** Stable warm placeholder tone (0-3) for recipes without a thumbnail. */
+function toneOf(id: string): number {
+  let h = 0;
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) | 0;
+  return Math.abs(h) % 4;
+}
 
 export function RecipeBook() {
   const community = useCommunity();
@@ -64,19 +71,24 @@ export function RecipeBook() {
 
   return (
     <div className="stack-lg">
-      <div className="row between wrap">
-        <h1>{community.name}'s recipes</h1>
+      <PageHeader
+        eyebrow={recipes.data ? `${list.length} ${list.length === 1 ? 'recipe' : 'recipes'} in the book` : 'Recipe book'}
+        title={`${community.name}'s recipes`}
+      >
         <button className="btn btn-primary" onClick={() => setShowAdd((s) => !s)} aria-expanded={showAdd}>
           {showAdd ? <X size={16} weight="bold" aria-hidden /> : <Plus size={16} weight="bold" aria-hidden />}
           {showAdd ? 'Close' : 'Add recipe'}
         </button>
-      </div>
+      </PageHeader>
 
       {showAdd && <AddRecipe communityId={community.id} onQueued={() => void imports.reload()} />}
       <ImportList imports={recentImports} />
 
       <div className="stack">
-        <input type="search" placeholder="Search recipes or tags" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search recipes" />
+        <div className="search">
+          <MagnifyingGlass size={18} aria-hidden />
+          <input type="search" placeholder="Search recipes or tags" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search recipes" />
+        </div>
         {tags.length > 0 && (
           <div className="chips" aria-label="Filter by tag">
             {tags.map((t) => (
@@ -104,12 +116,20 @@ export function RecipeBook() {
 
       {filtered.length > 0 && (
         <ul className="grid" aria-label="Recipes">
-          {filtered.map((r) => {
+          {filtered.map((r, idx) => {
             const thumb = mediaUrl(publicConfig?.mediaBaseUrl, r.thumbnailKey);
             return (
-              <li key={r.id}>
+              <li key={r.id} className="rise" style={{ '--i': Math.min(idx, 12) } as CSSProperties}>
                 <Link to={`/book/${r.id}`} className="recipe-card">
-                  <div className="thumb">{thumb ? <img src={thumb} alt="" loading="lazy" /> : <CookingPot size={36} weight="thin" aria-hidden />}</div>
+                  <div className="thumb" data-tone={toneOf(r.id)}>
+                    {thumb ? (
+                      <img src={thumb} alt="" loading="lazy" />
+                    ) : (
+                      <span className="thumb-letter" aria-hidden>
+                        {r.title.trim().charAt(0)}
+                      </span>
+                    )}
+                  </div>
                   <div className="recipe-card-body">
                     <h3>{r.title}</h3>
                     <p className="muted small">
