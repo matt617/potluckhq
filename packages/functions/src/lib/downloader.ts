@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { env } from './env.js';
 import { RetryableError, UserFacingError } from './gemini.js';
+import { secrets } from './secrets.js';
 
 export interface DownloadedVideo {
   path: string;
@@ -20,11 +21,102 @@ export interface DownloadedVideo {
 /** Longest video we will analyze; caps Gemini spend per import. */
 export const MAX_DURATION_SEC = 20 * 60;
 
+/** Total time for all download attempts; leaves room for Gemini inside the 5 minute worker. */
+const DOWNLOAD_BUDGET_MS = 190_000;
+/** Cap for a single attempt when there is somewhere else to fall back to. */
+const ROUTED_ATTEMPT_MS = 90_000;
+const SOLO_ATTEMPT_MS = 170_000;
+const MIN_ATTEMPT_MS = 30_000;
+/** Proxy attempts before the final direct attempt. */
+const PROXY_ATTEMPTS = 2;
+const PROXY_SCHEMES = new Set(['http:', 'https:', 'socks5:', 'socks5h:']);
+
+/** Parse the download-proxies parameter: proxy URLs separated by newlines, commas or spaces. Invalid entries are dropped. */
+export function parseProxies(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(/[\s,]+/)
+    .map((s) => s.trim())
+    .filter((s) => {
+      try {
+        return PROXY_SCHEMES.has(new URL(s).protocol);
+      } catch {
+        return false;
+      }
+    });
+}
+
+/**
+ * Routes to try for one download: proxies in a random order, then a direct connection as a last resort.
+ * A single rotating gateway is tried twice, since providers hand out a new exit IP per connection.
+ */
+export function routePlan(proxies: string[], random: () => number = Math.random): (string | null)[] {
+  if (!proxies.length) return [null];
+  const pool = [...proxies];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j]!, pool[i]!];
+  }
+  return [...Array.from({ length: PROXY_ATTEMPTS }, (_, i) => pool[i % pool.length]!), null];
+}
+
+/** Failures a different exit IP might fix: blocks, rate limits, bot checks and network or proxy errors. */
+export function shouldRotate(stderr: string): boolean {
+  const s = stderr.toLowerCase();
+  if (s.includes('unsupported url') || s.includes('does not pass filter') || s.includes('private video')) return false;
+  return /http error (403|429|5\d\d)|rate.?limit|too many requests|not a bot|sign in to confirm|login|cookies|timed out|connection|proxy|tunnel/.test(s);
+}
+
+/** Host and port only, so proxy credentials never reach logs or error messages. */
+export function proxyLabel(proxy: string): string {
+  try {
+    const u = new URL(proxy);
+    return `${u.hostname}${u.port ? `:${u.port}` : ''}`;
+  } catch {
+    return 'proxy';
+  }
+}
+
+export function redactProxy(text: string, proxy: string | null): string {
+  const out = proxy ? text.split(proxy).join(proxyLabel(proxy)) : text;
+  return out.replace(/\/\/[^\s/@:]+:[^\s/@]+@/g, '//***@');
+}
+
+async function configuredProxies(): Promise<string[]> {
+  try {
+    return parseProxies((await secrets())['download-proxies']);
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Download a social video with yt-dlp into /tmp. Picks a small file with audio, merging
  * separate video and audio streams with the bundled ffmpeg when needed. Video is deleted by `cleanup` and never stored.
+ * When the download-proxies parameter is set, each import leaves through a randomly chosen proxy and moves to
+ * another one if the platform blocks or rate-limits it.
  */
 export async function downloadVideo(url: string): Promise<DownloadedVideo> {
+  const plan = routePlan(await configuredProxies());
+  const deadline = Date.now() + DOWNLOAD_BUDGET_MS;
+  let stderr = '';
+  for (const [i, proxy] of plan.entries()) {
+    const remaining = deadline - Date.now();
+    if (i > 0 && remaining < MIN_ATTEMPT_MS) break;
+    const result = await attempt(url, proxy, Math.min(plan.length > 1 ? ROUTED_ATTEMPT_MS : SOLO_ATTEMPT_MS, remaining));
+    if ('video' in result) return result.video;
+    stderr = result.stderr;
+    if (i === plan.length - 1 || !(result.timedOut || shouldRotate(stderr))) break;
+    console.warn('Download blocked, trying another route', { attempt: i + 1, via: proxy ? proxyLabel(proxy) : 'direct' });
+  }
+  throw classifyYtdlpError(stderr);
+}
+
+async function attempt(
+  url: string,
+  proxy: string | null,
+  timeoutMs: number,
+): Promise<{ video: DownloadedVideo } | { stderr: string; timedOut: boolean }> {
   const dir = await mkdtemp(join(tmpdir(), 'dl-'));
   const cleanup = () => rm(dir, { recursive: true, force: true });
   const args = [
@@ -50,16 +142,17 @@ export async function downloadVideo(url: string): Promise<DownloadedVideo> {
     '20',
     '--retries',
     '2',
+    ...(proxy ? ['--proxy', proxy] : []),
     '-o',
     join(dir, 'video.%(ext)s'),
     url,
   ];
-  const { code, stderr } = await run(env.ytdlpPath, args, 170_000);
+  const { code, stderr, timedOut } = await run(env.ytdlpPath, args, timeoutMs);
   const files = await readdir(dir);
   const video = files.find((f) => f.startsWith('video.') && !/\.(json|part|ytdl)$/.test(f) && !/\.f\d+\./.test(f));
   if (code !== 0 || !video) {
     await cleanup();
-    throw classifyYtdlpError(stderr);
+    return { stderr: redactProxy(stderr, proxy), timedOut };
   }
   let info: Record<string, unknown> = {};
   const infoFile = files.find((f) => f.endsWith('.info.json'));
@@ -74,15 +167,17 @@ export async function downloadVideo(url: string): Promise<DownloadedVideo> {
   const mimeType = ext === 'webm' ? 'video/webm' : ext === 'mov' ? 'video/quicktime' : 'video/mp4';
   const caption = [info.title, info.description].filter((s) => typeof s === 'string' && s.trim()).join('\n\n');
   return {
-    path: join(dir, video),
-    mimeType,
-    dir,
-    caption: caption || undefined,
-    title: typeof info.title === 'string' ? info.title : undefined,
-    author: (typeof info.uploader === 'string' && info.uploader) || (typeof info.channel === 'string' && info.channel) || undefined,
-    thumbnailUrl: typeof info.thumbnail === 'string' ? info.thumbnail : undefined,
-    durationSec: typeof info.duration === 'number' ? info.duration : undefined,
-    cleanup,
+    video: {
+      path: join(dir, video),
+      mimeType,
+      dir,
+      caption: caption || undefined,
+      title: typeof info.title === 'string' ? info.title : undefined,
+      author: (typeof info.uploader === 'string' && info.uploader) || (typeof info.channel === 'string' && info.channel) || undefined,
+      thumbnailUrl: typeof info.thumbnail === 'string' ? info.thumbnail : undefined,
+      durationSec: typeof info.duration === 'number' ? info.duration : undefined,
+      cleanup,
+    },
   };
 }
 
@@ -97,22 +192,26 @@ export function classifyYtdlpError(stderr: string): Error {
   return new UserFacingError('Could not download that video. If it is public, try again later or send the video file directly.');
 }
 
-function run(cmd: string, args: string[], timeoutMs: number): Promise<{ code: number; stderr: string }> {
+function run(cmd: string, args: string[], timeoutMs: number): Promise<{ code: number; stderr: string; timedOut: boolean }> {
   return new Promise((resolve) => {
     const child = spawn(cmd, args, { env: { ...process.env, HOME: '/tmp', XDG_CACHE_HOME: '/tmp' } });
     let stderr = '';
+    let timedOut = false;
     child.stderr.on('data', (d) => {
       stderr = (stderr + d.toString()).slice(-8000);
     });
     child.stdout.on('data', () => undefined);
-    const timer = setTimeout(() => child.kill('SIGKILL'), timeoutMs);
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGKILL');
+    }, timeoutMs);
     child.on('error', (err) => {
       clearTimeout(timer);
-      resolve({ code: -1, stderr: String(err) });
+      resolve({ code: -1, stderr: String(err), timedOut });
     });
     child.on('close', (code) => {
       clearTimeout(timer);
-      resolve({ code: code ?? -1, stderr });
+      resolve({ code: code ?? -1, stderr, timedOut });
     });
   });
 }

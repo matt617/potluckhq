@@ -15,6 +15,8 @@ export interface Secrets {
   'stripe-webhook-secret'?: string;
   'stripe-price-plus'?: string;
   'stripe-price-pro'?: string;
+  /** Optional proxy URLs for video downloads, one per line. Credentials go in the URL. */
+  'download-proxies'?: string;
 }
 
 const TTL_MS = 5 * 60 * 1000;

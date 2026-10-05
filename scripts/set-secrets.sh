@@ -34,6 +34,7 @@ PARAMS=(
   "stripe-webhook-secret|SecureString|Stripe webhook signing secret (whsec_...)"
   "stripe-price-plus|String|Stripe price ID for Plus, \$4/month"
   "stripe-price-pro|String|Stripe price ID for Pro, \$9/month"
+  "download-proxies|SecureString|Optional proxy URLs for video downloads, comma separated (http://user:pass@host:port)"
 )
 
 echo "Storing parameters under ${PREFIX} in ${REGION}. Press Enter to skip any item."

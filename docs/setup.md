@@ -151,8 +151,24 @@ Imports that still fail after three attempts are marked failed, the sender gets 
 message lands in the dead-letter queue shown by the `IngestDlqUrl` output.
 
 Some platforms block downloads from cloud IP ranges. Instagram is the most likely to do this. When a download is
-blocked, the bot asks the user to send the video file itself, which always works. Paid download services or
-proxies were deliberately left out; revisit only if blocked downloads become common.
+blocked, the bot asks the user to send the video file itself, which always works.
+
+### Rotating download IPs (optional)
+
+If blocked downloads become common, send video downloads through a pool of proxies. Store the proxy URLs in the
+`download-proxies` parameter with `scripts/set-secrets.sh`, separated by commas, with credentials in the URL:
+
+```
+http://user:pass@gate.example-proxy.com:7000, socks5h://user:pass@other.example.net:1080
+```
+
+Each import picks proxies in a random order. If a platform rate-limits or blocks the download, the worker tries a
+second proxy and then a direct connection before giving up. A single rotating gateway from a proxy provider
+works too: it is tried twice, and providers assign a new exit IP per connection. Residential or ISP proxies get
+through far more often than datacenter ones. Proxy credentials never appear in logs or error messages.
+Delete the parameter to go back to direct downloads. Recipe web pages are still fetched directly.
+
+Check the platforms' terms before relying on this; most prohibit automated downloading and working around blocks.
 
 ## 9. Local development
 
