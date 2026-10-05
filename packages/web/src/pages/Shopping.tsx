@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { addDays, AISLES, shoppingListText, weekStartOf, type Aisle, type ShoppingItem, type ShoppingList } from '@potluck/core';
 import { api } from '../api';
 import { Basket, CaretLeft, CaretRight, X } from '@phosphor-icons/react';
-import { Empty, ErrorNote, Flash, Skeleton, useFlash } from '../components/ui';
+import { Empty, ErrorNote, Flash, PageHeader, Skeleton, useFlash } from '../components/ui';
 import { useAsync, useInterval } from '../lib/hooks';
 import { useCommunity, useSession } from '../lib/session';
 import { copyText, formatDate } from '../lib/util';
@@ -89,7 +89,7 @@ export function Shopping() {
       <label className="check">
         <input type="checkbox" checked={i.checked} onChange={() => void toggle(i)} />
         <span className="item-name">{i.name}</span>
-        {i.display && <span className="muted small">{i.display}</span>}
+        {i.display && <span className="item-amount">{i.display}</span>}
       </label>
       {i.manual && (
         <button type="button" className="btn btn-ghost btn-icon" aria-label={`Remove ${i.name}`} onClick={() => void removeItem(i)}>
@@ -101,8 +101,10 @@ export function Shopping() {
 
   return (
     <div className="stack-lg">
-      <div className="row between wrap">
-        <h1>Shopping list</h1>
+      <PageHeader
+        eyebrow={items.length ? `${items.length - done.length} to get · ${done.length} in the cart` : `Week of ${formatDate(week)}`}
+        title="Shopping list"
+      >
         <div className="row week-nav">
           <button className="btn btn-small" aria-label="Previous week" onClick={() => setWeek(addDays(week, -7))}>
             <CaretLeft size={16} weight="bold" aria-hidden />
@@ -112,7 +114,7 @@ export function Shopping() {
             <CaretRight size={16} weight="bold" aria-hidden />
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="row wrap">
         <button
@@ -176,8 +178,8 @@ export function Shopping() {
 
           {byAisle.map((g) => (
             <section key={g.aisle.id} className="card" aria-labelledby={`aisle-${g.aisle.id}`}>
-              <h2 id={`aisle-${g.aisle.id}`} className="h4">
-                {g.aisle.label}
+              <h2 id={`aisle-${g.aisle.id}`} className="aisle-title">
+                {g.aisle.label} <span className="aisle-count num">{g.items.length}</span>
               </h2>
               <ul className="shop-list">{g.items.map(row)}</ul>
             </section>

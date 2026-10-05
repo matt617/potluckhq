@@ -168,6 +168,19 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
   );
 }
 
+/** Page title block: small context line, serif title, optional actions on the right. */
+export function PageHeader({ eyebrow, title, children }: { eyebrow?: ReactNode; title: ReactNode; children?: ReactNode }) {
+  return (
+    <header className="page-head">
+      <div className="page-head-text">
+        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+        <h1>{title}</h1>
+      </div>
+      {children && <div className="page-head-actions">{children}</div>}
+    </header>
+  );
+}
+
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="field">

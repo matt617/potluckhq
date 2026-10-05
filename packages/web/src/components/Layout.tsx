@@ -46,9 +46,14 @@ export function Layout() {
         </NavLink>
         <CommunitySwitcher />
         <nav className="topnav" aria-label="Main">
-          {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to}>
-              {n.label}
+          {NAV.map(({ to, label, Icon }) => (
+            <NavLink key={to} to={to}>
+              {({ isActive }) => (
+                <>
+                  <Icon size={17} weight={isActive ? 'fill' : 'regular'} aria-hidden />
+                  {label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -58,6 +63,7 @@ export function Layout() {
           <Outlet />
         ) : (
           <section className="card onboarding">
+            <p className="eyebrow">Let's get cooking</p>
             <h1>Welcome to Potluck, {me.user.displayName || 'friend'}</h1>
             <p className="muted">
               Start a community for your household, office or friends. Everyone in it shares one recipe book, meal plan and shopping list.
