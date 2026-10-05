@@ -42,8 +42,8 @@ jobs:
         run: |
           npm run dev:web -- --host 127.0.0.1 --port 5178 > /tmp/potluck-web.log 2>&1 &
           kitchen_server_pid=$!
-          trap 'kill "$kitchen_server_pid"' EXIT
-          curl --retry 20 --retry-connrefused --retry-delay 1 -fsS http://127.0.0.1:5178/ > /dev/null
+          trap 'kill "$kitchen_server_pid" 2>/dev/null || true' EXIT
+          curl --retry 20 --retry-connrefused --retry-delay 1 -fsS http://127.0.0.1:5178/ > /dev/null || { cat /tmp/potluck-web.log; exit 1; }
           npm run test:kitchens:browser
       - name: Build migration tool
         run: npm run build:kitchen-migration

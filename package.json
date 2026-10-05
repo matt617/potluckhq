@@ -13,7 +13,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run",
     "build:web": "npm run build -w @potluck/web",
-    "dev:web": "npm run dev -w @potluck/web",
+    "dev:web": "npm run dev -w @potluck/web --",
     "fetch:ytdlp": "bash scripts/fetch-ytdlp.sh",
     "synth": "npm run synth -w @potluck/infra",
     "deploy": "bash scripts/deploy.sh",
