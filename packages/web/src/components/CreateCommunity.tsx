@@ -2,9 +2,11 @@ import { useState, type FormEvent } from 'react';
 import type { Community } from '@potluck/core';
 import { api } from '../api';
 import { useSession } from '../lib/session';
-import { ErrorNote, Field } from './ui';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ErrorNote, Field, FormDialog } from './ui';
 
-export function CreateCommunityForm({ onCreated }: { onCreated?: (c: Community) => void }) {
+export function CreateKitchenDialog({ onClose, onCreated }: { onClose: () => void; onCreated?: (c: Community) => void }) {
   const { refreshMe, setCommunityId } = useSession();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -20,8 +22,6 @@ export function CreateCommunityForm({ onCreated }: { onCreated?: (c: Community) 
       const c = await api.createCommunity({ name: name.trim(), description: description.trim() || undefined });
       await refreshMe();
       setCommunityId(c.id);
-      setName('');
-      setDescription('');
       onCreated?.(c);
     } catch (err) {
       setError(err);
@@ -31,17 +31,24 @@ export function CreateCommunityForm({ onCreated }: { onCreated?: (c: Community) 
   }
 
   return (
-    <form className="stack" onSubmit={submit}>
-      <Field label="Kitchen name" hint="The people you plan meals and groceries with.">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="The Smith kitchen" maxLength={60} required />
+    <FormDialog
+      title="New kitchen"
+      description="The people you plan meals and groceries with."
+      onClose={onClose}
+      onSubmit={submit}
+      footer={
+        <Button type="submit" variant="default" disabled={busy || !name.trim()}>
+          {busy ? 'Creating…' : 'Create kitchen'}
+        </Button>
+      }
+    >
+      <Field label="Kitchen name">
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="The Smith kitchen" maxLength={60} required />
       </Field>
       <Field label="Description (optional)">
-        <input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} />
+        <Input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} />
       </Field>
       <ErrorNote error={error} />
-      <button className="btn btn-primary" disabled={busy || !name.trim()}>
-        {busy ? 'Creating…' : 'Create kitchen'}
-      </button>
-    </form>
+    </FormDialog>
   );
 }

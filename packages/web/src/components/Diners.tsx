@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { Diner } from '@potluck/core';
 import { api } from '../api';
 import { useAsync } from '../lib/hooks';
 import { useSession, canAdmin, useCommunity } from '../lib/session';
 import { newId } from '../lib/util';
-import { ConfirmButton, ErrorNote, Field, Sheet, TagInput } from './ui';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ConfirmAction, ErrorNote, Field, FormDialog, TagInput } from './ui';
 
 const DIET_FIELDS = [
   ['allergies', 'Allergies', 'peanuts, shellfish'],
@@ -17,11 +21,14 @@ export function Diners() {
     { me } = useSession();
   const state = useAsync(() => api.diners(c.id), [c.id]);
   const [editing, setEditing] = useState<Diner | null>(null),
+    [isNew, setIsNew] = useState(false),
     [error, setError] = useState<unknown>(),
     [busy, setBusy] = useState(false);
+  const usualId = useId();
   if (c.kind === 'circle') return null;
   const own = state.data?.diners.find((d) => d.userId === me?.user.id);
   function add(self: boolean) {
+    setIsNew(true);
     setEditing({
       id: newId(),
       name: self ? me!.user.displayName : '',
@@ -47,11 +54,20 @@ export function Diners() {
             </span>
             {(d.userId === me?.user.id || (!d.userId && canAdmin(c.role))) && (
               <div className="row">
-                <button className="btn btn-small" onClick={() => setEditing(d)}>
+                <button
+                  className="btn btn-small"
+                  onClick={() => {
+                    setIsNew(false);
+                    setEditing(d);
+                  }}
+                >
                   Edit
                 </button>
-                <ConfirmButton
+                <ConfirmAction
                   className="btn btn-small"
+                  title={`Remove ${d.name}?`}
+                  description="Their portions and food requirements stop being used for this kitchen’s plans and suggestions."
+                  confirmLabel="Remove profile"
                   onConfirm={async () => {
                     try {
                       await api.removeDiner(c.id, d.id);
@@ -62,7 +78,7 @@ export function Diners() {
                   }}
                 >
                   Remove profile
-                </ConfirmButton>
+                </ConfirmAction>
               </div>
             )}
           </li>
@@ -81,29 +97,49 @@ export function Diners() {
         )}
       </div>
       {editing && (
-        <Sheet title="Kitchen diner" onClose={() => setEditing(null)}>
-          <form
-            className="stack"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setBusy(true);
-              setError(undefined);
-              try {
-                await api.saveDiner(c.id, editing);
-                await state.reload();
-                setEditing(null);
-              } catch (e) {
-                setError(e);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
+        <FormDialog
+          title={isNew ? (editing.userId ? 'Add me as a diner' : 'Add a child or guest') : `Edit ${editing.name || 'diner'}`}
+          description="Saved food requirements are shared with this kitchen. Personal goals and medication details are never copied."
+          onClose={() => setEditing(null)}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            setError(undefined);
+            try {
+              await api.saveDiner(c.id, editing);
+              await state.reload();
+              setEditing(null);
+            } catch (e) {
+              setError(e);
+            } finally {
+              setBusy(false);
+            }
+          }}
+          footer={
+            <>
+              {editing.userId && (
+                <Button
+                  type="button"
+                  className="sm:mr-auto"
+                  onClick={() =>
+                    setEditing({ ...editing, diet: { allergies: me!.user.diet.allergies, diets: me!.user.diet.diets, dislikes: me!.user.diet.dislikes } })
+                  }
+                >
+                  Copy my saved requirements
+                </Button>
+              )}
+              <Button type="submit" variant="default" disabled={busy}>
+                {busy ? 'Saving…' : 'Save kitchen profile'}
+              </Button>
+            </>
+          }
+        >
+          <div className="grid gap-4 sm:grid-cols-[1fr_9rem]">
             <Field label="Name">
-              <input required maxLength={60} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
+              <Input required maxLength={60} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
             </Field>
             <Field label="Usual portions">
-              <input
+              <Input
                 type="number"
                 min={0.25}
                 max={20}
@@ -112,40 +148,21 @@ export function Diners() {
                 onChange={(e) => setEditing({ ...editing, portions: Number(e.target.value) })}
               />
             </Field>
-            <label className="check">
-              <input type="checkbox" checked={editing.usual} onChange={(e) => setEditing({ ...editing, usual: e.target.checked })} />
-              Usually eating with this kitchen
-            </label>
+          </div>
+          <div className="flex items-center gap-3">
+            <Checkbox id={usualId} checked={editing.usual} onCheckedChange={(v) => setEditing({ ...editing, usual: v === true })} />
+            <Label htmlFor={usualId}>Usually eating with this kitchen</Label>
+          </div>
+          <fieldset className="m-0 flex flex-col gap-4 border-0 p-0">
+            <legend className="mb-3 p-0 font-serif text-lg font-semibold">Food requirements</legend>
             {DIET_FIELDS.map(([k, label, placeholder]) => (
               <Field key={k} label={label}>
-                <TagInput
-                  value={editing.diet[k]}
-                  onChange={(next) => setEditing({ ...editing, diet: { ...editing.diet, [k]: next } })}
-                  placeholder={placeholder}
-                />
+                <TagInput value={editing.diet[k]} onChange={(next) => setEditing({ ...editing, diet: { ...editing.diet, [k]: next } })} placeholder={placeholder} />
               </Field>
             ))}
-            {editing.userId && (
-              <button
-                type="button"
-                className="btn"
-                onClick={() =>
-                  setEditing({ ...editing, diet: { allergies: me!.user.diet.allergies, diets: me!.user.diet.diets, dislikes: me!.user.diet.dislikes } })
-                }
-              >
-                Copy my saved food requirements
-              </button>
-            )}
-            <p className="small muted">
-              Saving shares these food requirements with this kitchen. Personal goals and medication information are not copied. Remove your profile here to
-              stop using it for future suggestions.
-            </p>
-            <ErrorNote error={error} />
-            <button className="btn btn-primary" disabled={busy}>
-              {busy ? 'Saving…' : 'Save kitchen profile'}
-            </button>
-          </form>
-        </Sheet>
+          </fieldset>
+          <ErrorNote error={error} />
+        </FormDialog>
       )}
     </section>
   );

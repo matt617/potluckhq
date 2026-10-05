@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useSession } from '../lib/session';
-import { CreateCommunityForm } from './CreateCommunity';
-import { Sheet } from './ui';
+import { CreateKitchenDialog } from './CreateCommunity';
 import { useNavigate } from 'react-router-dom';
 
 export function CommunitySwitcher() {
@@ -35,14 +34,13 @@ export function CommunitySwitcher() {
         <option value="__new">+ New kitchen…</option>
       </select>
       {creating && (
-        <Sheet title="New kitchen" onClose={() => setCreating(false)}>
-          <CreateCommunityForm
-            onCreated={(c) => {
-              setCreating(false);
-              navigate(`/week?kitchen=${encodeURIComponent(c.id)}`);
-            }}
-          />
-        </Sheet>
+        <CreateKitchenDialog
+          onClose={() => setCreating(false)}
+          onCreated={(c) => {
+            setCreating(false);
+            navigate(`/week?kitchen=${encodeURIComponent(c.id)}`);
+          }}
+        />
       )}
     </div>
   );

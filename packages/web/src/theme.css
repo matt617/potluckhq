@@ -72,4 +72,14 @@
 
   --ease-smooth: var(--ease);
   --ease-spring: var(--spring);
+
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  @keyframes shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
 }

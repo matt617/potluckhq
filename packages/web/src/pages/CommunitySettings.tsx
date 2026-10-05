@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tierConfig, type InviteResponse, type Role } from '@potluck/core';
 import { api } from '../api';
-import { ConfirmButton, ErrorNote, Field, Flash, Spinner, useFlash } from '../components/ui';
+import { ConfirmAction, ErrorNote, Field, Spinner } from '../components/ui';
 import { useAsync } from '../lib/hooks';
 import { canAdmin, useCommunity, useSession } from '../lib/session';
 import { copyText, formatDate } from '../lib/util';
 import { Diners } from '../components/Diners';
 import { KitchenAdministration } from '../components/KitchenAdministration';
+import { toast } from 'sonner';
 
 export function CommunitySettings() {
   const community = useCommunity();
@@ -21,7 +22,6 @@ export function CommunitySettings() {
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
   const [error, setError] = useState<unknown>();
   const [busy, setBusy] = useState<string | null>(null);
-  const [flash, setFlash] = useFlash();
 
   useEffect(() => {
     const c = detail.data?.community;
@@ -46,7 +46,7 @@ export function CommunitySettings() {
     setError(undefined);
     try {
       await fn();
-      if (done) setFlash(done);
+      if (done) toast(done);
     } catch (e) {
       setError(e);
     } finally {
@@ -65,7 +65,7 @@ export function CommunitySettings() {
         /* cancelled; fall back to copy */
       }
     }
-    setFlash((await copyText(invite.url)) ? 'Invite link copied' : 'Copy failed');
+    toast((await copyText(invite.url)) ? 'Invite link copied' : 'Copy failed');
   }
 
   if (detail.loading && !detail.data) return <Spinner />;
@@ -116,9 +116,11 @@ export function CommunitySettings() {
                   <span className="badge">{m.role}</span>
                 )}
                 {admin && !self && m.role !== 'owner' && (role === 'owner' || m.role === 'member') && (
-                  <ConfirmButton
+                  <ConfirmAction
                     className="btn btn-ghost btn-small"
-                    confirmLabel="Remove?"
+                    title={`Remove ${m.displayName}?`}
+                    description="They lose access to this space’s recipes and plans. You can invite them again later."
+                    confirmLabel="Remove"
                     onConfirm={() =>
                       act(
                         'remove',
@@ -131,7 +133,7 @@ export function CommunitySettings() {
                     }
                   >
                     Remove
-                  </ConfirmButton>
+                  </ConfirmAction>
                 )}
               </li>
             );
@@ -166,7 +168,7 @@ export function CommunitySettings() {
               <div className="stack">
                 <input readOnly value={invite.url} aria-label="Invite link" onFocus={(e) => e.currentTarget.select()} />
                 <div className="row wrap">
-                  <button className="btn" onClick={async () => setFlash((await copyText(invite.url)) ? 'Copied' : 'Copy failed')}>
+                  <button className="btn" onClick={async () => toast((await copyText(invite.url)) ? 'Copied' : 'Copy failed')}>
                     Copy link
                   </button>
                   <button className="btn" onClick={() => void shareInvite()}>
@@ -234,8 +236,10 @@ export function CommunitySettings() {
               Deletes this shared space and its plans, shopping lists and local recipe versions. Personal saves and independent copies elsewhere remain.
               Transfer ownership above to let the group continue.
             </p>
-            <ConfirmButton
-              confirmLabel={`Delete ${community.name}?`}
+            <ConfirmAction
+              title={`Delete ${community.name}?`}
+              description="Its plans, shopping lists and local recipe versions are deleted for everyone. Personal saves and independent copies elsewhere remain. This cannot be undone."
+              confirmLabel={`Delete ${community.kind === 'circle' ? 'circle' : 'kitchen'}`}
               onConfirm={() =>
                 act('delete', async () => {
                   await api.deleteCommunity(community.id);
@@ -245,11 +249,13 @@ export function CommunitySettings() {
               }
             >
               Delete {community.kind === 'circle' ? 'circle' : 'kitchen'}
-            </ConfirmButton>
+            </ConfirmAction>
           </>
         ) : (
-          <ConfirmButton
-            confirmLabel="Leave for sure?"
+          <ConfirmAction
+            title={`Leave ${community.name}?`}
+            description="You lose access to its shared recipes and plans until someone invites you again."
+            confirmLabel="Leave"
             onConfirm={() =>
               act('leave', async () => {
                 if (!me) return;
@@ -260,10 +266,9 @@ export function CommunitySettings() {
             }
           >
             Leave {community.name}
-          </ConfirmButton>
+          </ConfirmAction>
         )}
       </section>
-      <Flash message={flash} />
     </div>
   );
 }

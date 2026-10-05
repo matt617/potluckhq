@@ -6,7 +6,9 @@ import { useSession } from '../lib/session';
 import { useAsync } from '../lib/hooks';
 import { kitchenPath } from '../lib/kitchen-context';
 import { newId } from '../lib/util';
-import { ConfirmButton, ErrorNote, Field, Sheet, TagInput } from './ui';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ConfirmAction, ConfirmButton, ErrorNote, Field, FormDialog, TagInput } from './ui';
 
 export function AddToPlan({ recipe, servings }: { recipe: Recipe; servings: number }) {
   const { me, community, refreshMe, setCommunityId } = useSession(),
@@ -26,56 +28,63 @@ export function AddToPlan({ recipe, servings }: { recipe: Recipe; servings: numb
         Cook this week
       </button>
       {open && (
-        <Sheet title="Add to meal plan" onClose={() => setOpen(false)}>
-          <form
-            className="stack"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setBusy(true);
-              setError(undefined);
-              try {
-                const kitchen = cid || (await api.startKitchen()).id;
-                const saved = recipe.kitchenId === kitchen ? recipe : (await api.shareRecipe(recipe.id, kitchen)).recipe;
-                const [{ plan }, { diners }] = await Promise.all([api.plan(kitchen, week), api.diners(kitchen)]);
-                await api.savePlan(kitchen, week, {
-                  revision: plan.revision ?? 0,
-                  entries: [
-                    ...plan.entries,
-                    {
-                      id: newId(),
-                      day,
-                      slot,
-                      recipeId: saved.id,
-                      servings,
-                      dinerIds: diners.length ? diners.filter((d) => d.usual).map((d) => d.id) : undefined,
-                    },
-                  ],
-                });
-                await refreshMe();
-                setCommunityId(kitchen);
-                navigate(kitchenPath('/plan', kitchen, week));
-              } catch (e) {
-                setError(e);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            <Field label="Kitchen">
-              <select value={cid} onChange={(e) => setCid(e.target.value)}>
-                <option value="">My kitchen</option>
-                {me?.communities
-                  .filter((c) => c.kind !== 'circle')
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-              </select>
-            </Field>
-            <Field label="Week starting Monday">
-              <input type="date" value={week} onChange={(e) => setWeek(e.target.value)} required />
-            </Field>
+        <FormDialog
+          title="Add to meal plan"
+          description={`${servings} portions. Adjust servings on the recipe before adding it.`}
+          onClose={() => setOpen(false)}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            setError(undefined);
+            try {
+              const kitchen = cid || (await api.startKitchen()).id;
+              const saved = recipe.kitchenId === kitchen ? recipe : (await api.shareRecipe(recipe.id, kitchen)).recipe;
+              const [{ plan }, { diners }] = await Promise.all([api.plan(kitchen, week), api.diners(kitchen)]);
+              await api.savePlan(kitchen, week, {
+                revision: plan.revision ?? 0,
+                entries: [
+                  ...plan.entries,
+                  {
+                    id: newId(),
+                    day,
+                    slot,
+                    recipeId: saved.id,
+                    servings,
+                    dinerIds: diners.length ? diners.filter((d) => d.usual).map((d) => d.id) : undefined,
+                  },
+                ],
+              });
+              await refreshMe();
+              setCommunityId(kitchen);
+              navigate(kitchenPath('/plan', kitchen, week));
+            } catch (e) {
+              setError(e);
+            } finally {
+              setBusy(false);
+            }
+          }}
+          footer={
+            <Button type="submit" variant="default" disabled={busy || !isWeekKey(week)}>
+              {busy ? 'Adding…' : 'Add meal'}
+            </Button>
+          }
+        >
+          <Field label="Kitchen">
+            <select value={cid} onChange={(e) => setCid(e.target.value)}>
+              <option value="">My kitchen</option>
+              {me?.communities
+                .filter((c) => c.kind !== 'circle')
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+            </select>
+          </Field>
+          <Field label="Week starting Monday">
+            <Input type="date" value={week} onChange={(e) => setWeek(e.target.value)} required />
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
             <Field label="Day">
               <select value={day} onChange={(e) => setDay(Number(e.target.value))}>
                 {DAY_NAMES.map((d, i) => (
@@ -86,19 +95,15 @@ export function AddToPlan({ recipe, servings }: { recipe: Recipe; servings: numb
               </select>
             </Field>
             <Field label="Meal">
-              <select value={slot} onChange={(e) => setSlot(e.target.value as MealSlot)}>
+              <select className="capitalize" value={slot} onChange={(e) => setSlot(e.target.value as MealSlot)}>
                 {MEAL_SLOTS.map((s) => (
                   <option key={s}>{s}</option>
                 ))}
               </select>
             </Field>
-            <p>{servings} portions. Adjust servings on the recipe before adding it.</p>
-            <ErrorNote error={error} />
-            <button className="btn btn-primary" disabled={busy || !isWeekKey(week)}>
-              {busy ? 'Adding…' : 'Add meal'}
-            </button>
-          </form>
-        </Sheet>
+          </div>
+          <ErrorNote error={error} />
+        </FormDialog>
       )}
     </>
   );
@@ -293,8 +298,11 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
                 </p>
                 {a.note && <p>{a.note}</p>}
                 {(a.actorId === me?.user.id || community?.role !== 'member') && (
-                  <ConfirmButton
+                  <ConfirmAction
                     className="btn btn-small"
+                    title="Remove this note?"
+                    description="It disappears from this recipe for everyone in the kitchen."
+                    confirmLabel="Remove"
                     onConfirm={() =>
                       act(async () => {
                         await api.removeActivity(cid, a.id);
@@ -303,7 +311,7 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
                     }
                   >
                     Remove
-                  </ConfirmButton>
+                  </ConfirmAction>
                 )}
               </article>
             ))}
@@ -315,34 +323,14 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
         </button>
       )}
       {review && origin.data?.recipe && (
-        <Sheet title="Review original recipe changes" onClose={() => setReview(false)}>
-          <div className="stack">
-            <p>This replaces the recipe ingredients and steps. Your private and kitchen notes remain.</p>
-            {[recipe, origin.data.recipe].map((r, i) => (
-              <section key={i}>
-                <h3>
-                  {i ? 'Original now' : 'Your saved version'}: {r.title}
-                </h3>
-                <h4>Ingredients</h4>
-                <ul>
-                  {r.ingredients.map((x, j) => (
-                    <li key={j}>
-                      {x.quantity} {x.unit} {x.name} {x.note}
-                    </li>
-                  ))}
-                </ul>
-                <h4>Steps</h4>
-                <ol>
-                  {r.steps.map((x, j) => (
-                    <li key={j}>{x.text}</li>
-                  ))}
-                </ol>
-              </section>
-            ))}
-            <ErrorNote error={error} />
+        <FormDialog
+          title="Review changes to the original"
+          description="Applying replaces this recipe’s ingredients and steps. Your private and kitchen notes stay."
+          onClose={() => setReview(false)}
+          footer={
             <ConfirmButton
               disabled={busy}
-              className="btn btn-primary"
+              className={buttonVariants({ variant: 'default' })}
               confirmLabel="Replace my saved version?"
               onConfirm={() =>
                 act(async () => {
@@ -354,8 +342,32 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
             >
               Apply original updates
             </ConfirmButton>
+          }
+        >
+          <div className="grid gap-5 sm:grid-cols-2">
+            {[recipe, origin.data.recipe].map((r, i) => (
+              <section key={i} className="flex min-w-0 flex-col gap-2 rounded-lg bg-muted p-4">
+                <p className="m-0 text-xs font-semibold tracking-[0.08em] text-foreground-2 uppercase">{i ? 'Original now' : 'Your saved version'}</p>
+                <h3 className="m-0 font-serif text-lg">{r.title}</h3>
+                <h4 className="m-0 mt-1 text-sm font-semibold">Ingredients</h4>
+                <ul className="m-0 flex flex-col gap-1 pl-5 text-[0.94rem]">
+                  {r.ingredients.map((x, j) => (
+                    <li key={j}>
+                      {x.quantity} {x.unit} {x.name} {x.note}
+                    </li>
+                  ))}
+                </ul>
+                <h4 className="m-0 mt-1 text-sm font-semibold">Steps</h4>
+                <ol className="m-0 flex flex-col gap-1 pl-5 text-[0.94rem]">
+                  {r.steps.map((x, j) => (
+                    <li key={j}>{x.text}</li>
+                  ))}
+                </ol>
+              </section>
+            ))}
           </div>
-        </Sheet>
+          <ErrorNote error={error} />
+        </FormDialog>
       )}
     </section>
   );

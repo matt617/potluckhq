@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { Toaster } from './components/ui/sonner';
 import { SessionProvider } from './lib/session';
 import { Account } from './pages/Account';
 import { AuthCallback } from './pages/AuthCallback';
@@ -53,6 +54,7 @@ export function App() {
           )}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <Toaster />
       </BrowserRouter>
     </SessionProvider>
   );

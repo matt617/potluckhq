@@ -116,12 +116,21 @@ const screens = [
     },
   },
   {
-    name: 'confirm-armed',
+    name: 'dialog-confirm-remove',
     path: '/community?kitchen=home',
-    full: true,
     wait: (p) => p.getByRole('button', { name: 'Remove profile' }).first(),
     act: async (p) => {
       await p.getByRole('button', { name: 'Remove profile' }).first().click();
+      await p.getByRole('alertdialog').waitFor();
+    },
+  },
+  {
+    name: 'confirm-armed',
+    path: `/book/r-home?kitchen=home&week=${week}`,
+    full: true,
+    wait: (p) => p.getByRole('button', { name: 'Publish an update to saved copies' }),
+    act: async (p) => {
+      await p.getByRole('button', { name: 'Publish an update to saved copies' }).click();
     },
   },
   {
@@ -161,11 +170,69 @@ const screens = [
       await p.getByRole('button', { name: 'Add dinner on Wednesday', exact: true }).click();
       await p.getByRole('dialog').getByRole('option', { name: 'Roast tomatoes', exact: true }).click();
       await p.getByRole('dialog').getByRole('button', { name: 'Add', exact: true }).click();
+      // Park the pointer: it rests where the dialog's Add button was, and hovering Save plan lifts it 1px, out from under the pointer, forever.
+      await p.mouse.move(0, 0);
       await p.getByRole('button', { name: 'Save plan', exact: true }).click();
       await p.getByText('Someone changed this plan. Reload it before saving.', { exact: true }).waitFor();
     },
   },
 ].map((s) => ({ full: !s.act, ...s }));
+
+/**
+ * Keyboard contract for every dialog: the trigger opens it from the keyboard, Tab stays inside,
+ * Escape closes it and focus returns to the trigger. Runs once per check at desktop size.
+ */
+const keyboardChecks = [
+  { name: 'diner dialog', path: '/community?kitchen=home', trigger: (p) => p.getByRole('button', { name: 'Add a child or guest' }) },
+  { name: 'plan entry dialog', path: `/plan?kitchen=home&week=${week}`, trigger: (p) => p.getByRole('button', { name: 'Add dinner on Wednesday', exact: true }) },
+  { name: 'add to plan dialog', path: `/book/r-home?kitchen=home&week=${week}`, trigger: (p) => p.getByRole('button', { name: 'Cook this week' }) },
+  { name: 'origin review dialog', path: '/book/r-personal', trigger: (p) => p.getByRole('button', { name: 'Review changes to the original' }) },
+  { name: 'remove confirmation', path: '/community?kitchen=home', role: 'alertdialog', trigger: (p) => p.getByRole('button', { name: 'Remove profile' }).first() },
+];
+
+async function keyboardCheck(browser, check) {
+  const context = await browser.newContext({ viewport: { width: 1366, height: 900 }, reducedMotion: 'reduce' });
+  await context.addInitScript(() => localStorage.setItem('potluck.tokens', JSON.stringify({ idToken: 'local-test-only', expiresAt: Date.now() + 3600000 })));
+  const page = await context.newPage();
+  await page.clock.setFixedTime(new Date(`${week}T12:00:00`));
+  const { api, publicApi } = fixtures();
+  await page.route(/^(?!http:\/\/(127\.0\.0\.1|localhost))/, (r) => r.abort());
+  await page.route('**/config.json', (r) => r.fulfill({ json: {} }));
+  await page.route('**/public/**', (r) => r.fulfill({ json: publicApi(new URL(r.request().url()).pathname) }));
+  await page.route('**/api/**', (r) => r.fulfill({ json: api(r.request().method(), new URL(r.request().url()).pathname) ?? { ok: true } }));
+  page.setDefaultTimeout(10000);
+  try {
+    await page.goto(`${origin}${check.path}`);
+    const trigger = check.trigger(page);
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    const dialog = page.getByRole(check.role ?? 'dialog');
+    await dialog.waitFor();
+    const inside = () => page.evaluate((role) => !!document.activeElement?.closest(`[role=${role}]`), check.role ?? 'dialog');
+    if (!(await inside())) throw new Error('focus did not move into the dialog');
+    for (let i = 0; i < 25; i++) {
+      await page.keyboard.press(i % 5 === 4 ? 'Shift+Tab' : 'Tab');
+      if (!(await inside())) throw new Error(`focus left the dialog after ${i + 1} Tab presses`);
+    }
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'hidden' });
+    // Radix restores focus on the next tick after the dialog unmounts.
+    let returned = false;
+    for (let i = 0; i < 20 && !returned; i++) {
+      returned = await trigger.evaluate((el) => el === document.activeElement).catch(() => false);
+      if (!returned) await page.waitForTimeout(50);
+    }
+    if (!returned) {
+      const active = await page.evaluate(() => `${document.activeElement?.tagName} ${document.activeElement?.textContent?.slice(0, 40)}`);
+      throw new Error(`focus did not return to the trigger (focused: ${active})`);
+    }
+    return null;
+  } catch (e) {
+    return { check: check.name, failure: e.message.split('\n')[0] };
+  } finally {
+    await context.close();
+  }
+}
 
 function fixtures({ failPlanSave = false } = {}) {
   const user = {
@@ -378,13 +445,18 @@ async function capture(browser, variant, screen) {
   });
   if (screen.act) await screen.act(page);
   if (screen.full) await page.evaluate(() => window.scrollTo(0, 0));
+  await page.mouse.move(0, 0); // no stray hover states in captures
   await settle(page);
   const file = `${outDir}/${screen.name}--${variant.name}.png`;
   await page.screenshot({ path: file, fullPage: screen.full, animations: 'disabled', caret: 'hide' });
   let axe = [];
   if (variant.name === 'light-desktop' || variant.name === 'dark-desktop') {
-    const result = await new AxeBuilder({ page }).analyze();
-    axe = result.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length }));
+    // With a modal open, audit the modal: the page behind it is dimmed and hidden from assistive technology.
+    const modal = (await page.locator('[role=dialog], [role=alertdialog]').count()) > 0;
+    const builder = new AxeBuilder({ page });
+    if (modal) builder.include('[role=dialog], [role=alertdialog]');
+    const result = await builder.analyze();
+    axe = result.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length, targets: v.nodes.slice(0, 8).map((n) => n.target.join(' ')) }));
   }
   await context.close();
   return { file, errors, axe };
@@ -447,12 +519,13 @@ try {
         try {
           results.push({ screen: s.name, variant: v.name, ...(await capture(browser, v, s)) });
         } catch (e) {
-          results.push({ screen: s.name, variant: v.name, failure: e.message.split('\n')[0] });
+          results.push({ screen: s.name, variant: v.name, failure: e.message.split('\n').slice(0, process.env.VISUAL_DEBUG ? 30 : 1).join('\n') });
         }
       }
     }),
   );
-  const failures = results.filter((r) => r.failure);
+  const keyboard = only && only !== "keyboard" ? [] : (await Promise.all(keyboardChecks.map((c) => keyboardCheck(browser, c)))).filter(Boolean);
+  const failures = [...results.filter((r) => r.failure), ...keyboard];
   const errors = results.filter((r) => r.errors?.length).map((r) => ({ screen: r.screen, variant: r.variant, errors: [...new Set(r.errors)] }));
   const axe = Object.fromEntries(
     results

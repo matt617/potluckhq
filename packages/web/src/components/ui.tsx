@@ -1,43 +1,61 @@
-import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type FormEvent, type ReactElement, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { X } from '@phosphor-icons/react';
 import { ApiError, errorMessage } from '../api';
 import { useSession } from '../lib/session';
+import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Skeleton as SkeletonBlock } from '@/components/ui/skeleton';
+import { Toggle } from '@/components/ui/toggle';
 
 type SkeletonVariant = 'page' | 'grid' | 'list';
 
 /** Loading placeholder shaped like the content it stands in for. */
 export function Skeleton({ variant = 'page', label = 'Loading' }: { variant?: SkeletonVariant; label?: string }) {
   return (
-    <div role="status" aria-live="polite" aria-busy="true" className="stack">
+    <div role="status" aria-live="polite" aria-busy="true" className="flex flex-col gap-4">
       <span className="sr-only">{label}</span>
       {variant === 'grid' && (
-        <div className="grid" aria-hidden>
+        <div className="grid [grid-template-columns:repeat(auto-fill,minmax(min(100%,248px),1fr))] gap-x-[22px] gap-y-9" aria-hidden>
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="skeleton-card">
-              <span className="skeleton skeleton-thumb" />
-              <div className="skeleton-body">
-                <span className="skeleton skeleton-line" style={{ width: `${70 - (i % 3) * 12}%` }} />
-                <span className="skeleton skeleton-line" style={{ width: '45%' }} />
+            <div key={i} className="overflow-hidden">
+              <SkeletonBlock className="aspect-[4/3] rounded-lg" />
+              <div className="flex flex-col gap-2 px-1 py-3.5">
+                <SkeletonBlock className="h-[0.9em] rounded-[6px]" style={{ width: `${70 - (i % 3) * 12}%` }} />
+                <SkeletonBlock className="h-[0.9em] w-[45%] rounded-[6px]" />
               </div>
             </div>
           ))}
         </div>
       )}
       {variant === 'list' && (
-        <div className="card stack" aria-hidden>
+        <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-card" aria-hidden>
           {Array.from({ length: 7 }, (_, i) => (
-            <span key={i} className="skeleton skeleton-line" style={{ width: `${82 - (i % 4) * 11}%` }} />
+            <SkeletonBlock key={i} className="h-[0.9em] rounded-[6px]" style={{ width: `${82 - (i % 4) * 11}%` }} />
           ))}
         </div>
       )}
       {variant === 'page' && (
-        <div className="stack-lg" aria-hidden>
-          <span className="skeleton skeleton-line" style={{ width: '38%', height: '1.8em' }} />
-          <div className="card stack">
-            <span className="skeleton skeleton-line" style={{ width: '72%' }} />
-            <span className="skeleton skeleton-line" style={{ width: '58%' }} />
-            <span className="skeleton skeleton-line" style={{ width: '64%' }} />
+        <div className="flex flex-col gap-6" aria-hidden>
+          <SkeletonBlock className="h-[1.8em] w-[38%] rounded-[6px]" />
+          <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-card">
+            <SkeletonBlock className="h-[0.9em] w-[72%] rounded-[6px]" />
+            <SkeletonBlock className="h-[0.9em] w-[58%] rounded-[6px]" />
+            <SkeletonBlock className="h-[0.9em] w-[64%] rounded-[6px]" />
           </div>
         </div>
       )}
@@ -48,7 +66,7 @@ export function Skeleton({ variant = 'page', label = 'Loading' }: { variant?: Sk
 /** Full-page loading state used before the app shell exists. */
 export function Spinner({ label = 'Loading' }: { label?: string }) {
   return (
-    <div className="skeleton-page">
+    <div className="mx-auto flex max-w-[1160px] flex-col gap-5 px-4 py-12">
       <Skeleton label={label} />
     </div>
   );
@@ -58,12 +76,12 @@ export function ErrorNote({ error, onRetry }: { error: unknown; onRetry?: () => 
   if (!error) return null;
   if (error instanceof ApiError && error.status === 402) return <QuotaNote code={error.code} message={error.message} />;
   return (
-    <div className="note note-error" role="alert">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-destructive-soft px-4 py-3 text-destructive" role="alert">
       <span>{errorMessage(error)}</span>
       {onRetry && (
-        <button type="button" className="btn btn-small" onClick={onRetry}>
+        <Button size="sm" onClick={onRetry}>
           Try again
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -97,28 +115,34 @@ export function QuotaNote({ code, message }: { code?: string; message?: string }
   const owner = !community || community.ownerId === me?.user.id;
   const copy = (code && QUOTA_COPY[code]) || { title: 'Plan limit reached', body: message ?? '', cta: 'See plans' };
   return (
-    <div className="note note-upgrade" role="alert">
+    <div
+      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[color-mix(in_srgb,var(--accent)_25%,transparent)] bg-accent px-[18px] py-4"
+      role="alert"
+    >
       <div>
-        <strong>{copy.title}</strong>
-        <p>{message && code !== 'ai_tier' ? message : copy.body}</p>
+        <strong className="font-serif text-[1.08rem] font-semibold">{copy.title}</strong>
+        <p className="mt-1">{message && code !== 'ai_tier' ? message : copy.body}</p>
       </div>
       {owner ? (
-        <Link className="btn btn-primary btn-small" to="/account#billing">
-          {copy.cta}
-        </Link>
+        <Button asChild variant="default" size="sm">
+          <Link to="/account#billing">{copy.cta}</Link>
+        </Button>
       ) : (
-        <p className="small">Ask this kitchen or circle’s owner to review the shared allowance in settings.</p>
+        <p className="m-0 text-sm">Ask this kitchen or circle’s owner to review the shared allowance in settings.</p>
       )}
     </div>
   );
 }
 
-/** Two-step inline confirmation instead of a blocking browser dialog. */
+/**
+ * Two-step inline confirmation for actions that are easy to undo or already reviewed.
+ * Destructive actions use ConfirmAction, which asks in a dialog.
+ */
 export function ConfirmButton({
   children,
   confirmLabel = 'Tap again to confirm',
   onConfirm,
-  className = 'btn btn-danger',
+  className = 'btn',
   disabled,
 }: {
   children: ReactNode;
@@ -155,31 +179,114 @@ export function ConfirmButton({
   );
 }
 
-export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const d = ref.current;
-    if (d && !d.open) d.showModal();
-    return () => d?.close();
-  }, []);
+/** Destructive action behind a confirmation dialog. The dialog stays open, disabled, until onConfirm settles. */
+export function ConfirmAction({
+  children,
+  title,
+  description,
+  confirmLabel,
+  onConfirm,
+  className = 'btn btn-danger',
+  disabled,
+}: {
+  children: ReactNode;
+  title: string;
+  description: ReactNode;
+  confirmLabel: string;
+  onConfirm: () => void | Promise<void>;
+  className?: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   return (
-    <dialog
-      ref={ref}
-      className="sheet"
-      onClose={(event) => {
-        if (!event.currentTarget.open) onClose();
-      }}
-      onCancel={onClose}
-      aria-label={title}
-    >
-      <div className="sheet-head">
-        <h2>{title}</h2>
-        <button type="button" className="btn btn-ghost btn-icon" aria-label="Close" onClick={onClose}>
-          <X size={18} weight="bold" aria-hidden />
+    <AlertDialog open={open} onOpenChange={(next) => !busy && setOpen(next)}>
+      <AlertDialogTrigger asChild>
+        <button type="button" className={className} disabled={disabled}>
+          {children}
         </button>
-      </div>
-      <div className="sheet-body">{children}</div>
-    </dialog>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            variant="danger"
+            disabled={busy}
+            onClick={async (e) => {
+              e.preventDefault();
+              setBusy(true);
+              try {
+                await onConfirm();
+              } finally {
+                setBusy(false);
+                setOpen(false);
+              }
+            }}
+          >
+            {busy ? 'Working…' : confirmLabel}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+/**
+ * Centered dialog for a short task. The header and footer stay in view while the body scrolls.
+ * Pass onSubmit to make body and footer one form, so Enter submits and the footer button can be type="submit".
+ */
+export function FormDialog({
+  title,
+  description,
+  onClose,
+  onSubmit,
+  footer,
+  children,
+}: {
+  title: string;
+  description?: ReactNode;
+  onClose: () => void;
+  onSubmit?: (e: FormEvent<HTMLFormElement>) => void;
+  footer?: ReactNode;
+  children: ReactNode;
+}) {
+  // Opened from state rather than a DialogTrigger, so remember the opener to hand focus back on close.
+  const [opener] = useState(() => (typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null)));
+  const inner = (
+    <>
+      <DialogBody>{children}</DialogBody>
+      {footer && <DialogFooter>{footer}</DialogFooter>}
+    </>
+  );
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      {/* Without a description, tell Radix there is none rather than leaving a dangling reference. */}
+      <DialogContent
+        {...(description ? {} : { 'aria-describedby': undefined })}
+        onCloseAutoFocus={(e) => {
+          if (opener?.isConnected) {
+            e.preventDefault();
+            opener.focus();
+          }
+        }}
+      >
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
+        {onSubmit ? (
+          <form className="flex min-h-0 flex-col" onSubmit={onSubmit}>
+            {inner}
+          </form>
+        ) : (
+          inner
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -196,23 +303,31 @@ export function PageHeader({ eyebrow, title, children }: { eyebrow?: ReactNode; 
   );
 }
 
-export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+/** Label, control, hint and error, wired together for assistive technology. The single child control receives the id. */
+export function Field({ label, hint, error, className, children }: { label: string; hint?: string; error?: string; className?: string; children: ReactNode }) {
   const id = useId();
+  const describedBy = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
   return (
-    <div className="field">
-      <label className="field-label" id={`${id}-label`} htmlFor={id}>
+    <div className={cn('flex min-w-0 flex-col gap-1.5', className)}>
+      <Label id={`${id}-label`} htmlFor={id} className="leading-[1.6]">
         {label}
-      </label>
+      </Label>
       {isValidElement(children)
         ? cloneElement(children as ReactElement<Record<string, unknown>>, {
             id,
             'aria-labelledby': `${id}-label`,
-            ...(hint ? { 'aria-describedby': `${id}-hint` } : {}),
+            ...(describedBy ? { 'aria-describedby': describedBy } : {}),
+            ...(error ? { 'aria-invalid': true } : {}),
           })
         : children}
       {hint && (
-        <span id={`${id}-hint`} className="field-hint">
+        <span id={`${id}-hint`} className="text-[0.8rem] text-muted-foreground">
           {hint}
+        </span>
+      )}
+      {error && (
+        <span id={`${id}-error`} className="text-[0.8rem] text-destructive">
+          {error}
         </span>
       )}
     </div>
@@ -221,40 +336,22 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
 
 export function Chip({ active, onClick, children, title }: { active: boolean; onClick: () => void; children: ReactNode; title?: string }) {
   return (
-    <button type="button" className={`chip${active ? ' chip-on' : ''}`} aria-pressed={active} onClick={onClick} title={title}>
+    <Toggle variant="outline" className="capitalize" pressed={active} onPressedChange={onClick} title={title}>
       {children}
-    </button>
+    </Toggle>
   );
 }
 
 export function Empty({ title, icon, children }: { title: string; icon?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="empty">
+    <div className="flex max-w-[680px] flex-col items-start gap-3.5 rounded-xl bg-[radial-gradient(120%_90%_at_100%_0%,color-mix(in_srgb,var(--accent-soft)_85%,transparent),transparent_60%),var(--surface-2)] px-7 py-14 md:px-12 md:py-16 [&_p]:max-w-[50ch] [&_p]:text-foreground-2">
       {icon && (
-        <span className="empty-icon" aria-hidden>
+        <span className="grid size-14 -rotate-4 place-items-center rounded-[18px] bg-card text-primary shadow-card [&_svg]:size-7" aria-hidden>
           {icon}
         </span>
       )}
-      <h3>{title}</h3>
+      <h3 className="m-0 font-serif text-[1.6rem] font-[550] tracking-[-0.02em]">{title}</h3>
       {children}
-    </div>
-  );
-}
-
-export function useFlash(): [string | null, (msg: string) => void] {
-  const [msg, setMsg] = useState<string | null>(null);
-  useEffect(() => {
-    if (!msg) return;
-    const t = window.setTimeout(() => setMsg(null), 2500);
-    return () => window.clearTimeout(t);
-  }, [msg]);
-  return [msg, setMsg];
-}
-
-export function Flash({ message }: { message: string | null }) {
-  return (
-    <div className="flash" role="status" aria-live="polite">
-      {message && <span>{message}</span>}
     </div>
   );
 }
@@ -295,13 +392,16 @@ export function TagInput({
     setDraft('');
   }
   return (
-    <div className="tag-input" onClick={() => inputRef.current?.focus()}>
+    <div
+      className="flex min-h-[46px] cursor-text flex-wrap items-center gap-1.5 rounded-md border border-input bg-card px-2.5 py-[7px] transition-[border-color,box-shadow] duration-150 ease-smooth hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--border-strong))] focus-within:border-ring focus-within:shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent)_18%,transparent)]"
+      onClick={() => inputRef.current?.focus()}
+    >
       {value.map((item, i) => (
-        <span key={item} className="tag">
+        <Badge key={item} className="gap-0.5 border-0 py-[3px] pr-1 pl-2.5 text-[0.86rem] leading-[1.3]">
           {item}
           <button
             type="button"
-            className="tag-remove"
+            className="inline-grid size-5 cursor-pointer place-items-center rounded-full border-0 bg-transparent p-0 text-inherit opacity-70 hover:bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] hover:opacity-100"
             aria-label={`Remove ${item}`}
             onClick={(e) => {
               e.stopPropagation();
@@ -310,7 +410,7 @@ export function TagInput({
           >
             <X size={12} weight="bold" aria-hidden />
           </button>
-        </span>
+        </Badge>
       ))}
       <input
         ref={inputRef}
@@ -319,6 +419,7 @@ export function TagInput({
         value={draft}
         placeholder={value.length ? undefined : placeholder}
         enterKeyHint="enter"
+        className="min-h-[30px] w-auto min-w-0 flex-[1_0_8ch] border-0 bg-transparent px-1 py-0 shadow-none outline-none focus-visible:shadow-none"
         onChange={(e) => {
           const text = e.target.value;
           if (/[\n,]/.test(text)) add(text);

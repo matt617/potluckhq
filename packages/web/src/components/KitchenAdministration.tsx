@@ -4,7 +4,7 @@ import { formatUsd } from '@potluck/core';
 import { api } from '../api';
 import { useAsync } from '../lib/hooks';
 import { canAdmin, useCommunity, useSession } from '../lib/session';
-import { ConfirmButton, ErrorNote, Field } from './ui';
+import { ConfirmAction, ConfirmButton, ErrorNote, Field } from './ui';
 
 export function KitchenAdministration() {
   const c = useCommunity(),
@@ -91,9 +91,15 @@ export function KitchenAdministration() {
                   <span>
                     {i.role} invitation · expires {new Date(i.expiresAt).toLocaleDateString()}
                   </span>
-                  <ConfirmButton className="btn btn-small" onConfirm={() => act(() => api.revokeInvite(c.id, i.token))}>
+                  <ConfirmAction
+                    className="btn btn-small"
+                    title="Revoke this invitation?"
+                    description="The link stops working. Anyone who hasn’t joined yet will need a new invitation."
+                    confirmLabel="Revoke"
+                    onConfirm={() => act(() => api.revokeInvite(c.id, i.token))}
+                  >
                     Revoke
-                  </ConfirmButton>
+                  </ConfirmAction>
                 </div>
               ))}
             </section>

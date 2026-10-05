@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { formatUsd, tierConfig, type LinkCodeResponse, type TierId } from '@potluck/core';
 import { api } from '../api';
-import { ConfirmButton, ErrorNote, Field, Flash, Spinner, TagInput, useFlash } from '../components/ui';
+import { ConfirmAction, ConfirmButton, ErrorNote, Field, Spinner, TagInput } from '../components/ui';
 import { logout } from '../lib/auth';
 import { useSession } from '../lib/session';
 import { cents, formatDate } from '../lib/util';
+import { toast } from 'sonner';
 
 export function Account() {
   const { me, setMe, publicConfig, refreshMe } = useSession();
   const location = useLocation();
-  const [flash, setFlash] = useFlash();
 
   useEffect(() => {
     const id = location.hash.slice(1);
@@ -21,10 +21,10 @@ export function Account() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('checkout') === 'success') {
-      setFlash('Payment received. Your plan is updated.');
+      toast('Payment received. Your plan is updated.');
       void refreshMe();
     }
-  }, [location.search, refreshMe, setFlash]);
+  }, [location.search, refreshMe]);
 
   if (!me) return <Spinner />;
   return (
@@ -35,12 +35,11 @@ export function Account() {
           Sign out
         </button>
       </div>
-      <ProfileSection onSaved={(m) => (setMe(m), setFlash('Saved'))} />
+      <ProfileSection onSaved={(m) => (setMe(m), toast('Saved'))} />
       <ChatsSection />
       <UsageSection />
       {publicConfig && <BillingSection />}
       <DangerZone />
-      <Flash message={flash} />
     </div>
   );
 }
@@ -461,9 +460,15 @@ function DangerZone() {
           The delete button unlocks when the box says DELETE.
         </p>
         <div>
-          <ConfirmButton disabled={confirmText.trim() !== 'DELETE'} confirmLabel="Tap again to delete forever" onConfirm={remove}>
+          <ConfirmAction
+            disabled={confirmText.trim() !== 'DELETE'}
+            title="Delete your account?"
+            description="Your profile, personal recipes and notes are deleted. Kitchens you own are deleted for everyone. This cannot be undone."
+            confirmLabel="Delete forever"
+            onConfirm={remove}
+          >
             Delete my account
-          </ConfirmButton>
+          </ConfirmAction>
         </div>
       </div>
       <ErrorNote error={error} />
