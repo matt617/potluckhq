@@ -5,7 +5,7 @@ Every channel is optional. A missing SSM parameter switches that feature off ins
 
 ## 1. Prerequisites
 
-- Node 20 or newer and npm.
+- Node 24 or newer and npm.
 - AWS CLI v2 with credentials for the target account (`aws login` or `aws configure`).
 - No Docker is needed. Lambdas bundle with local esbuild, and yt-dlp and ffmpeg ship as prebuilt arm64 binaries in a Lambda layer.
 

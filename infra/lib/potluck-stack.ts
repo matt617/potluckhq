@@ -440,7 +440,7 @@ export class PotluckStack extends Stack {
       return new NodejsFunction(this, id, {
         entry: handlerEntry(name),
         handler: 'handler',
-        runtime: lambda.Runtime.NODEJS_22_X,
+        runtime: lambda.Runtime.NODEJS_24_X,
         architecture: lambda.Architecture.ARM_64,
         memorySize: 512,
         timeout: Duration.seconds(29),
@@ -452,7 +452,7 @@ export class PotluckStack extends Stack {
           format: OutputFormat.ESM,
           minify: true,
           sourceMap: true,
-          target: 'node22',
+          target: 'node24',
           mainFields: ['module', 'main'],
           externalModules: [],
           forceDockerBundling: false,
