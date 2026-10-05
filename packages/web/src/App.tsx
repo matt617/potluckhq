@@ -15,7 +15,6 @@ import { Shopping } from './pages/Shopping';
 import { Library } from './pages/Library';
 import { ThisWeek } from './pages/ThisWeek';
 import { Circles } from './pages/Circles';
-import './kitchen.css';
 
 export function App() {
   return (

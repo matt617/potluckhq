@@ -5,7 +5,7 @@ import '@fontsource-variable/geist-mono';
 import '@fontsource-variable/fraunces/full.css';
 import '@fontsource-variable/fraunces/full-italic.css';
 import { App } from './App';
-import './styles.css';
+import './app.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

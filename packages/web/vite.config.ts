@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 // For local development, point VITE_PROXY_TARGET at a deployed CloudFront origin,
 // e.g. VITE_PROXY_TARGET=https://d123.cloudfront.net npm run dev:web
@@ -11,7 +12,7 @@ const proxied = target
   : undefined;
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: { port: 5173, strictPort: true, proxy: proxied },
   build: { outDir: 'dist', sourcemap: false, target: 'es2022' },
 });

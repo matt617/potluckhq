@@ -1,0 +1,10 @@
+/*
+ * Tailwind v4 entry. During the migration the existing stylesheets live in a `legacy`
+ * layer below `components` and `utilities`, so utility classes win over old rules.
+ * Preflight is off until step 7 of docs/tailwind-migration.md.
+ */
+@layer theme, base, legacy, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@import './kitchen.css' layer(legacy);
+@import './styles.css' layer(legacy);
