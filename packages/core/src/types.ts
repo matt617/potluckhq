@@ -222,6 +222,18 @@ export interface Invite {
 
 export type ImportStatus = 'queued' | 'downloading' | 'extracting' | 'done' | 'failed';
 
+/** Why an import failed, so clients can phrase it and offer the right next step. */
+export type ImportErrorCode =
+  | 'blocked'
+  | 'too_long'
+  | 'unsupported'
+  | 'download'
+  | 'busy'
+  | 'quota'
+  | 'not_recipe'
+  | 'unreadable'
+  | 'internal';
+
 export interface ImportJob {
   id: string;
   userId: string;
@@ -239,6 +251,9 @@ export interface ImportJob {
   replyTo?: string;
   recipeId?: string;
   error?: string;
+  errorCode?: ImportErrorCode;
+  /** Set when the user hides a failed import from their list. */
+  dismissedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

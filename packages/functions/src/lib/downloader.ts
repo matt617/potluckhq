@@ -89,13 +89,13 @@ export async function downloadVideo(url: string): Promise<DownloadedVideo> {
 
 export function classifyYtdlpError(stderr: string): Error {
   const s = stderr.toLowerCase();
-  if (s.includes('does not pass filter') || s.includes('duration')) return new UserFacingError('That video is longer than 20 minutes, which is too long to analyze.');
+  if (s.includes('does not pass filter') || s.includes('duration')) return new UserFacingError('That video is longer than 20 minutes, which is too long to analyze.', 'too_long');
   if (s.includes('login') || s.includes('private') || s.includes('cookies') || s.includes('rate-limit') || s.includes('rate limit')) {
-    return new UserFacingError('That platform blocked the download (it may be private or require login). Try saving the video and sending the file itself, or paste the caption text.');
+    return new UserFacingError('That platform blocked the download (it may be private or require login). Try saving the video and sending the file itself, or paste the caption text.', 'blocked');
   }
-  if (s.includes('unsupported url')) return new UserFacingError('That link is not a supported video. Try a TikTok, Instagram, YouTube, Facebook or Pinterest link.');
+  if (s.includes('unsupported url')) return new UserFacingError('That link is not a supported video. Try a TikTok, Instagram, YouTube, Facebook or Pinterest link.', 'unsupported');
   if (s.includes('http error 5') || s.includes('timed out') || s.includes('connection')) return new RetryableError(`yt-dlp transient failure: ${stderr.slice(-300)}`);
-  return new UserFacingError('Could not download that video. If it is public, try again later or send the video file directly.');
+  return new UserFacingError('Could not download that video. If it is public, try again later or send the video file directly.', 'download');
 }
 
 function run(cmd: string, args: string[], timeoutMs: number): Promise<{ code: number; stderr: string }> {
@@ -125,7 +125,7 @@ export async function fetchPageText(url: string): Promise<{ text: string; imageU
     redirect: 'follow',
     signal: AbortSignal.timeout(20_000),
   });
-  if (!res.ok) throw new UserFacingError(`That page returned an error (${res.status}).`);
+  if (!res.ok) throw new UserFacingError(`That page returned an error (${res.status}).`, 'download');
   const html = (await res.text()).slice(0, 2_000_000);
   const meta = (prop: string) => html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)`, 'i'))?.[1];
   // Structured recipe data is the most reliable text on recipe blogs; keep it verbatim.

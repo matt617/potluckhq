@@ -118,6 +118,8 @@ export const api = {
   createImport: (body: CreateImportRequest) => request<ImportJob>('POST', '/api/imports', body),
   imports: () => request<ImportsResponse>('GET', '/api/imports'),
   importJob: (id: string) => request<ImportJob>('GET', `/api/imports/${enc(id)}`),
+  retryImport: (id: string) => request<ImportJob>('POST', `/api/imports/${enc(id)}/retry`),
+  dismissImport: (id: string) => request<Ok>('POST', `/api/imports/${enc(id)}/dismiss`),
 
   plan: (cid: string, week: string) => request<PlanResponse>('GET', `/api/communities/${enc(cid)}/plans/${enc(week)}`),
   savePlan: (cid: string, week: string, body: SavePlanRequest) => request<PlanResponse>('PUT', `/api/communities/${enc(cid)}/plans/${enc(week)}`, body),

@@ -5,6 +5,7 @@ import {
   hashKey,
   normalizeUrl,
   type ExtractedRecipe,
+  type ImportErrorCode,
   type ImportJob,
   type Platform,
   type Recipe,
@@ -56,7 +57,7 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
   const job = await repo.getImport(importId);
   if (!job || job.status === 'done' || job.status === 'failed') return;
   const community = await repo.getCommunity(job.communityId);
-  if (!community) return fail(job, 'The community no longer exists.');
+  if (!community) return fail(job, 'The community no longer exists.', 'unreadable');
   const payer = await payerFor(community);
   let keepUploads = false;
   let ex: Extraction | undefined;
@@ -87,7 +88,7 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
       if (!gate.ok) {
         return fail(job, gate.reason === 'import_quota'
           ? `${community.name} has used all of its recipe imports this month.`
-          : `${community.name} is out of AI credit this month. The owner can buy more credits in the app.`);
+          : `${community.name} is out of AI credit this month. The owner can buy more credits in the app.`, 'quota');
       }
       ex = await runExtraction(job, urlHash);
     }
@@ -97,7 +98,7 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
     }
 
     if (!ex.extracted.isRecipe && !ex.extracted.isTechnique) {
-      return fail(job, `That doesn't look like a recipe or a cooking technique${ex.extracted.reason ? `: ${ex.extracted.reason}` : '.'}`);
+      return fail(job, `That doesn't look like a recipe or a cooking technique${ex.extracted.reason ? `: ${ex.extracted.reason}` : '.'}`, 'not_recipe');
     }
 
     if (urlHash && !cached) {
@@ -126,14 +127,14 @@ export async function processImport(importId: string, opts: { finalAttempt?: boo
     if (ex.extracted.additionalDishes?.length) text += `\n\nThis video also showed: ${ex.extracted.additionalDishes.join(', ')}.`;
     await reply(job, text);
   } catch (err) {
-    if (err instanceof UserFacingError) return fail(job, err.message);
+    if (err instanceof UserFacingError) return fail(job, err.message, err.code);
     if (err instanceof RetryableError) {
-      if (opts.finalAttempt) return fail(job, 'The AI service is busy right now. Please send that again in a few minutes.');
+      if (opts.finalAttempt) return fail(job, 'The AI service is busy right now. Please send that again in a few minutes.', 'busy');
       keepUploads = true;
       throw err;
     }
     console.error('Import failed', job.id, err);
-    return fail(job, 'Something went wrong while reading that recipe. Please try again.');
+    return fail(job, 'Something went wrong while reading that recipe. Please try again.', 'internal');
   } finally {
     await ex?.localVideo?.cleanup().catch(() => undefined);
     if (!keepUploads) for (const key of [...(job.imageKeys ?? []), ...(job.videoKey ? [job.videoKey] : [])]) await deleteObject(key);
@@ -281,9 +282,9 @@ export function toRecipe(job: ImportJob, ex: Extraction): Recipe {
   };
 }
 
-async function fail(job: ImportJob, message: string): Promise<void> {
+async function fail(job: ImportJob, message: string, errorCode: ImportErrorCode): Promise<void> {
   emitMetric('ImportFailed', 1, 'Count');
-  await repo.updateImport(job.id, { status: 'failed', error: message });
+  await repo.updateImport(job.id, { status: 'failed', error: message, errorCode });
   await reply(job, `⚠️ ${message}`);
 }
 
