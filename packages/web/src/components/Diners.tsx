@@ -42,15 +42,16 @@ export function Diners() {
     <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
       <h2>Who eats here?</h2>
       <p className="text-muted-foreground">
-        Diners are separate from members. Children and guests don’t need an account. Only the food requirements you enter here are shared with this kitchen and
-        used for its meal suggestions.
+        Members join through nominations and add their own diner profile. Children and guests don’t need an account. Adding a guest here does not grant kitchen
+        access. Only the food requirements you enter here are shared with this kitchen and used for its meal suggestions.
       </p>
       <ErrorNote error={error ?? state.error} />
       <ul className="m-0 list-none p-0 [&_li]:flex [&_li]:flex-wrap [&_li]:items-center [&_li]:gap-2.5 [&_li]:px-0 [&_li]:py-2.5 [&_li]:[border-bottom:1px_dashed_var(--border)] [&_li:last-child]:[border-bottom:0] [&_li>span:first-child]:min-w-[140px] [&_li>span:first-child]:flex-1 [&_li>span:first-child]:font-medium [&_select]:min-h-[38px] [&_select]:w-[auto]">
         {state.data?.diners.map((d) => (
           <li key={d.id}>
             <span>
-              {d.name} · {d.portions} portions{d.usual ? '· Usually eating' : ''}
+              {d.name} · {d.userId ? (d.userId === me?.user.id ? 'Your linked profile' : 'Member profile') : 'Child or guest · no account'} · {d.portions}{' '}
+              portions{d.usual ? ' · Usually eating' : ''}
             </span>
             {(d.userId === me?.user.id || (!d.userId && canAdmin(c.role))) && (
               <div className="flex items-center gap-2">
@@ -122,7 +123,14 @@ export function Diners() {
                   type="button"
                   className="sm:mr-auto"
                   onClick={() =>
-                    setEditing({ ...editing, diet: { allergies: me!.user.diet.allergies, diets: me!.user.diet.diets, dislikes: me!.user.diet.dislikes } })
+                    setEditing({
+                      ...editing,
+                      diet: {
+                        allergies: me!.user.diet.allergies,
+                        diets: me!.user.diet.diets,
+                        dislikes: me!.user.diet.dislikes,
+                      },
+                    })
                   }
                 >
                   Copy my saved requirements

@@ -29,7 +29,7 @@ export function Circles() {
                 <Link to={kitchenPath('/book', c.id)}>{c.name}</Link>
               </h2>
               <p>{c.memberCount} members</p>
-              <Link to={kitchenPath('/community', c.id)}>Members and invitations</Link>
+              <Link to={kitchenPath('/community', c.id)}>Members and nominations</Link>
             </li>
           ))}
       </ul>

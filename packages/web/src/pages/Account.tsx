@@ -1,3 +1,4 @@
+import { RecordPicker } from '../components/RecordPicker';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { formatUsd, tierConfig, type LinkCodeResponse, type TierId } from '@potluck/core';
@@ -107,16 +108,20 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
           </select>
         </Field>
         <Field label="Default kitchen for chat imports" hint="Browsing another kitchen does not change this destination.">
-          <select value={defaultCommunityId} onChange={(e) => setDefaultCommunityId(e.target.value)}>
-            <option value="">Choose a kitchen</option>
-            {me!.communities
+          <RecordPicker
+            label="Import destinations"
+            value={defaultCommunityId}
+            onChange={setDefaultCommunityId}
+            placeholder="Choose a kitchen"
+            empty="Create or join a kitchen to choose an import destination."
+            options={me!.communities
               .filter((c) => c.kind !== 'circle')
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-          </select>
+              .map((c) => ({
+                value: c.id,
+                label: c.name,
+                detail: `${c.memberCount} members · ${c.role}`,
+              }))}
+          />
         </Field>
       </div>
       <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Food profile</h3>
@@ -440,7 +445,9 @@ function DangerZone() {
     setError(undefined);
     try {
       const data = await api.exportMe();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: 'application/json',
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

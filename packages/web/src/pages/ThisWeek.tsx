@@ -55,7 +55,7 @@ export function ThisWeek() {
           <p className="text-muted-foreground">Decide together. Cook together.</p>
         </div>
         <Link className={buttonVariants()} to={kitchenPath('/community', c.id)}>
-          Invite someone
+          Manage members
         </Link>
       </div>
       <div className="flex flex-wrap items-center gap-2">

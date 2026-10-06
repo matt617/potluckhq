@@ -785,6 +785,12 @@ export async function listLedger(userId: string): Promise<Record<string, unknown
 
 /** Remove everything stored under a user's own partition plus their import jobs. */
 export async function purgeUserRecords(userId: string, stripeCustomerId?: string): Promise<void> {
+  const nominations = await queryAll({
+    IndexName: 'gsi1',
+    KeyConditionExpression: 'gsi1pk = :p AND begins_with(gsi1sk, :s)',
+    ExpressionAttributeValues: { ':p': `USER#${userId}`, ':s': 'NOMINATION#' },
+  });
+  await deleteKeys(nominations.map((i) => ({ pk: String(i.pk), sk: String(i.sk) })));
   const own = await queryAll({ KeyConditionExpression: 'pk = :p', ExpressionAttributeValues: { ':p': `USER#${userId}` } }, 100_000);
   const imports = await listAllUserImports(userId);
   await deleteKeys([

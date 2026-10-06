@@ -346,3 +346,21 @@ export interface ExtractedRecipe {
   /** For photo imports: index of the most appetizing photo. */
   heroImageIndex?: number | null;
 }
+
+/** A named membership request. Access begins only when this user accepts. */
+export interface MemberNomination {
+  communityId: string;
+  communityName: string;
+  userId: string;
+  displayName: string;
+  nominatedBy: string;
+  nominatedByName: string;
+  role: 'member' | 'admin';
+  expiresAt: string;
+}
+export interface MemberCandidate {
+  userId: string;
+  displayName: string;
+  context: string;
+  status: 'available' | 'member' | 'pending';
+}

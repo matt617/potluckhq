@@ -219,7 +219,8 @@ const screens = [
     wait: (p) => p.getByRole('button', { name: 'Add dinner on Wednesday', exact: true }),
     act: async (p) => {
       await p.getByRole('button', { name: 'Add dinner on Wednesday', exact: true }).click();
-      await p.getByRole('dialog').getByRole('option', { name: 'Roast tomatoes', exact: true }).click();
+      await p.getByRole('dialog').getByRole('combobox', { name: 'Recipe', exact: true }).click();
+      await p.getByRole('option', { name: /Roast tomatoes/ }).click();
       await p.getByRole('dialog').getByRole('button', { name: 'Add', exact: true }).click();
       // Park the pointer: it rests where the dialog's Add button was, and hovering Save plan lifts it 1px, out from under the pointer, forever.
       await p.mouse.move(0, 0);
@@ -412,6 +413,7 @@ function fixtures({ failPlanSave = false, imports = false, noKitchens = false } 
   const communities = noKitchens ? [] : [home, circle];
 
   function api(method, p, b) {
+    if (p === '/api/me/nominations') return { nominations: [] };
     if (p === '/api/me') return { user, budget, communities, channels: [] };
     if (p === '/api/library') return { recipes: [summary(personal)], annotations };
     if (p.startsWith('/api/library/')) return p.endsWith('/annotation') ? annotations[0] : { recipe: personal };
@@ -441,6 +443,7 @@ function fixtures({ failPlanSave = false, imports = false, noKitchens = false } 
     if (kind === 'people') return { diners };
     if (kind === 'activity') return { activity: [] };
     if (kind === 'transfer') return { transfer: null };
+    if (kind === 'nominations') return { nominations: [] };
     if (kind === 'invites') return { invites: [{ token: 'tok', expiresAt: '2026-10-12', role: 'member' }] };
     if (kind === 'participation') return { weeks: [] };
     if (kind === 'plans') {

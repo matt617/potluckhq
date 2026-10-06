@@ -106,7 +106,7 @@ export function RecipeBook() {
           My recipes
         </Link>
         <Link className={buttonVariants()} to={kitchenPath('/community', community.id)}>
-          Invite someone
+          Manage members
         </Link>
       </div>
 

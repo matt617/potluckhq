@@ -1,3 +1,4 @@
+import { RecordPicker } from './RecordPicker';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatUsd } from '@potluck/core';
@@ -81,12 +82,12 @@ export function KitchenAdministration() {
           </section>
           {canAdmin(c.role) && (
             <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
-              <h2>Outstanding invitations</h2>
+              <h2>Active invitation links</h2>
               <p className="text-[0.875rem] text-muted-foreground">
-                Members can save and edit shared recipes, plan meals and shop. Admins also manage invitations and kitchen settings. The owner manages billing
-                and ownership.
+                Links are for people new to Potluck. Use member nominations above for existing accounts. Members can save recipes, plan and shop. Admins also
+                manage members and settings. The owner manages billing and ownership.
               </p>
-              {!d.invites.length && <p>No outstanding invitations.</p>}
+              {!d.invites.length && <p>No active invitation links.</p>}
               {d.invites.map((i) => (
                 <div className="flex flex-wrap items-center justify-between gap-2" key={i.token}>
                   <span>
@@ -115,7 +116,7 @@ export function KitchenAdministration() {
               {d.transfer && (
                 <>
                   <p>
-                    Pending acceptance by {d.members.find((m) => m.userId === d.transfer!.to)?.displayName}. Expires{' '}
+                    Pending acceptance by {d.members.find((m) => m.userId === d.transfer!.to)?.displayName ?? 'a former member'}. Expires{' '}
                     {new Date(d.transfer.expiresAt).toLocaleDateString()}.
                   </p>
                   {d.transfer.to === me?.user.id && (
@@ -135,20 +136,28 @@ export function KitchenAdministration() {
               )}
               {c.role === 'owner' && !d.transfer && (
                 <>
-                  <Field label="New owner">
-                    <select value={target} onChange={(e) => setTarget(e.target.value)}>
-                      <option value="">Choose an existing member</option>
-                      {d.members
+                  <Field label="Nominate a new owner" hint="Choose an existing member. Ownership changes only after they accept.">
+                    <RecordPicker
+                      label="Members"
+                      value={target}
+                      onChange={setTarget}
+                      placeholder="Choose an existing member"
+                      empty="No eligible members. Nominate someone to join this space first."
+                      options={d.members
                         .filter((m) => m.userId !== me?.user.id)
-                        .map((m) => (
-                          <option key={m.userId} value={m.userId}>
-                            {m.displayName}
-                          </option>
-                        ))}
-                    </select>
+                        .map((m) => ({
+                          value: m.userId,
+                          label: m.displayName,
+                          detail: m.role,
+                        }))}
+                    />
                   </Field>
-                  <button className={buttonVariants()} disabled={!target || busy} onClick={() => void act(() => api.offerTransfer(c.id, target))}>
-                    Offer ownership
+                  <button
+                    className={buttonVariants()}
+                    disabled={!d.members.some((m) => m.userId === target && m.userId !== me?.user.id) || busy}
+                    onClick={() => void act(() => api.offerTransfer(c.id, target))}
+                  >
+                    Nominate owner
                   </button>
                 </>
               )}
@@ -164,7 +173,8 @@ export function KitchenAdministration() {
               <ErrorNote error={participation.error} />
               {participation.data?.weeks.map((w) => (
                 <p key={w.week}>
-                  <strong>{w.week}</strong> · {w.participants} participant{w.participants === 1 ? '' : 's'} ·{' '}
+                  <strong>{w.week}</strong> · {w.participants} participant
+                  {w.participants === 1 ? '' : 's'} ·{' '}
                   {[w.saved ? 'Recipes saved' : '', w.planned ? 'Meals planned' : '', w.shopped ? 'List built' : '', w.cooked ? 'Meal cooked' : '']
                     .filter(Boolean)
                     .join(' · ')}

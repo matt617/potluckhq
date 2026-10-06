@@ -1,3 +1,4 @@
+import { NominationInbox } from './MemberNominations';
 import { Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { BookOpenText, CalendarBlank, Basket, CaretDown } from '@phosphor-icons/react';
@@ -103,7 +104,7 @@ export function Layout() {
               {[
                 { to: '/library', label: 'My recipes' },
                 { to: '/circles', label: 'Recipe circles' },
-                ...(community ? [{ to: destination('/community'), label: 'Kitchen settings and invitations' }] : []),
+                ...(community ? [{ to: destination('/community'), label: 'Kitchen settings and members' }] : []),
                 { to: '/account', label: 'Account and linked chats' },
               ].map((l) => (
                 <Link
@@ -119,6 +120,7 @@ export function Layout() {
         </Popover>
       </header>
       <main className="mx-auto max-w-[1160px] px-4 pt-7 pb-[72px] focus:outline-none wide:px-8 wide:pt-12 wide:pb-[112px]" id="main" tabIndex={-1}>
+        <NominationInbox />
         {community || pathname === '/account' || pathname === '/library' || pathname === '/circles' || /^\/book\/.+/.test(pathname) ? (
           <div key={`${community?.id ?? 'personal'}:${pathname}`}>
             <Suspense fallback={<Skeleton />}>
