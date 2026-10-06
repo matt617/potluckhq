@@ -77,7 +77,7 @@ export function CommunitySettings() {
       <ErrorNote error={detail.error} onRetry={() => void detail.reload()} />
       <ErrorNote error={error} />
 
-      <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="members-title">
+      <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="members-title">
         <div className="flex items-center gap-2 justify-between flex-wrap">
           <h2 id="members-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
             Members
@@ -186,7 +186,7 @@ export function CommunitySettings() {
       {community.kind !== 'circle' && <Diners />}
       <KitchenAdministration />
       {admin && (
-        <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="settings-title">
+        <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="settings-title">
           <h2 id="settings-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
             Settings
           </h2>
@@ -227,7 +227,7 @@ export function CommunitySettings() {
         </section>
       )}
 
-      <section className="min-w-0 rounded-lg border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3 danger-zone" aria-labelledby="danger-title">
+      <section className="min-w-0 rounded-lg border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3 danger-zone" aria-labelledby="danger-title">
         <h2 id="danger-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
           {isOwner ? 'Delete this kitchen or circle' : 'Leave this kitchen or circle'}
         </h2>

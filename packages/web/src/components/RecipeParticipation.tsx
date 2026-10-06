@@ -149,7 +149,7 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
     }
   }
   return (
-    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
+    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
       <h2>Keep and share</h2>
       <p className="text-[0.875rem] text-muted-foreground">Saved copies can be edited independently. Removing an original does not remove copies others already saved.</p>
       <ErrorNote error={error} />

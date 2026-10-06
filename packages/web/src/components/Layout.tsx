@@ -60,7 +60,7 @@ export function Layout() {
       </a>
       <header className="sticky top-0 z-10 flex min-h-16 items-center gap-4 border-b border-[color-mix(in_srgb,var(--border)_70%,transparent)] bg-[color-mix(in_srgb,var(--bg)_82%,transparent)] px-4 py-2.5 backdrop-blur-[14px] backdrop-saturate-[1.4] wide:px-8">
         <NavLink to={destination('/week')} className={brandClasses} aria-label="Potluck home">
-          <img src="/icon.svg" alt="" width={28} height={28} className="rounded-[9px] shadow-card transition-transform duration-300 ease-spring group-hover:-rotate-8 group-hover:scale-105" />
+          <img src="/icon.svg" alt="" width={28} height={28} className="rounded-[9px] shadow-paper transition-transform duration-300 ease-spring group-hover:-rotate-8 group-hover:scale-105" />
           <span className="max-[420px]:hidden">Potluck</span>
         </NavLink>
         <CommunitySwitcher />
@@ -72,7 +72,7 @@ export function Layout() {
               className={({ isActive }) =>
                 cn(
                   'inline-flex items-center gap-1.5 rounded-full px-3.5 py-[7px] text-[0.9rem] font-medium whitespace-nowrap text-muted-foreground no-underline transition-[background-color,color,box-shadow] duration-200 ease-smooth hover:text-foreground',
-                  isActive && 'bg-card text-foreground shadow-card',
+                  isActive && 'bg-card text-foreground shadow-paper',
                 )
               }
             >

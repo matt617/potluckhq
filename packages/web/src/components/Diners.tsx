@@ -39,7 +39,7 @@ export function Diners() {
     });
   }
   return (
-    <section className="flex flex-col gap-3 min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px]">
+    <section className="flex flex-col gap-3 min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
       <h2>Who eats here?</h2>
       <p className="text-muted-foreground">
         Diners are separate from members. Children and guests don’t need an account. Only the food requirements you enter here are shared with this kitchen and

@@ -16,7 +16,7 @@ const aisleLabel = (a: Aisle) => AISLES.find((x) => x.id === a)?.label ?? 'Other
 
 
 /** Borderless arrows in the week switcher; they lift onto the surface on hover. */
-const WEEK_NAV_BUTTON = 'min-w-9 border-0 bg-transparent px-2.5 py-0 hover:bg-card hover:shadow-card';
+const WEEK_NAV_BUTTON = 'min-w-9 border-0 bg-transparent px-2.5 py-0 hover:bg-card hover:shadow-paper';
 export function Shopping() {
   const community = useCommunity();
   const { me } = useSession();
@@ -94,11 +94,24 @@ export function Shopping() {
   const hasChannel = (me?.channels.length ?? 0) > 0;
 
   const row = (i: ShoppingItem) => (
-    <li key={i.key} className={i.checked ? 'checked' : ''}>
+    <li
+      key={i.key}
+      className={cn(
+        'flex items-center justify-between gap-2 [border-bottom:1px_dashed_var(--border)] [transition:color_300ms_var(--ease),_opacity_300ms_var(--ease)] last:[border-bottom:0]',
+        i.checked && 'opacity-[0.65]',
+      )}
+    >
       <label className="flex min-h-[46px] flex-1 cursor-pointer flex-wrap items-center gap-x-3 gap-y-0">
         <input type="checkbox" checked={i.checked} onChange={() => void toggle(i)} />
-        <span className="item-name">{i.name}</span>
-        {i.display && <span className="item-amount">{i.display}</span>}
+        <span
+          className={cn(
+            'font-medium [transition:color_300ms_var(--ease),_opacity_300ms_var(--ease)]',
+            i.checked && 'text-muted-foreground line-through decoration-primary decoration-2',
+          )}
+        >
+          {i.name}
+        </span>
+        {i.display && <span className="ml-[auto] font-mono text-[0.82rem] text-muted-foreground">{i.display}</span>}
       </label>
       {i.manual && (
         <button type="button" className={cn(buttonVariants({ variant: 'ghost' }), 'min-w-9 p-1')} aria-label={`Remove ${i.name}`} onClick={() => void removeItem(i)}>
@@ -123,11 +136,11 @@ export function Shopping() {
         eyebrow={items.length ? `${items.length - done.length} to get · ${done.length} in the cart` : `Week of ${formatDate(week)}`}
         title="Shopping list"
       >
-        <div className="flex items-center week-nav">
+        <div className="flex items-center flex-nowrap gap-1 p-1 rounded-full bg-surface-2">
           <button className={cn(buttonVariants({ size: 'sm' }), WEEK_NAV_BUTTON)} aria-label="Previous week" onClick={() => setWeek(addDays(week, -7))}>
             <CaretLeft size={16} weight="bold" aria-hidden />
           </button>
-          <span className="week-label">Week of {formatDate(week)}</span>
+          <span className="font-semibold text-[0.9rem] min-w-[9em] text-center tabular-nums">Week of {formatDate(week)}</span>
           <button className={cn(buttonVariants({ size: 'sm' }), WEEK_NAV_BUTTON)} aria-label="Next week" onClick={() => setWeek(addDays(week, 7))}>
             <CaretRight size={16} weight="bold" aria-hidden />
           </button>
@@ -169,9 +182,9 @@ export function Shopping() {
         )}
       </div>
       <ErrorNote error={error} />
-      {state.data?.stale && <p className="note">Your plan or a recipe changed. Review the shopping update before your next trip.</p>}
+      {state.data?.stale && <p className="flex flex-wrap items-center justify-between gap-3 rounded-md px-4 py-3">Your plan or a recipe changed. Review the shopping update before your next trip.</p>}
       {preview && preview.weekStart === week && preview.communityId === community.id && (
-        <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
+        <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
           <h2>Review shopping update</h2>
           <p className="text-[0.875rem] text-muted-foreground">
             Manual items stay on your list. Changed quantities are marked as needing a new check, including items you already purchased.
@@ -210,9 +223,9 @@ export function Shopping() {
 
       {list && (
         <>
-          <form className="min-w-0 border border-border bg-card shadow-card flex items-center flex-wrap add-item" onSubmit={addItem}>
+          <form className="min-w-0 border border-border bg-card shadow-paper flex items-center flex-wrap p-2 rounded-full gap-1.5 [&_input]:border-transparent [&_input]:bg-transparent [&_input]:rounded-full [&_input:hover]:border-transparent [&_input:hover]:bg-surface-2 [&_input:first-child]:flex-[2_1_160px] max-[520px]:rounded-lg" onSubmit={addItem}>
             <input aria-label="Item" placeholder="Add an item" value={newName} onChange={(e) => setNewName(e.target.value)} />
-            <input aria-label="Amount" placeholder="Amount" className="amount-input" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} />
+            <input aria-label="Amount" placeholder="Amount" className="flex-[1_1_90px]" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} />
             <button className={buttonVariants()} disabled={!newName.trim() || busy === 'add'}>
               Add
             </button>
@@ -228,25 +241,25 @@ export function Shopping() {
           )}
 
           {byAisle.map((g) => (
-            <section key={g.aisle.id} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px]" aria-labelledby={`aisle-${g.aisle.id}`}>
-              <h2 id={`aisle-${g.aisle.id}`} className="aisle-title">
-                {g.aisle.label} <span className="aisle-count tabular-nums">{g.items.length}</span>
+            <section key={g.aisle.id} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]" aria-labelledby={`aisle-${g.aisle.id}`}>
+              <h2 id={`aisle-${g.aisle.id}`} className="flex items-center gap-2.5 text-[1.25rem] mb-1">
+                {g.aisle.label} <span className="font-sans text-[0.75rem] font-semibold min-w-[22px] h-[22px] py-0 px-[7px] inline-grid [place-items:center] rounded-full bg-surface-2 text-muted-foreground tabular-nums">{g.items.length}</span>
               </h2>
-              <ul className="shop-list">{g.items.map(row)}</ul>
+              <ul className="mx-0 mt-1.5 mb-0 list-none p-0">{g.items.map(row)}</ul>
             </section>
           ))}
 
           {staples.length > 0 && (
-            <details className="card min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px]">
+            <details className="card min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
               <summary>Pantry staples you probably have ({staples.length})</summary>
-              <ul className="shop-list">{staples.map(row)}</ul>
+              <ul className="mx-0 mt-1.5 mb-0 list-none p-0">{staples.map(row)}</ul>
             </details>
           )}
 
           {done.length > 0 && (
-            <details className="card min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px]">
+            <details className="card min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
               <summary>In the cart ({done.length})</summary>
-              <ul className="shop-list">{done.map(row)}</ul>
+              <ul className="mx-0 mt-1.5 mb-0 list-none p-0">{done.map(row)}</ul>
             </details>
           )}
           {list.generatedAt && <p className="text-[0.875rem] text-muted-foreground">Built from the plan {new Date(list.generatedAt).toLocaleString()}.</p>}

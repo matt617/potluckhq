@@ -114,7 +114,7 @@ export function RecipeEditor({ recipe, onCancel, onSaved }: { recipe: Recipe; on
         </div>
       </div>
       <ErrorNote error={error} />
-      <div className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
+      <div className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
         <Field label="Title">
           <input value={title} onChange={(e) => setTitle(e.target.value)} required />
         </Field>
@@ -139,7 +139,7 @@ export function RecipeEditor({ recipe, onCancel, onSaved }: { recipe: Recipe; on
           <TagInput value={tags} onChange={setTags} lowercase placeholder="chicken, weeknight, high-protein" />
         </Field>
       </div>
-      <div className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
+      <div className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
         <Field label="Ingredients" hint='One per line, e.g. "2 cups rice, rinsed". Start a line with "## " for a group heading.'>
           <textarea rows={12} className="font-mono text-[0.88rem]" value={ingredients} onChange={(e) => setIngredients(e.target.value)} />
         </Field>

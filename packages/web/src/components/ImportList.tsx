@@ -134,7 +134,7 @@ export function ImportList({
   const title = failed === imports.length ? (failed === 1 ? "Couldn't import" : `${failed} imports failed`) : failed ? 'Imports' : 'Importing';
 
   return (
-    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] imports-card" aria-labelledby="imports-title">
+    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] imports-card" aria-labelledby="imports-title">
       <h2 id="imports-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         {title}
       </h2>

@@ -45,7 +45,7 @@ export function Skeleton({ variant = 'page', label = 'Loading' }: { variant?: Sk
         </div>
       )}
       {variant === 'list' && (
-        <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-card" aria-hidden>
+        <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-paper" aria-hidden>
           {Array.from({ length: 7 }, (_, i) => (
             <SkeletonBlock key={i} className="h-[0.9em] rounded-[6px]" style={{ width: `${82 - (i % 4) * 11}%` }} />
           ))}
@@ -54,7 +54,7 @@ export function Skeleton({ variant = 'page', label = 'Loading' }: { variant?: Sk
       {variant === 'page' && (
         <div className="flex flex-col gap-6" aria-hidden>
           <SkeletonBlock className="h-[1.8em] w-[38%] rounded-[6px]" />
-          <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-card">
+          <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-paper">
             <SkeletonBlock className="h-[0.9em] w-[72%] rounded-[6px]" />
             <SkeletonBlock className="h-[0.9em] w-[58%] rounded-[6px]" />
             <SkeletonBlock className="h-[0.9em] w-[64%] rounded-[6px]" />
@@ -364,7 +364,7 @@ export function Empty({ title, icon, children }: { title: string; icon?: ReactNo
   return (
     <div className="flex max-w-[680px] flex-col items-start gap-3.5 rounded-xl bg-[radial-gradient(120%_90%_at_100%_0%,color-mix(in_srgb,var(--accent-soft)_85%,transparent),transparent_60%),var(--surface-2)] px-7 py-14 md:px-12 md:py-16 [&_p]:max-w-[50ch] [&_p]:text-foreground-2">
       {icon && (
-        <span className="grid size-14 -rotate-4 place-items-center rounded-[18px] bg-card text-primary shadow-card [&_svg]:size-7" aria-hidden>
+        <span className="grid size-14 -rotate-4 place-items-center rounded-[18px] bg-card text-primary shadow-paper [&_svg]:size-7" aria-hidden>
           {icon}
         </span>
       )}

@@ -124,7 +124,7 @@ export function TechniqueView({
           {recipe.steps.map((s, idx) => {
             const clip = clipFor(s.timestampSec);
             return (
-              <li key={idx} className="flex flex-col bg-card border border-border rounded-lg overflow-hidden shadow-card">
+              <li key={idx} className="flex flex-col bg-card border border-border rounded-lg overflow-hidden shadow-paper">
                 <div className="relative aspect-[4/5] [background:var(--tone-0)] grid grid-cols-none gap-0 [place-items:center]">
                   {clip ? (
                     <LoopClip src={clip.url} poster={clip.posterUrl} label={`Step ${idx + 1} clip`} onError={onMediaExpired} />
@@ -158,7 +158,7 @@ export function TechniqueView({
 
       <div className="grid grid-cols-none gap-5 wide:grid-cols-[minmax(300px,2fr)_3fr] wide:items-start wide:gap-6 wide:[&>:first-child]:sticky wide:[&>:first-child]:top-[88px]">
         {recipe.ingredients.length > 0 && (
-          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="tused-title">
+          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="tused-title">
             <h2 id="tused-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
               What you need
             </h2>
@@ -181,7 +181,7 @@ export function TechniqueView({
           </section>
         )}
         {((t && t.mistakes.length > 0) || (recipe.tips && recipe.tips.length > 0)) && (
-          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="tmistakes-title">
+          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="tmistakes-title">
             {t && t.mistakes.length > 0 && (
               <>
                 <h2 id="tmistakes-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">

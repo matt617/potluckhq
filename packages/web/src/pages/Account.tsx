@@ -86,7 +86,7 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
   }
 
   return (
-    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="profile-title">
+    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="profile-title">
       <h2 id="profile-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         Profile
       </h2>
@@ -175,7 +175,7 @@ function ChatsSection() {
   }
 
   return (
-    <section id="chats" className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="chats-title">
+    <section id="chats" className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="chats-title">
       <h2 id="chats-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         Linked chats
       </h2>
@@ -259,7 +259,7 @@ function UsageSection() {
   const used = Math.max(0, tier.aiAllowanceMicros - budget.allowanceLeftMicros);
   const pct = tier.aiAllowanceMicros ? Math.min(100, Math.round((used / tier.aiAllowanceMicros) * 100)) : 0;
   return (
-    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="usage-title">
+    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="usage-title">
       <h2 id="usage-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         This month
       </h2>
@@ -321,7 +321,7 @@ function BillingSection() {
   }
 
   return (
-    <section id="billing" className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="billing-title">
+    <section id="billing" className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="billing-title">
       <h2 id="billing-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         Plan and billing
       </h2>
@@ -418,7 +418,7 @@ function DangerZone() {
   }
 
   return (
-    <section id="data" className="min-w-0 rounded-lg border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3 danger-zone" aria-labelledby="danger-zone-title">
+    <section id="data" className="min-w-0 rounded-lg border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3 danger-zone" aria-labelledby="danger-zone-title">
       <h2 id="danger-zone-title">Your data</h2>
       <div className="flex flex-col gap-3">
         <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Download my data</h3>

@@ -71,7 +71,7 @@ export function ThisWeek() {
       {!d && state.loading && <Skeleton />}
       {d && (
         <>
-          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
+          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
             <h2>{week === weekStartOf() ? 'Tonight' : 'This week’s dinner'}</h2>
             <p>
               {d.plan.entries
@@ -100,7 +100,7 @@ export function ThisWeek() {
               </Empty>
             )}
             {DAY_NAMES.map((day, index) => (
-              <div key={day} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3 week-meal-day">
+              <div key={day} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3 week-meal-day">
                 <div className="flex items-center gap-2 justify-between">
                   <h3>
                     {day}
@@ -151,7 +151,7 @@ export function ThisWeek() {
               </div>
             ))}
           </section>
-          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
+          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
             <h2>Shopping</h2>
             <p>
               {d.list.items.filter((i) => i.checked).length} of {d.list.items.length} items purchased.
@@ -168,7 +168,7 @@ export function ThisWeek() {
                 .filter((r) => !r.archived)
                 .slice(0, 4)
                 .map((r) => (
-                  <li key={r.id} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px]">
+                  <li key={r.id} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
                     <Link to={kitchenPath(`/book/${r.id}`, c.id)}>{r.title}</Link>
                     <p className="text-[0.875rem] text-muted-foreground">Added by {d.members.find((m) => m.userId === r.addedBy)?.displayName ?? 'a former member'}</p>
                   </li>
@@ -179,7 +179,7 @@ export function ThisWeek() {
             <h2>From your kitchen</h2>
             {!d.activity.length && <p className="text-muted-foreground">Mark a recipe “Want to try” or leave a note after cooking it.</p>}
             {d.activity.slice(0, 8).map((a) => (
-              <article key={a.id} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px]">
+              <article key={a.id} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
                 <p>
                   <strong>{a.actorName}</strong> {a.kind === 'made' ? 'made' : a.kind === 'want' ? 'wants to try' : 'left a note on'}{' '}
                   <Link to={kitchenPath(`/book/${a.recipeId}`, c.id)}>{a.recipeTitle}</Link>

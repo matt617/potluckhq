@@ -22,7 +22,7 @@ export function Circles() {
         {me?.communities
           .filter((c) => c.kind === 'circle')
           .map((c) => (
-            <li className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" key={c.id}>
+            <li className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" key={c.id}>
               <h2 className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
                 <Link to={kitchenPath('/book', c.id)}>{c.name}</Link>
               </h2>
@@ -32,7 +32,7 @@ export function Circles() {
           ))}
       </ul>
       <form
-        className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3"
+        className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3"
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);

@@ -17,7 +17,7 @@ export function AuthCallback() {
   if (error) {
     return (
       <main className="page narrow">
-        <div className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
+        <div className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
           <h1>Sign-in didn't finish</h1>
           <p className="text-muted-foreground">{error}</p>
           <button className={buttonVariants({ variant: 'default' })} onClick={() => void login('/book')}>

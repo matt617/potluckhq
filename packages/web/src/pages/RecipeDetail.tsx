@@ -26,7 +26,7 @@ function groupIngredients(list: Ingredient[]): [string, Ingredient[]][] {
 
 
 /** Round ± buttons in the servings stepper. */
-const STEPPER_BUTTON = 'min-h-8 min-w-8 border-0 bg-card p-0 text-[1.05rem] shadow-card';
+const STEPPER_BUTTON = 'min-h-8 min-w-8 border-0 bg-card p-0 text-[1.05rem] shadow-paper';
 export function RecipeDetail() {
   const { rid = '' } = useParams();
   const { me, publicConfig, community } = useSession();
@@ -135,7 +135,7 @@ export function RecipeDetail() {
             {recipe.archived && <p className="text-muted-foreground">Archived. Existing meal plans retain this recipe.</p>}
           </div>
           <div className="grid grid-cols-none gap-5 wide:grid-cols-[minmax(300px,2fr)_3fr] wide:items-start wide:gap-6 wide:[&>:first-child]:sticky wide:[&>:first-child]:top-[88px]">
-            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="ing-title">
+            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="ing-title">
               <div className="flex items-center gap-2 justify-between flex-wrap">
                 <h2 id="ing-title">Ingredients</h2>
                 <div className="inline-flex items-center gap-1 p-[3px] rounded-full bg-surface-2 font-semibold text-[0.9rem] tabular-nums [&_span]:py-0 [&_span]:px-1.5" aria-label="Servings">
@@ -179,7 +179,7 @@ export function RecipeDetail() {
               )}
             </section>
 
-            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="steps-title">
+            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="steps-title">
               <h2 id="steps-title">Steps</h2>
               <ol className="list-none m-0 p-0 [counter-reset:step] flex flex-col gap-[22px] [&_li]:[counter-increment:step] [&_li]:relative [&_li]:pl-[3.4rem] [&_li]:max-w-[70ch] [&_li]:min-h-[2.4rem] [&_li::before]:[content:counter(step)] [&_li::before]:absolute [&_li::before]:left-0 [&_li::before]:top-[-0.1rem] [&_li::before]:w-[2.4rem] [&_li::before]:h-[2.4rem] [&_li::before]:grid [&_li::before]:grid-cols-none [&_li::before]:gap-0 [&_li::before]:[place-items:center] [&_li::before]:rounded-full [&_li::before]:bg-accent [&_li::before]:text-accent-foreground [&_li::before]:font-serif [&_li::before]:italic [&_li::before]:font-semibold [&_li::before]:text-[1.2rem] [&_li>p:first-child]:text-[1.02rem] [&_li>p:first-child]:leading-[1.65] [&_li>p:first-child]:text-foreground [&_li>p+p:empty]:hidden [&_li>p+p]:mt-1 [&_a]:inline-flex [&_a]:items-center [&_a]:gap-1 [&_a]:font-mono [&_a]:text-[0.8rem] [&_a]:no-underline [&_a]:font-medium [&_a]:py-0.5 [&_a]:px-2 [&_a]:rounded-[6px] [&_a]:bg-surface-2 [&_a]:text-foreground-2 [&_a:hover]:bg-accent [&_a:hover]:text-accent-foreground">
                 {recipe.steps.map((s, idx) => (
@@ -210,7 +210,7 @@ export function RecipeDetail() {
           </div>
 
           {recipe.nutrition && (
-            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px]" aria-labelledby="nut-title">
+            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]" aria-labelledby="nut-title">
               <h2 id="nut-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
                 Nutrition per serving <span className={cn(metaBadge, 'ml-1')}>AI estimate</span>
               </h2>
@@ -241,7 +241,7 @@ export function RecipeDetail() {
         </>
       )}
 
-      <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-label="Recipe actions">
+      <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-label="Recipe actions">
         <ErrorNote error={error} />
         <div className="flex items-center gap-2 flex-wrap">
           {recipe.archived && community && canAdmin(community.role) && (

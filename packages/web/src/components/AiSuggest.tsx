@@ -28,7 +28,7 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
 
   if (ownerTier === 'free') {
     return (
-      <section className="min-w-0 shadow-card note-upgrade flex flex-col gap-3">
+      <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-[color-mix(in_srgb,var(--accent)_25%,transparent)] bg-accent px-[18px] py-4 shadow-paper [&_p]:mt-1 [&_strong]:font-serif [&_strong]:text-[1.08rem] [&_strong]:font-semibold">
         <h2 className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">Let AI plan your week</h2>
         <p>Choose quick meals, a budget or planned leftovers, and Potluck will suggest a week from your recipe book. AI planning comes with Plus and Pro.</p>
         {isOwner ? (
@@ -67,7 +67,7 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
   }
 
   return (
-    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="ai-title">
+    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="ai-title">
       <h2 id="ai-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         Suggest a plan with AI
       </h2>
@@ -135,7 +135,7 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
 
 export function AiResult({ res, onDismiss }: { res: SuggestPlanResponse; onDismiss: () => void }) {
   return (
-    <section className="min-w-0 rounded-lg border p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3 ai-result" aria-live="polite">
+    <section className="min-w-0 rounded-lg border p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3 border-[color-mix(in_srgb,_var(--accent)_45%,_var(--border))] [background:radial-gradient(100%_120%_at_0%_0%,_color-mix(in_srgb,_var(--accent-soft)_80%,_transparent),_transparent_60%),_var(--surface)]" aria-live="polite">
       <div className="flex items-center gap-2 justify-between">
         <h2 className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">AI plan</h2>
         <button className={buttonVariants({ variant: 'ghost', size: 'sm' })} onClick={onDismiss}>
@@ -144,14 +144,14 @@ export function AiResult({ res, onDismiss }: { res: SuggestPlanResponse; onDismi
       </div>
       {res.plan.aiSummary && <p>{res.plan.aiSummary}</p>}
       {res.warnings?.map((w) => (
-        <p key={w} className="note">
+        <p key={w} className="flex flex-wrap items-center justify-between gap-3 rounded-md px-4 py-3">
           {w}
         </p>
       ))}
       {res.newIdeas.length > 0 && (
         <>
           <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">New ideas to find</h3>
-          <ul className="ideas">
+          <ul className="m-0 pl-[1.2em] flex flex-col gap-1.5">
             {res.newIdeas.map((idea) => (
               <li key={idea.title}>
                 <strong>{idea.title}.</strong> <span className="text-muted-foreground">{idea.why}</span>{' '}

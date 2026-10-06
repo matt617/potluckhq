@@ -61,7 +61,7 @@ export function AddRecipe({ communityId, initialMode = 'link', onQueued }: { com
     <Tabs
       value={mode}
       onValueChange={(v) => setMode(v as AddMode)}
-      className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3"
+      className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3"
       aria-labelledby="add-recipe-title"
       asChild
     >

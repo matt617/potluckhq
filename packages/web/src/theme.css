@@ -65,7 +65,7 @@
   --font-serif: var(--display);
   --font-mono: var(--mono);
 
-  --shadow-card: var(--shadow);
+  --shadow-paper: var(--shadow);
   --shadow-lift: var(--shadow-hover);
   --shadow-float: var(--shadow-pop);
   --shadow-glow: var(--shadow-accent);

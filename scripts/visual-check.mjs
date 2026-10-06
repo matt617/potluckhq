@@ -386,6 +386,7 @@ function fixtures({ failPlanSave = false, imports = false } = {}) {
     entries: [
       { id: 'meal', day: 0, slot: 'dinner', recipeId: 'r-home', servings: 2, dinerIds: ['sam'], cookId: 'u1' },
       { id: 'label', day: 2, slot: 'lunch', label: 'Leftover soup', servings: 1 },
+      { id: 'left', day: 1, slot: 'dinner', leftoverOf: 'meal', recipeId: 'r-home', servings: 1 },
     ],
     updatedAt: '2026-10-04',
   };

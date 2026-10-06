@@ -9,7 +9,7 @@ export function KitchenOnboarding() {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>();
   return (
-    <section className="min-w-0 border border-border shadow-card onboarding flex flex-col">
+    <section className="min-w-0 border border-border shadow-paper onboarding flex flex-col">
       <h1>Start with a recipe you love</h1>
       <p>Save a video, a recipe link, a cookbook photo or recipe text. Then choose a night to cook it and build your shopping list.</p>
       <button
