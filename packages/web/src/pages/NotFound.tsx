@@ -6,7 +6,7 @@ import { buttonVariants } from '@/components/ui/button';
 export function NotFound() {
   const { signedIn } = useSession();
   return (
-    <main className="not-found" id="main">
+    <main className="max-w-[600px] mt-[14vh] mx-[auto] mb-0 py-0 px-[var(--gutter)] flex flex-col gap-4 items-start [&_h1]:text-[clamp(2.4rem,_6vw,_3.8rem)]" id="main">
       <p className="font-serif text-[1.4rem] text-accent-foreground italic">404</p>
       <h1>This page isn't on the menu.</h1>
       <p className="text-muted-foreground">The link may be old, or the recipe was removed from your community.</p>

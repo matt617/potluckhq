@@ -55,7 +55,7 @@ export function Layout() {
 
   return (
     <div className="min-h-dvh pb-[calc(96px+env(safe-area-inset-bottom))] wide:pb-0">
-      <a className="skip-link" href="#main">
+      <a className="absolute left-3 -top-[60px] z-[var(--z-skip)] bg-ink text-ink-foreground py-2.5 px-4 rounded-full font-medium focus:top-3 focus:text-ink-foreground" href="#main">
         Skip to content
       </a>
       <header className="sticky top-0 z-10 flex min-h-16 items-center gap-4 border-b border-[color-mix(in_srgb,var(--border)_70%,transparent)] bg-[color-mix(in_srgb,var(--bg)_82%,transparent)] px-4 py-2.5 backdrop-blur-[14px] backdrop-saturate-[1.4] wide:px-8">

@@ -48,7 +48,7 @@ export function InvitePage() {
               This invite expires {formatDate(preview.data.expiresAt, { month: 'long', day: 'numeric' })}.
             </p>
             {preview.data.full ? (
-              <div className="flex items-center justify-between gap-3 py-3 px-4 rounded-md flex-wrap bg-accent border border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] rounded-lg py-4 px-[18px] [&_strong]:font-serif [&_strong]:font-semibold [&_strong]:text-[1.08rem] [&_p]:mt-1">This group has reached its member limit. The owner can review membership or kitchen plan options.</div>
+              <div className="flex items-center justify-between gap-3 flex-wrap bg-accent border border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] rounded-lg py-4 px-[18px] [&_strong]:font-serif [&_strong]:font-semibold [&_strong]:text-[1.08rem] [&_p]:mt-1">This group has reached its member limit. The owner can review membership or kitchen plan options.</div>
             ) : signedIn ? (
               <button className={buttonVariants({ variant: 'default', size: 'lg' })} disabled={busy} onClick={accept}>
                 {busy ? 'Joining…' : 'Accept invite'}

@@ -66,7 +66,7 @@ export function TechniqueView({
 
   return (
     <>
-      <header className="grid grid-cols-none gap-6 [animation:rise_700ms_var(--ease)_both] [&_h1]:text-[clamp(2.2rem,_5vw,_3.6rem)] [&_h1]:tracking-[-0.03em] min-[760px]:grid-cols-[minmax(0,_1.05fr)_minmax(0,_1fr)] min-[760px]:items-center min-[760px]:gap-12 min-[760px]:grid-cols-[minmax(260px,_0.8fr)_minmax(0,_1.2fr)] min-[760px]:items-start">
+      <header className="grid grid-cols-none gap-6 [animation:rise_700ms_var(--ease)_both] [&_h1]:text-[clamp(2.2rem,_5vw,_3.6rem)] [&_h1]:tracking-[-0.03em] min-[760px]:gap-12 min-[760px]:grid-cols-[minmax(260px,_0.8fr)_minmax(0,_1.2fr)] min-[760px]:items-start">
         {media ? (
           <video
             ref={player}
@@ -139,7 +139,7 @@ export function TechniqueView({
                   <p>{s.text}</p>
                   {typeof s.timestampSec === 'number' &&
                     (media ? (
-                      <button type="button" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'technique-seek text-accent-foreground')} onClick={() => watchFrom(s.timestampSec!)}>
+                      <button type="button" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), '-ml-2.5 text-accent-foreground')} onClick={() => watchFrom(s.timestampSec!)}>
                         <Play size={14} weight="fill" aria-hidden /> Watch from {clock(s.timestampSec)}
                       </button>
                     ) : (
@@ -165,7 +165,7 @@ export function TechniqueView({
             <ul className="list-none m-0 p-0 [&_li]:grid [&_li]:grid-cols-[6.5em_1fr] [&_li]:gap-2.5 [&_li]:py-2.5 [&_li]:px-0 [&_li]:[border-bottom:1px_dashed_var(--border-strong)] [&_li:last-child]:[border-bottom:0]">
               {recipe.ingredients.map((i, idx) => (
                 <li key={`${i.name}-${idx}`}>
-                  <span className="amount">{formatAmount(i.quantity, i.unit)}</span>
+                  <span className="font-medium font-mono text-[0.88rem] tabular-nums text-accent-foreground pt-[1px]">{formatAmount(i.quantity, i.unit)}</span>
                   <span>
                     {i.name}
                     {i.note && <span className="text-muted-foreground">, {i.note}</span>}

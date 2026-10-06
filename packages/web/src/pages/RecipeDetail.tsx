@@ -156,7 +156,7 @@ export function RecipeDetail() {
                   <ul className="list-none m-0 p-0 [&_li]:grid [&_li]:grid-cols-[6.5em_1fr] [&_li]:gap-2.5 [&_li]:py-2.5 [&_li]:px-0 [&_li]:[border-bottom:1px_dashed_var(--border-strong)] [&_li:last-child]:[border-bottom:0]">
                     {items.map((i, idx) => (
                       <li key={`${i.name}-${idx}`}>
-                        <span className="amount">{formatAmount(scaleQuantity(i.quantity, recipe.servings, target), i.unit)}</span>
+                        <span className="font-medium font-mono text-[0.88rem] tabular-nums text-accent-foreground pt-[1px]">{formatAmount(scaleQuantity(i.quantity, recipe.servings, target), i.unit)}</span>
                         <span>
                           {i.name}
                           {i.note && <span className="text-muted-foreground">, {i.note}</span>}

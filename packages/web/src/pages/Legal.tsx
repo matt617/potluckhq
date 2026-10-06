@@ -4,6 +4,8 @@ import { SiteFooter } from '../components/SiteFooter';
 import { login } from '../lib/auth';
 import { useSession } from '../lib/session';
 import { buttonVariants } from '@/components/ui/button';
+import { brandClasses } from '../components/Layout';
+import { cn } from '@/lib/utils';
 
 const EFFECTIVE = 'October 4, 2026';
 const COMPANY = 'Quo Vadimus Incorporated';
@@ -26,14 +28,14 @@ function LegalDoc({ title, intro, sections }: { title: string; intro: ReactNode;
   }, [title]);
 
   return (
-    <div className="lp">
-      <a className="skip-link" href="#main">
+    <div className="[--lp-max:1180px] min-h-[100dvh] [overflow-x:clip] [&_main]:max-w-[var(--lp-max)] [&_main]:mx-auto [&_main]:py-0 [&_main]:px-[var(--gutter)]">
+      <a className="absolute left-3 -top-[60px] z-[var(--z-skip)] bg-ink text-ink-foreground py-2.5 px-4 rounded-full font-medium focus:top-3 focus:text-ink-foreground" href="#main">
         Skip to content
       </a>
-      <header className="lp-nav">
-        <Link to="/" className="brand" aria-label="Potluck home">
-          <img src="/icon.svg" alt="" width={28} height={28} />
-          <span>Potluck</span>
+      <header className="sticky top-0 z-[var(--z-sticky)] flex items-center gap-6 h-16 py-0 px-[max(var(--gutter),_calc((100vw_-_var(--lp-max))_/_2))] [background:color-mix(in_srgb,_var(--bg)_86%,_transparent)] [backdrop-filter:blur(12px)] border-b border-transparent">
+        <Link to="/" className={cn(brandClasses, 'text-[1.5rem]')} aria-label="Potluck home">
+          <img src="/icon.svg" alt="" width={28} height={28} className="rounded-[9px] shadow-paper transition-transform duration-300 ease-spring group-hover:-rotate-8 group-hover:scale-105" />
+          <span className="max-[420px]:hidden">Potluck</span>
         </Link>
         {signedIn ? (
           <Link to="/book" className={buttonVariants({ size: 'sm' })}>
@@ -45,13 +47,13 @@ function LegalDoc({ title, intro, sections }: { title: string; intro: ReactNode;
           </button>
         )}
       </header>
-      <main id="main" className="legal">
-        <header className="legal-head">
+      <main id="main" className="max-w-[760px] mx-auto pt-10 px-[var(--gutter)] pb-24">
+        <header className="flex flex-col gap-2.5 pb-7 border-b border-border [&_h1]:tracking-[-0.035em] [&_h1]:text-[clamp(2.4rem,_5vw,_3.4rem)]">
           <h1>{title}</h1>
           <p className="text-muted-foreground text-[0.875rem]">Last updated {EFFECTIVE}</p>
-          <div className="legal-intro">{intro}</div>
+          <div className="[&_p]:text-foreground-2 [&_p]:max-w-[62ch]">{intro}</div>
         </header>
-        <nav className="legal-toc" aria-label="Contents">
+        <nav className="py-6 px-0 border-b border-border [&_ol]:m-0 [&_ol]:pl-[1.4em] [&_ol]:[columns:2_220px] [&_ol]:gap-x-8 [&_ol]:text-[0.92rem] [&_li]:py-[3px] [&_li]:px-0 [&_li]:[break-inside:avoid] [&_a]:no-underline [&_a:hover]:underline" aria-label="Contents">
           <h2 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Contents</h2>
           <ol>
             {sections.map((s) => (
@@ -61,7 +63,7 @@ function LegalDoc({ title, intro, sections }: { title: string; intro: ReactNode;
             ))}
           </ol>
         </nav>
-        <ol className="legal-sections">
+        <ol className="m-0 pl-[1.4em] [&>li]:pt-8 [&>li]:[scroll-margin-top:80px] [&>li::marker]:font-semibold [&>li::marker]:text-[1.15rem] [&_h2]:text-[1.15rem] [&_h2]:mb-3 [&_p]:text-foreground-2 [&_p]:max-w-[68ch] [&_p]:mt-0 [&_p]:mx-0 [&_p]:mb-3 [&_ul]:text-foreground-2 [&_ul]:max-w-[68ch] [&_ul]:mt-0 [&_ul]:mx-0 [&_ul]:mb-3 [&_ul]:pl-[1.2em] [&_li_li]:mb-1.5 [&_ul_li]:mb-1.5">
           {sections.map((s) => (
             <li key={s.id} id={s.id}>
               <h2>{s.title}</h2>
@@ -360,7 +362,7 @@ const TERMS: Section[] = [
     id: 'warranties',
     title: 'Disclaimer of warranties',
     body: (
-      <p className="legal-caps">
+      <p className="text-[0.86rem] tracking-[0.01em] text-foreground!">
         THE SERVICE AND ALL CONTENT, INCLUDING AI OUTPUT, ARE PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTIES OF ANY
         KIND. TO THE FULLEST EXTENT PERMITTED BY LAW, QUO VADIMUS DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
         WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT AND ACCURACY. WE DO NOT WARRANT
@@ -374,13 +376,13 @@ const TERMS: Section[] = [
     title: 'Limitation of liability',
     body: (
       <>
-        <p className="legal-caps">
+        <p className="text-[0.86rem] tracking-[0.01em] text-foreground!">
           TO THE FULLEST EXTENT PERMITTED BY LAW, QUO VADIMUS AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS AND SUPPLIERS WILL
           NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY OR PUNITIVE DAMAGES, OR FOR ANY LOSS OF
           PROFITS, DATA, GOODWILL OR USE, ARISING OUT OF OR RELATED TO THE SERVICE OR THESE TERMS, EVEN IF ADVISED OF THEIR
           POSSIBILITY.
         </p>
-        <p className="legal-caps">
+        <p className="text-[0.86rem] tracking-[0.01em] text-foreground!">
           OUR TOTAL LIABILITY FOR ALL CLAIMS ARISING OUT OF OR RELATED TO THE SERVICE OR THESE TERMS WILL NOT EXCEED THE GREATER
           OF THE AMOUNTS YOU PAID US IN THE 12 MONTHS BEFORE THE EVENT GIVING RISE TO THE CLAIM, OR US$50.
         </p>
@@ -423,7 +425,7 @@ const TERMS: Section[] = [
           <strong>Exceptions.</strong> Either party may bring an individual claim in small claims court instead. Either party may
           seek injunctive or other equitable relief in court to protect its intellectual property rights.
         </p>
-        <p className="legal-caps">
+        <p className="text-[0.86rem] tracking-[0.01em] text-foreground!">
           YOU AND QUO VADIMUS EACH WAIVE THE RIGHT TO A JURY TRIAL AND TO PARTICIPATE IN A CLASS ACTION, CLASS ARBITRATION OR
           REPRESENTATIVE PROCEEDING. CLAIMS MAY BE BROUGHT ONLY IN AN INDIVIDUAL CAPACITY.
         </p>
