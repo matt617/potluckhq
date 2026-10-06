@@ -21,6 +21,8 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, Dia
 import { Label } from '@/components/ui/label';
 import { Skeleton as SkeletonBlock } from '@/components/ui/skeleton';
 import { Toggle } from '@/components/ui/toggle';
+import { ToggleGroup as ToggleGroupPrimitive } from 'radix-ui';
+import { segmentedItemClasses, segmentedListClasses } from '@/components/ui/tabs';
 
 type SkeletonVariant = 'page' | 'grid' | 'list';
 
@@ -331,6 +333,22 @@ export function Field({ label, hint, error, className, children }: { label: stri
         </span>
       )}
     </div>
+  );
+}
+
+/** Small lowercase label for metadata (tags, "archived", "AI estimate"). Add ml-1 when it follows inline text. */
+export const metaBadge = 'inline-block rounded-[6px] bg-surface-2 px-2 py-0.5 align-middle text-[0.74rem] leading-[1.5] font-medium text-foreground-2 lowercase';
+
+/** Single-choice filter drawn as a segmented pill. Always has a selection. */
+export function Segmented<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string }) {
+  return (
+    <ToggleGroupPrimitive.Root type="single" value={value} onValueChange={(v) => v && onChange(v as T)} aria-label={label} className={segmentedListClasses}>
+      {options.map((o) => (
+        <ToggleGroupPrimitive.Item key={o.value} value={o.value} className={segmentedItemClasses}>
+          {o.label}
+        </ToggleGroupPrimitive.Item>
+      ))}
+    </ToggleGroupPrimitive.Root>
   );
 }
 

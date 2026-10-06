@@ -163,7 +163,7 @@ export function ThisWeek() {
           </section>
           <section className="flex flex-col gap-3">
             <h2>Recently added</h2>
-            <ul className="grid">
+            <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,248px),1fr))] gap-x-[22px] gap-y-9 p-0">
               {d.catalog
                 .filter((r) => !r.archived)
                 .slice(0, 4)

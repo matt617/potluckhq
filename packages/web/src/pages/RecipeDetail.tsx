@@ -5,7 +5,7 @@ import { formatAmount, scaleQuantity, type Ingredient, type Recipe } from '@potl
 import { api } from '../api';
 import { RecipeEditor } from '../components/RecipeEditor';
 import { TechniqueView } from '../components/TechniqueView';
-import { ConfirmAction, ErrorNote, Spinner } from '../components/ui';
+import { ConfirmAction, ErrorNote, Spinner, metaBadge } from '../components/ui';
 import { useAsync } from '../lib/hooks';
 import { useCommunity, useSession, canAdmin } from '../lib/session';
 import { clock, mediaUrl, minutes, youtubeAt } from '../lib/util';
@@ -87,7 +87,7 @@ export function RecipeDetail() {
 
   return (
     <article className="flex flex-col gap-8 recipe">
-      <Link to="/book" className="back">
+      <Link to="/book" className="self-start inline-flex items-center gap-1.5 py-1.5 pr-3.5 pl-2.5 ml-[-10px] rounded-full no-underline font-medium text-[0.92rem] text-muted-foreground [transition:color_160ms_var(--ease),_background-color_160ms_var(--ease)] [&_svg]:[transition:transform_200ms_var(--ease)] hover:text-foreground hover:bg-surface-2 [&:hover_svg]:[transform:translateX(-3px)]">
         <ArrowLeft size={16} weight="bold" aria-hidden />
         {isTechnique ? 'Back to the book' : 'All recipes'}
       </Link>
@@ -95,8 +95,8 @@ export function RecipeDetail() {
         <TechniqueView recipe={recipe} media={state.data?.media} thumb={thumb} onMediaExpired={refreshMedia} />
       ) : (
         <>
-          <header className="recipe-head">
-            {thumb && <img className="recipe-hero" src={thumb} alt={recipe.title} />}
+          <header className="grid grid-cols-none gap-6 [animation:rise_700ms_var(--ease)_both] [&_h1]:text-[clamp(2.2rem,_5vw,_3.6rem)] [&_h1]:tracking-[-0.03em] min-[760px]:grid-cols-[minmax(0,_1.05fr)_minmax(0,_1fr)] min-[760px]:items-center min-[760px]:gap-12">
+            {thumb && <img className="w-full aspect-[4/3] max-h-[460px] object-cover rounded-xl shadow-lift" src={thumb} alt={recipe.title} />}
             <div className="flex flex-col gap-[14px]">
               <h1>{recipe.title}</h1>
               {recipe.description && <p className="max-w-[58ch] text-[1.12rem] leading-[1.55] text-foreground-2">{recipe.description}</p>}
@@ -111,9 +111,9 @@ export function RecipeDetail() {
                   .join(' · ')}
               </p>
               {recipe.tags.length > 0 && (
-                <div className="tags">
+                <div className="flex flex-wrap gap-1">
                   {recipe.tags.map((t) => (
-                    <span key={t} className="badge">
+                    <span key={t} className={metaBadge}>
                       {t}
                     </span>
                   ))}
@@ -134,11 +134,11 @@ export function RecipeDetail() {
             <AddToPlan recipe={recipe} servings={target} />
             {recipe.archived && <p className="text-muted-foreground">Archived. Existing meal plans retain this recipe.</p>}
           </div>
-          <div className="recipe-cols wide:[&>:first-child]:sticky wide:[&>:first-child]:top-[88px]">
+          <div className="grid grid-cols-none gap-5 wide:grid-cols-[minmax(300px,2fr)_3fr] wide:items-start wide:gap-6 wide:[&>:first-child]:sticky wide:[&>:first-child]:top-[88px]">
             <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="ing-title">
               <div className="flex items-center gap-2 justify-between flex-wrap">
                 <h2 id="ing-title">Ingredients</h2>
-                <div className="stepper" aria-label="Servings">
+                <div className="inline-flex items-center gap-1 p-[3px] rounded-full bg-surface-2 font-semibold text-[0.9rem] tabular-nums [&_span]:py-0 [&_span]:px-1.5" aria-label="Servings">
                   <button type="button" className={cn(buttonVariants({ size: 'sm' }), STEPPER_BUTTON)} aria-label="Fewer servings" onClick={() => setServings(Math.max(1, target - 1))}>
                     −
                   </button>
@@ -153,7 +153,7 @@ export function RecipeDetail() {
               {groups.map(([group, items]) => (
                 <div key={group || 'main'}>
                   {group && <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">{group}</h3>}
-                  <ul className="ingredients">
+                  <ul className="list-none m-0 p-0 [&_li]:grid [&_li]:grid-cols-[6.5em_1fr] [&_li]:gap-2.5 [&_li]:py-2.5 [&_li]:px-0 [&_li]:[border-bottom:1px_dashed_var(--border-strong)] [&_li:last-child]:[border-bottom:0]">
                     {items.map((i, idx) => (
                       <li key={`${i.name}-${idx}`}>
                         <span className="amount">{formatAmount(scaleQuantity(i.quantity, recipe.servings, target), i.unit)}</span>
@@ -161,7 +161,7 @@ export function RecipeDetail() {
                           {i.name}
                           {i.note && <span className="text-muted-foreground">, {i.note}</span>}
                           {i.estimated && (
-                            <span className="badge badge-warn" title="The video did not say how much; this amount is estimated.">
+                            <span className={cn(metaBadge, 'ml-1 bg-warning-soft text-warning-foreground')} title="The video did not say how much; this amount is estimated.">
                               est.
                             </span>
                           )}
@@ -181,7 +181,7 @@ export function RecipeDetail() {
 
             <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="steps-title">
               <h2 id="steps-title">Steps</h2>
-              <ol className="steps">
+              <ol className="list-none m-0 p-0 [counter-reset:step] flex flex-col gap-[22px] [&_li]:[counter-increment:step] [&_li]:relative [&_li]:pl-[3.4rem] [&_li]:max-w-[70ch] [&_li]:min-h-[2.4rem] [&_li::before]:[content:counter(step)] [&_li::before]:absolute [&_li::before]:left-0 [&_li::before]:top-[-0.1rem] [&_li::before]:w-[2.4rem] [&_li::before]:h-[2.4rem] [&_li::before]:grid [&_li::before]:grid-cols-none [&_li::before]:gap-0 [&_li::before]:[place-items:center] [&_li::before]:rounded-full [&_li::before]:bg-accent [&_li::before]:text-accent-foreground [&_li::before]:font-serif [&_li::before]:italic [&_li::before]:font-semibold [&_li::before]:text-[1.2rem] [&_li>p:first-child]:text-[1.02rem] [&_li>p:first-child]:leading-[1.65] [&_li>p:first-child]:text-foreground [&_li>p+p:empty]:hidden [&_li>p+p]:mt-1 [&_a]:inline-flex [&_a]:items-center [&_a]:gap-1 [&_a]:font-mono [&_a]:text-[0.8rem] [&_a]:no-underline [&_a]:font-medium [&_a]:py-0.5 [&_a]:px-2 [&_a]:rounded-[6px] [&_a]:bg-surface-2 [&_a]:text-foreground-2 [&_a:hover]:bg-accent [&_a:hover]:text-accent-foreground">
                 {recipe.steps.map((s, idx) => (
                   <li key={idx}>
                     <p>{s.text}</p>
@@ -199,7 +199,7 @@ export function RecipeDetail() {
               {recipe.tips && recipe.tips.length > 0 && (
                 <>
                   <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Tips</h3>
-                  <ul className="tips">
+                  <ul className="m-0 py-3.5 pr-[18px] pl-[34px] rounded-md bg-warning-soft text-foreground-2">
                     {recipe.tips.map((t, idx) => (
                       <li key={idx}>{t}</li>
                     ))}
@@ -212,9 +212,9 @@ export function RecipeDetail() {
           {recipe.nutrition && (
             <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px]" aria-labelledby="nut-title">
               <h2 id="nut-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
-                Nutrition per serving <span className="badge">AI estimate</span>
+                Nutrition per serving <span className={cn(metaBadge, 'ml-1')}>AI estimate</span>
               </h2>
-              <dl className="nutrition">
+              <dl className="grid grid-cols-[repeat(auto-fit,_minmax(120px,_1fr))] gap-2.5 mt-3.5 mx-0 mb-0 [&_div]:rounded-md [&_div]:bg-surface-2 [&_div]:py-3.5 [&_div]:px-4 [&_dt]:text-[0.8rem] [&_dt]:font-medium [&_dt]:text-muted-foreground [&_dd]:mt-0.5 [&_dd]:mx-0 [&_dd]:mb-0 [&_dd]:font-serif [&_dd]:text-[1.9rem] [&_dd]:font-medium [&_dd]:tracking-[-0.03em] [&_dd]:leading-[1.1] [&_dd]:[font-variant-numeric:tabular-nums_lining-nums]">
                 <div>
                   <dt>Calories</dt>
                   <dd>{Math.round(recipe.nutrition.calories)}</dd>

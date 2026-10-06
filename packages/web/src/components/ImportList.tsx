@@ -3,8 +3,9 @@ import { ArrowSquareOut, WarningCircle } from '@phosphor-icons/react';
 import { detectPlatform, type ChannelKind, type ImportJob, type ImportStatus, type Platform } from '@potluck/core';
 import { api } from '../api';
 import { timeAgo } from '../lib/util';
-import { ErrorNote } from './ui';
+import { ErrorNote, metaBadge } from './ui';
 import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export type AlternativeMode = 'photos' | 'text';
 
@@ -137,31 +138,31 @@ export function ImportList({
       <h2 id="imports-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         {title}
       </h2>
-      <ul className="imports" aria-live="polite">
+      <ul className="list-none mt-2 mx-0 mb-0 p-0 flex flex-col" aria-live="polite">
         {imports.map((job) => {
           const isFailed = job.status === 'failed';
           return (
-            <li key={job.id} className={isFailed ? 'import import-failed' : 'import'}>
-              <span className="import-icon" aria-hidden>
-                {isFailed ? <WarningCircle size={20} weight="fill" /> : <span className="pulse" />}
+            <li key={job.id} className="grid grid-cols-[22px_1fr] items-start gap-3 border-t border-border px-0 py-3 text-[0.92rem]">
+              <span className={cn('grid h-[22px] place-items-center', isFailed ? 'text-destructive' : 'text-warning-foreground')} aria-hidden>
+                {isFailed ? <WarningCircle size={20} weight="fill" /> : <span className="w-2 h-2 rounded-full bg-current [animation:pulse_1.2s_ease-in-out_infinite]" />}
               </span>
-              <div className="import-body">
-                <div className="import-head">
-                  <strong className="import-src">{sourceLabel(job)}</strong>
-                  {job.channel !== 'web' && <span className="badge">via {CHANNEL_NAME[job.channel]}</span>}
+              <div className="min-w-0">
+                <div className="flex min-h-[22px] flex-wrap items-center gap-x-2 gap-y-1">
+                  <strong className="font-semibold">{sourceLabel(job)}</strong>
+                  {job.channel !== 'web' && <span className={metaBadge}>via {CHANNEL_NAME[job.channel]}</span>}
                   {job.url && (
-                    <a className="import-link" href={job.url} target="_blank" rel="noreferrer" aria-label="Open the original">
+                    <a className="inline-grid [place-items:center] text-muted-foreground rounded-[4px] hover:text-foreground" href={job.url} target="_blank" rel="noreferrer" aria-label="Open the original">
                       <ArrowSquareOut size={15} aria-hidden />
                     </a>
                   )}
-                  <span className="import-meta">
+                  <span className="text-muted-foreground text-[0.82rem]">
                     {isFailed ? 'Failed' : ACTIVE_LABEL[job.status]} · {timeAgo(job.createdAt)}
                   </span>
                 </div>
                 {isFailed && (
                   <>
-                    <p className="import-error">{failureMessage(job)}</p>
-                    <div className="import-actions">
+                    <p className="mt-1 mx-0 mb-0 text-foreground-2 leading-[1.45]">{failureMessage(job)}</p>
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
                       {actionsFor(job).map((a) => (
                         <button
                           key={a.label}

@@ -18,7 +18,7 @@ export function Circles() {
     <div className="flex flex-col gap-8">
       <h1>Recipe circles</h1>
       <p className="max-w-[58ch] text-[1.12rem] leading-[1.55] text-foreground-2">Exchange recipes with friends, coworkers or family. Everyone keeps their own meal plans, groceries and food profiles.</p>
-      <ul className="grid">
+      <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,248px),1fr))] gap-x-[22px] gap-y-9 p-0">
         {me?.communities
           .filter((c) => c.kind === 'circle')
           .map((c) => (

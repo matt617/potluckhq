@@ -56,6 +56,37 @@ const screens = [
   { name: 'shop', path: `/shop?kitchen=home&week=${week}`, wait: (p) => p.getByText('tomatoes').first() },
   { name: 'community', path: '/community?kitchen=home', wait: (p) => p.getByRole('heading', { name: 'Who eats here?' }) },
   { name: 'account', path: '/account', wait: (p) => p.getByRole('heading', { name: 'Profile', exact: true }) },
+  { name: 'book-imports', path: '/book?kitchen=home', imports: true, wait: (p) => p.getByText('Reading recipe').first() },
+  {
+    name: 'add-recipe-link',
+    path: '/book?kitchen=home',
+    full: true,
+    wait: (p) => p.getByRole('button', { name: 'Add recipe' }),
+    act: async (p) => {
+      await p.getByRole('button', { name: 'Add recipe' }).click();
+      await p.getByRole('tab', { name: 'Link' }).waitFor();
+    },
+  },
+  {
+    name: 'add-recipe-text',
+    path: '/book?kitchen=home',
+    full: true,
+    wait: (p) => p.getByRole('button', { name: 'Add recipe' }),
+    act: async (p) => {
+      await p.getByRole('button', { name: 'Add recipe' }).click();
+      await p.getByRole('tab', { name: 'Text' }).click();
+    },
+  },
+  {
+    name: 'recipe-edit',
+    path: `/book/r-home?kitchen=home&week=${week}`,
+    full: true,
+    wait: (p) => p.getByRole('button', { name: 'Edit recipe' }),
+    act: async (p) => {
+      await p.getByRole('button', { name: 'Edit recipe' }).click();
+      await p.getByLabel('Tags').waitFor();
+    },
+  },
   // Dev-only shadcn gallery in the cookbook theme.
   { name: 'ui-gallery', path: '/__ui', signedOut: true, wait: (p) => p.getByRole('heading', { name: 'UI gallery' }) },
   { name: 'ui-dialog', path: '/__ui?open=dialog', signedOut: true, full: false, wait: (p) => p.getByRole('dialog') },
@@ -265,7 +296,7 @@ async function keyboardCheck(browser, check) {
   }
 }
 
-function fixtures({ failPlanSave = false } = {}) {
+function fixtures({ failPlanSave = false, imports = false } = {}) {
   const user = {
     id: 'u1',
     displayName: 'Sam',
@@ -327,7 +358,20 @@ function fixtures({ failPlanSave = false } = {}) {
     updatedAt: '2026-10-01',
   };
   const personal = { ...recipe, id: 'r-personal', ownerId: 'u1', kitchenId: undefined, communityIds: [], copiedFrom: { recipeId: 'r-home' } };
-  const technique = { ...recipe, id: 'tech', kind: 'technique', title: 'Knife skills', ingredients: [], tags: ['technique'] };
+  const technique = {
+    ...recipe,
+    id: 'tech',
+    kind: 'technique',
+    title: 'Knife skills',
+    ingredients: [],
+    tags: ['technique'],
+    technique: {
+      summary: 'A claw grip and a rocking motion give even, safe slices.',
+      whyItWorks: 'Tucked fingertips keep the knuckles against the blade, so the knife guides itself.',
+      appliesTo: ['onions', 'herbs', 'stir-fry vegetables'],
+      mistakes: ['Lifting the tip off the board', 'Flat fingers under the blade'],
+    },
+  };
   const recipes = new Map([
     [recipe.id, recipe],
     [personal.id, personal],
@@ -369,7 +413,16 @@ function fixtures({ failPlanSave = false } = {}) {
     if (p === '/api/me') return { user, budget, communities, channels: [] };
     if (p === '/api/library') return { recipes: [summary(personal)], annotations };
     if (p.startsWith('/api/library/')) return p.endsWith('/annotation') ? annotations[0] : { recipe: personal };
-    if (p === '/api/imports') return { imports: [] };
+    if (p === '/api/imports')
+      return {
+        imports: imports
+          ? [
+              { id: 'job-1', communityId: 'home', userId: 'u1', status: 'failed', kind: 'url', url: 'https://www.tiktok.com/@chef/video/1', channel: 'web', errorCode: 'blocked', createdAt: `${week}T10:00:00`, updatedAt: `${week}T10:00:00` },
+              { id: 'job-2', communityId: 'home', userId: 'u1', status: 'failed', kind: 'image', channel: 'web', errorCode: 'not_recipe', createdAt: `${week}T09:00:00`, updatedAt: `${week}T09:00:00` },
+              { id: 'job-3', communityId: 'home', userId: 'u1', status: 'extracting', kind: 'url', url: 'https://www.instagram.com/reel/abc', channel: 'web', createdAt: `${week}T11:50:00`, updatedAt: `${week}T11:50:00` },
+            ]
+          : [],
+      };
     if (p.startsWith('/api/recipes/')) {
       const rid = p.split('/')[3];
       if (p.endsWith('/origin'))

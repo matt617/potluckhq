@@ -111,7 +111,7 @@ export function Landing() {
             <article className="lp-recipe" aria-label="Example recipe card">
               <h2 className="lp-recipe-title">Shakshuka with basil</h2>
               <p className="text-muted-foreground text-[0.875rem] tabular-nums">35 min, serves 4, 21 g protein per serving</p>
-              <ul className="ingredients lp-recipe-list">
+              <ul className="mx-0 mt-2.5 mb-0 list-none p-0 [&_li]:grid [&_li]:grid-cols-[4.5em_1fr] [&_li]:gap-2.5 [&_li]:px-0 [&_li]:py-2.5 [&_li]:text-[0.92rem] [&_li]:[border-bottom:1px_dashed_var(--border-strong)] [&_li:last-child]:[border-bottom:0]">
                 {SAMPLE_INGREDIENTS.map((i) => (
                   <li key={i.name}>
                     <span className="amount">{i.amount}</span>
