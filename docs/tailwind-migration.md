@@ -92,6 +92,8 @@ This is the step that fixes the dialogs.
 
 ## Step 6: Pages, in four groups
 
+Before the groups, one mechanical pass replaces the shared helper classes (stack, row, card, muted, small, h3, h4, btn and the rest) with exact utility equivalents across every page, since every group uses them. Legacy rules that overrode a helper by context, or on the same element, lose to utilities, so their effect moves into the markup in the same commit.
+
 Convert each group's markup to utilities and the new components, then delete that group's CSS section in the same commit. One commit per group, with a full gate after each.
 
 | Group | Files | CSS sections removed |
@@ -138,4 +140,5 @@ Agreed on 2026-10-05:
 
 ## Follow-ups found during the migration
 
+- **Bundle size.** shadcn's dependencies took the JS bundle from 143 kB to 205 kB gzipped by step 5 (Radix, tailwind-merge, sonner, cmdk, floating-ui). Split routes with `React.lazy` in step 8 so public pages and rarely used screens don't pay for the planner and dialogs.
 - **Muted text contrast.** `--muted` (#7c7064) on `--bg` (#f6f1e8) is 4.28:1, below the 4.5:1 AA minimum for body text. It's behind most of the 23 color-contrast findings in the step 0 baseline. Darken it slightly once visual parity is no longer required (step 5 or later), and record the drop in axe findings.
