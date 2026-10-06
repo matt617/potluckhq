@@ -5,7 +5,8 @@ import { formatAmount, scaleQuantity, type Ingredient, type Recipe } from '@potl
 import { api } from '../api';
 import { RecipeEditor } from '../components/RecipeEditor';
 import { TechniqueView } from '../components/TechniqueView';
-import { ConfirmAction, ErrorNote, Spinner, metaBadge } from '../components/ui';
+import { ConfirmAction, ErrorNote, Spinner } from '../components/ui';
+import { metaBadge } from '../lib/styles';
 import { useAsync } from '../lib/hooks';
 import { useCommunity, useSession, canAdmin } from '../lib/session';
 import { clock, mediaUrl, minutes, youtubeAt } from '../lib/util';

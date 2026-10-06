@@ -4,7 +4,7 @@ import { SiteFooter } from '../components/SiteFooter';
 import { login } from '../lib/auth';
 import { useSession } from '../lib/session';
 import { buttonVariants } from '@/components/ui/button';
-import { brandClasses } from '../components/Layout';
+import { brandClasses } from '../lib/styles';
 import { cn } from '@/lib/utils';
 
 const EFFECTIVE = 'October 4, 2026';

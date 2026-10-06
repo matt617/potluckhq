@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { handleCallback, login } from '../lib/auth';
-import { Spinner } from '../components/ui';
+import { Spinner } from '../components/loading';
 import { buttonVariants } from '@/components/ui/button';
 
 export function AuthCallback() {

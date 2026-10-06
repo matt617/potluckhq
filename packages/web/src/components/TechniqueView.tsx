@@ -4,7 +4,7 @@ import { formatAmount, type Recipe, type RecipeMedia } from '@potluck/core';
 import { clock, youtubeAt } from '../lib/util';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { metaBadge } from './ui';
+import { metaBadge } from '../lib/styles';
 
 /** Play a muted loop only while it is on screen, so a long list of clips stays light. */
 function LoopClip({ src, poster, label, onError }: { src: string; poster?: string; label: string; onError: () => void }) {

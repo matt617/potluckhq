@@ -47,7 +47,7 @@ const screens = [
     name: 'book-loading',
     path: '/book?kitchen=home',
     hang: '/api/communities/home/recipes',
-    wait: (p) => p.getByRole('status').filter({ hasText: /Loading/ }).first(),
+    wait: (p) => p.getByRole('status').filter({ hasText: 'Loading recipes' }),
   },
   { name: 'recipe-kitchen', path: `/book/r-home?kitchen=home&week=${week}`, wait: (p) => p.getByRole('heading', { name: 'Roast tomatoes', level: 1 }) },
   { name: 'recipe-personal', path: '/book/r-personal', wait: (p) => p.getByLabel('Collections', { exact: true }) },

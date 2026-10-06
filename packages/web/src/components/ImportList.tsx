@@ -3,7 +3,8 @@ import { ArrowSquareOut, WarningCircle } from '@phosphor-icons/react';
 import { detectPlatform, type ChannelKind, type ImportJob, type ImportStatus, type Platform } from '@potluck/core';
 import { api } from '../api';
 import { timeAgo } from '../lib/util';
-import { ErrorNote, metaBadge } from './ui';
+import { ErrorNote } from './ui';
+import { metaBadge } from '../lib/styles';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 

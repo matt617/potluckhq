@@ -8,8 +8,7 @@ import { useSession } from '../lib/session';
 import { cents } from '../lib/util';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { brandClasses } from '../components/Layout';
-import { metaBadge } from '../components/ui';
+import { brandClasses, metaBadge } from '../lib/styles';
 
 /** Fade-and-rise content into view once, using IntersectionObserver (never scroll listeners). */
 function useReveal() {

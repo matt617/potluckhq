@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { BookOpenText, CalendarBlank, Basket, CaretDown } from '@phosphor-icons/react';
 import { ApiError } from '../api';
 import { login } from '../lib/auth';
 import { useSession } from '../lib/session';
 import { CommunitySwitcher } from './CommunitySwitcher';
-import { ErrorNote, Spinner } from './ui';
+import { ErrorNote, Skeleton, Spinner } from './ui';
 import { KitchenOnboarding } from './KitchenOnboarding';
 import { kitchenPath } from '../lib/kitchen-context';
+import { brandClasses } from '../lib/styles';
+import { FooterLinks } from './SiteFooter';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -106,7 +108,9 @@ export function Layout() {
       <main className="mx-auto max-w-[1160px] px-4 pt-7 pb-[72px] focus:outline-none wide:px-8 wide:pt-12 wide:pb-[112px]" id="main" tabIndex={-1}>
         {community || pathname === '/account' || pathname === '/library' || pathname === '/circles' || /^\/book\/.+/.test(pathname) ? (
           <div key={`${community?.id ?? 'personal'}:${pathname}`}>
-            <Outlet />
+            <Suspense fallback={<Skeleton />}>
+              <Outlet />
+            </Suspense>
           </div>
         ) : (
           <KitchenOnboarding />
@@ -148,23 +152,3 @@ export function Layout() {
   );
 }
 
-/** Wordmark: Fraunces with soft, wonky optical settings; the icon tilts on hover. */
-export const brandClasses =
-  "group flex items-center gap-[9px] font-serif text-[1.4rem] font-semibold tracking-[-0.03em] text-foreground no-underline [font-variation-settings:'SOFT'_100,'WONK'_1] hover:text-foreground";
-
-export function FooterLinks() {
-  const link = 'text-muted-foreground no-underline hover:text-foreground hover:underline';
-  return (
-    <>
-      <Link to="/privacy" className={link}>
-        Privacy
-      </Link>
-      <Link to="/terms" className={link}>
-        Terms
-      </Link>
-      <a href="mailto:support@potluckhq.app" className={link}>
-        Support
-      </a>
-    </>
-  );
-}

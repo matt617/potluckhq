@@ -5,7 +5,8 @@ import { api } from '../api';
 import { AddRecipe, type AddMode } from '../components/AddRecipe';
 import { ImportList, isActiveImport, needsAttention } from '../components/ImportList';
 import { CookingPot, MagnifyingGlass, Plus, X } from '@phosphor-icons/react';
-import { Chip, Empty, ErrorNote, PageHeader, Skeleton, Segmented, metaBadge } from '../components/ui';
+import { Chip, Empty, ErrorNote, PageHeader, Skeleton, Segmented } from '../components/ui';
+import { metaBadge } from '../lib/styles';
 
 type KindFilter = 'all' | RecipeKind;
 const KIND_LABEL: Record<KindFilter, string> = { all: 'Everything', recipe: 'Recipes', technique: 'Techniques' };
