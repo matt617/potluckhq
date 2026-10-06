@@ -9,9 +9,13 @@ import { useCommunity, useSession } from '../lib/session';
 import { copyText, formatDate } from '../lib/util';
 import { kitchenPath, useWeek } from '../lib/kitchen-context';
 import { toast } from 'sonner';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const aisleLabel = (a: Aisle) => AISLES.find((x) => x.id === a)?.label ?? 'Other';
 
+/** Borderless arrows in the week switcher; they lift onto the surface on hover. */
+const WEEK_NAV_BUTTON = 'min-w-9 border-0 bg-transparent px-2.5 py-0 hover:bg-card hover:shadow-paper';
 export function Shopping() {
   const community = useCommunity();
   const { me } = useSession();
@@ -89,14 +93,32 @@ export function Shopping() {
   const hasChannel = (me?.channels.length ?? 0) > 0;
 
   const row = (i: ShoppingItem) => (
-    <li key={i.key} className={i.checked ? 'checked' : ''}>
-      <label className="check">
+    <li
+      key={i.key}
+      className={cn(
+        'flex items-center justify-between gap-2 [border-bottom:1px_dashed_var(--border)] [transition:color_300ms_var(--ease),_opacity_300ms_var(--ease)] last:[border-bottom:0]',
+        i.checked && 'opacity-[0.65]',
+      )}
+    >
+      <label className="flex min-h-[46px] flex-1 cursor-pointer flex-wrap items-center gap-x-3 gap-y-0">
         <input type="checkbox" checked={i.checked} onChange={() => void toggle(i)} />
-        <span className="item-name">{i.name}</span>
-        {i.display && <span className="item-amount">{i.display}</span>}
+        <span
+          className={cn(
+            'font-medium [transition:color_300ms_var(--ease),_opacity_300ms_var(--ease)]',
+            i.checked && 'text-muted-foreground line-through decoration-primary decoration-2',
+          )}
+        >
+          {i.name}
+        </span>
+        {i.display && <span className="ml-[auto] font-mono text-[0.82rem] text-muted-foreground">{i.display}</span>}
       </label>
       {i.manual && (
-        <button type="button" className="btn btn-ghost btn-icon" aria-label={`Remove ${i.name}`} onClick={() => void removeItem(i)}>
+        <button
+          type="button"
+          className={cn(buttonVariants({ variant: 'ghost' }), 'min-w-9 p-1')}
+          aria-label={`Remove ${i.name}`}
+          onClick={() => void removeItem(i)}
+        >
           <X size={16} weight="bold" aria-hidden />
         </button>
       )}
@@ -105,7 +127,7 @@ export function Shopping() {
 
   if (community.kind === 'circle')
     return (
-      <div className="stack">
+      <div className="flex flex-col gap-3">
         <h1>Shop with your kitchen</h1>
         <p>Recipe circles exchange ideas. Choose a kitchen for meal plans and groceries.</p>
         <Link to="/circles">Your circles</Link>
@@ -113,32 +135,32 @@ export function Shopping() {
     );
 
   return (
-    <div className="stack-lg">
+    <div className="flex flex-col gap-8">
       <PageHeader
         eyebrow={items.length ? `${items.length - done.length} to get · ${done.length} in the cart` : `Week of ${formatDate(week)}`}
         title="Shopping list"
       >
-        <div className="row week-nav">
-          <button className="btn btn-small" aria-label="Previous week" onClick={() => setWeek(addDays(week, -7))}>
+        <div className="flex flex-nowrap items-center gap-1 rounded-full bg-surface-2 p-1">
+          <button className={cn(buttonVariants({ size: 'sm' }), WEEK_NAV_BUTTON)} aria-label="Previous week" onClick={() => setWeek(addDays(week, -7))}>
             <CaretLeft size={16} weight="bold" aria-hidden />
           </button>
-          <span className="week-label">Week of {formatDate(week)}</span>
-          <button className="btn btn-small" aria-label="Next week" onClick={() => setWeek(addDays(week, 7))}>
+          <span className="min-w-[9em] text-center text-[0.9rem] font-semibold tabular-nums">Week of {formatDate(week)}</span>
+          <button className={cn(buttonVariants({ size: 'sm' }), WEEK_NAV_BUTTON)} aria-label="Next week" onClick={() => setWeek(addDays(week, 7))}>
             <CaretRight size={16} weight="bold" aria-hidden />
           </button>
         </div>
       </PageHeader>
 
-      <div className="row wrap">
+      <div className="flex flex-wrap items-center gap-2">
         <button
-          className="btn btn-primary"
+          className={buttonVariants({ variant: 'default' })}
           disabled={!!busy}
           onClick={() => act('preview', async () => setPreview((await api.previewList(community.id, week)).list))}
         >
           {busy === 'preview' ? 'Reviewing…' : items.length ? 'Review plan changes' : 'Build from plan'}
         </button>
         <button
-          className="btn"
+          className={buttonVariants()}
           disabled={!items.length}
           onClick={async () => toast((await copyText(shoppingListText(items, aisleLabel))) ? 'Copied' : 'Copy failed')}
         >
@@ -146,7 +168,7 @@ export function Shopping() {
         </button>
         {hasChannel ? (
           <button
-            className="btn"
+            className={buttonVariants()}
             disabled={!!busy || !items.length}
             onClick={() =>
               act('send', async () => {
@@ -158,17 +180,21 @@ export function Shopping() {
             {busy === 'send' ? 'Sending…' : 'Send to my chat'}
           </button>
         ) : (
-          <Link className="btn btn-ghost" to="/account#chats">
+          <Link className={buttonVariants({ variant: 'ghost' })} to="/account#chats">
             Link a chat to send lists
           </Link>
         )}
       </div>
       <ErrorNote error={error} />
-      {state.data?.stale && <p className="note">Your plan or a recipe changed. Review the shopping update before your next trip.</p>}
+      {state.data?.stale && (
+        <p className="flex flex-wrap items-center justify-between gap-3 rounded-md px-4 py-3">
+          Your plan or a recipe changed. Review the shopping update before your next trip.
+        </p>
+      )}
       {preview && preview.weekStart === week && preview.communityId === community.id && (
-        <section className="card stack">
+        <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
           <h2>Review shopping update</h2>
-          <p className="small muted">
+          <p className="text-[0.875rem] text-muted-foreground">
             Manual items stay on your list. Changed quantities are marked as needing a new check, including items you already purchased.
           </p>
           <ul>
@@ -179,9 +205,9 @@ export function Shopping() {
             ))}
           </ul>
           {!shoppingChanges(items, preview.items).length && <p>No ingredient quantities changed.</p>}
-          <div className="row">
+          <div className="flex items-center gap-2">
             <button
-              className="btn btn-primary"
+              className={buttonVariants({ variant: 'default' })}
               disabled={!!busy}
               onClick={() =>
                 void act('gen', async () => {
@@ -193,7 +219,7 @@ export function Shopping() {
             >
               Apply update
             </button>
-            <button className="btn" onClick={() => setPreview(null)}>
+            <button className={buttonVariants()} onClick={() => setPreview(null)}>
               Keep current list
             </button>
           </div>
@@ -205,46 +231,58 @@ export function Shopping() {
 
       {list && (
         <>
-          <form className="card row wrap add-item" onSubmit={addItem}>
+          <form
+            className="flex min-w-0 flex-wrap items-center gap-1.5 rounded-full border border-border bg-card p-2 shadow-paper max-[520px]:rounded-lg [&_input]:rounded-full [&_input]:border-transparent [&_input]:bg-transparent [&_input:first-child]:flex-[2_1_160px] [&_input:hover]:border-transparent [&_input:hover]:bg-surface-2"
+            onSubmit={addItem}
+          >
             <input aria-label="Item" placeholder="Add an item" value={newName} onChange={(e) => setNewName(e.target.value)} />
-            <input aria-label="Amount" placeholder="Amount" className="amount-input" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} />
-            <button className="btn" disabled={!newName.trim() || busy === 'add'}>
+            <input aria-label="Amount" placeholder="Amount" className="flex-[1_1_90px]" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} />
+            <button className={buttonVariants()} disabled={!newName.trim() || busy === 'add'}>
               Add
             </button>
           </form>
 
           {!items.length && (
             <Empty title="Nothing on the list yet" icon={<Basket size={22} weight="duotone" />}>
-              <p className="muted">Plan some meals for this week, then build the list. Ingredients are merged across recipes and grouped by aisle.</p>
-              <Link to={kitchenPath('/plan', community.id, week)} className="btn">
+              <p className="text-muted-foreground">
+                Plan some meals for this week, then build the list. Ingredients are merged across recipes and grouped by aisle.
+              </p>
+              <Link to={kitchenPath('/plan', community.id, week)} className={buttonVariants()}>
                 Go to plan
               </Link>
             </Empty>
           )}
 
           {byAisle.map((g) => (
-            <section key={g.aisle.id} className="card" aria-labelledby={`aisle-${g.aisle.id}`}>
-              <h2 id={`aisle-${g.aisle.id}`} className="aisle-title">
-                {g.aisle.label} <span className="aisle-count num">{g.items.length}</span>
+            <section
+              key={g.aisle.id}
+              className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+              aria-labelledby={`aisle-${g.aisle.id}`}
+            >
+              <h2 id={`aisle-${g.aisle.id}`} className="mb-1 flex items-center gap-2.5 text-[1.25rem]">
+                {g.aisle.label}{' '}
+                <span className="inline-grid h-[22px] min-w-[22px] [place-items:center] rounded-full bg-surface-2 px-[7px] py-0 font-sans text-[0.75rem] font-semibold text-muted-foreground tabular-nums">
+                  {g.items.length}
+                </span>
               </h2>
-              <ul className="shop-list">{g.items.map(row)}</ul>
+              <ul className="mx-0 mt-1.5 mb-0 list-none p-0">{g.items.map(row)}</ul>
             </section>
           ))}
 
           {staples.length > 0 && (
-            <details className="card">
+            <details className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] [&_summary]:flex [&_summary]:min-h-8 [&_summary]:cursor-pointer [&_summary]:list-none [&_summary]:items-center [&_summary]:gap-2.5 [&_summary]:font-medium open:[&_summary]:mb-1.5 [&_summary::-webkit-details-marker]:hidden [&_summary::before]:size-2 [&_summary::before]:[transform:rotate(-45deg)] [&_summary::before]:[content:''] [&_summary::before]:[border-bottom:2px_solid_var(--muted)] [&_summary::before]:[border-right:2px_solid_var(--muted)] [&_summary::before]:[transition:transform_250ms_var(--ease)] open:[&_summary::before]:[transform:rotate(45deg)]">
               <summary>Pantry staples you probably have ({staples.length})</summary>
-              <ul className="shop-list">{staples.map(row)}</ul>
+              <ul className="mx-0 mt-1.5 mb-0 list-none p-0">{staples.map(row)}</ul>
             </details>
           )}
 
           {done.length > 0 && (
-            <details className="card">
+            <details className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] [&_summary]:flex [&_summary]:min-h-8 [&_summary]:cursor-pointer [&_summary]:list-none [&_summary]:items-center [&_summary]:gap-2.5 [&_summary]:font-medium open:[&_summary]:mb-1.5 [&_summary::-webkit-details-marker]:hidden [&_summary::before]:size-2 [&_summary::before]:[transform:rotate(-45deg)] [&_summary::before]:[content:''] [&_summary::before]:[border-bottom:2px_solid_var(--muted)] [&_summary::before]:[border-right:2px_solid_var(--muted)] [&_summary::before]:[transition:transform_250ms_var(--ease)] open:[&_summary::before]:[transform:rotate(45deg)]">
               <summary>In the cart ({done.length})</summary>
-              <ul className="shop-list">{done.map(row)}</ul>
+              <ul className="mx-0 mt-1.5 mb-0 list-none p-0">{done.map(row)}</ul>
             </details>
           )}
-          {list.generatedAt && <p className="small muted">Built from the plan {new Date(list.generatedAt).toLocaleString()}.</p>}
+          {list.generatedAt && <p className="text-[0.875rem] text-muted-foreground">Built from the plan {new Date(list.generatedAt).toLocaleString()}.</p>}
         </>
       )}
     </div>

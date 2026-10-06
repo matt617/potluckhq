@@ -6,6 +6,7 @@ import { useAsync, useInterval } from '../lib/hooks';
 import { useCommunity, useSession } from '../lib/session';
 import { kitchenPath, useWeek } from '../lib/kitchen-context';
 import { Empty, ErrorNote, Skeleton } from '../components/ui';
+import { buttonVariants } from '@/components/ui/button';
 
 export function ThisWeek() {
   const c = useCommunity(),
@@ -47,22 +48,22 @@ export function ThisWeek() {
     }
   }
   return (
-    <div className="stack-lg">
-      <div className="row between wrap">
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1>This week in {c.name}</h1>
-          <p className="muted">Decide together. Cook together.</p>
+          <p className="text-muted-foreground">Decide together. Cook together.</p>
         </div>
-        <Link className="btn" to={kitchenPath('/community', c.id)}>
+        <Link className={buttonVariants()} to={kitchenPath('/community', c.id)}>
           Manage members
         </Link>
       </div>
-      <div className="row wrap">
-        <button className="btn" onClick={() => setWeek(addDays(week, -7))}>
+      <div className="flex flex-wrap items-center gap-2">
+        <button className={buttonVariants()} onClick={() => setWeek(addDays(week, -7))}>
           Previous week
         </button>
         <span>Week of {week}</span>
-        <button className="btn" onClick={() => setWeek(addDays(week, 7))}>
+        <button className={buttonVariants()} onClick={() => setWeek(addDays(week, 7))}>
           Next week
         </button>
       </div>
@@ -70,7 +71,7 @@ export function ThisWeek() {
       {!d && state.loading && <Skeleton />}
       {d && (
         <>
-          <section className="card stack">
+          <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
             <h2>{week === weekStartOf() ? 'Tonight' : 'This week’s dinner'}</h2>
             <p>
               {d.plan.entries
@@ -78,39 +79,39 @@ export function ThisWeek() {
                 .map(title)
                 .join(' · ') || 'Dinner is still open. Choose something from your recipe book.'}
             </p>
-            <div className="row wrap">
-              <Link className="btn" to={kitchenPath('/plan', c.id, week)}>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link className={buttonVariants()} to={kitchenPath('/plan', c.id, week)}>
                 Choose meals
               </Link>
-              <Link className="btn btn-primary" to={kitchenPath('/shop', c.id, week)}>
+              <Link className={buttonVariants({ variant: 'default' })} to={kitchenPath('/shop', c.id, week)}>
                 {d.list.items.filter((i) => i.checked).length} of {d.list.items.length} groceries purchased
               </Link>
             </div>
-            {d.stale && <p className="small muted">Your plan changed. Review the shopping update.</p>}
+            {d.stale && <p className="text-[0.875rem] text-muted-foreground">Your plan changed. Review the shopping update.</p>}
           </section>
-          <section className="stack">
+          <section className="flex flex-col gap-3">
             <h2>Meals and cooks</h2>
             {!d.plan.entries.length && (
               <Empty title="Choose your first dinner">
                 <p>Save a recipe, pick a night, then build your list.</p>
-                <Link className="btn btn-primary" to={kitchenPath('/book', c.id) + '&add=1'}>
+                <Link className={buttonVariants({ variant: 'default' })} to={kitchenPath('/book', c.id) + '&add=1'}>
                   Save a recipe
                 </Link>
               </Empty>
             )}
             {DAY_NAMES.map((day, index) => (
-              <div key={day} className="card stack week-meal-day">
-                <div className="row between">
+              <div key={day} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
+                <div className="flex items-center justify-between gap-2">
                   <h3>
                     {day}
-                    {index === today && week === weekStartOf() ? ' · Today' : ''}
+                    {index === today && week === weekStartOf() ? '· Today' : ''}
                   </h3>
                   <Link to={kitchenPath('/plan', c.id, week)}>{d.plan.entries.some((e) => e.day === index) ? 'Edit meals' : 'Choose dinner'}</Link>
                 </div>
                 {d.plan.entries
                   .filter((e) => e.day === index)
                   .map((e) => (
-                    <div className="row between wrap" key={e.id}>
+                    <div className="flex flex-wrap items-center justify-between gap-2" key={e.id}>
                       <div>
                         <strong>{e.slot}: </strong>
                         {e.recipeId ? (
@@ -122,13 +123,13 @@ export function ThisWeek() {
                         ) : (
                           title(e)
                         )}
-                        <p className="small muted">
+                        <p className="text-[0.875rem] text-muted-foreground">
                           {e.servings} portions ·{' '}
                           {e.dinerIds
                             ?.map((id) => d.diners.find((p) => p.id === id)?.name)
                             .filter(Boolean)
                             .join(', ') || 'Attendance not set'}
-                          {e.leftoverOf ? ' · Leftovers' : ''}
+                          {e.leftoverOf ? '· Leftovers' : ''}
                         </p>
                         {!e.leftoverOf && batchPortions(d.plan.entries, e.id) > e.servings && (
                           <p>
@@ -137,10 +138,10 @@ export function ThisWeek() {
                           </p>
                         )}
                       </div>
-                      <div className="row">
+                      <div className="flex items-center gap-2">
                         <span>{e.cookId ? (d.members.find((m) => m.userId === e.cookId)?.displayName ?? 'Former member') : 'No cook yet'}</span>
                         {(!e.cookId || e.cookId === me?.user.id) && !e.leftoverOf && (
-                          <button className="btn btn-small" disabled={busy} onClick={() => void claim(e)}>
+                          <button className={buttonVariants({ size: 'sm' })} disabled={busy} onClick={() => void claim(e)}>
                             {e.cookId ? 'Unassign me' : 'I’ll cook'}
                           </button>
                         )}
@@ -150,49 +151,51 @@ export function ThisWeek() {
               </div>
             ))}
           </section>
-          <section className="card stack">
+          <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
             <h2>Shopping</h2>
             <p>
               {d.list.items.filter((i) => i.checked).length} of {d.list.items.length} items purchased.
-              {d.stale ? ' Your plan changed; review the list update.' : ''}
+              {d.stale ? 'Your plan changed; review the list update.' : ''}
             </p>
-            <Link className="btn btn-primary" to={kitchenPath('/shop', c.id, week)}>
+            <Link className={buttonVariants({ variant: 'default' })} to={kitchenPath('/shop', c.id, week)}>
               Open shopping list
             </Link>
           </section>
-          <section className="stack">
+          <section className="flex flex-col gap-3">
             <h2>Recently added</h2>
-            <ul className="grid">
+            <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,248px),1fr))] gap-x-[22px] gap-y-9 p-0">
               {d.catalog
                 .filter((r) => !r.archived)
                 .slice(0, 4)
                 .map((r) => (
-                  <li key={r.id} className="card">
+                  <li key={r.id} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
                     <Link to={kitchenPath(`/book/${r.id}`, c.id)}>{r.title}</Link>
-                    <p className="small muted">Added by {d.members.find((m) => m.userId === r.addedBy)?.displayName ?? 'a former member'}</p>
+                    <p className="text-[0.875rem] text-muted-foreground">
+                      Added by {d.members.find((m) => m.userId === r.addedBy)?.displayName ?? 'a former member'}
+                    </p>
                   </li>
                 ))}
             </ul>
           </section>
-          <section className="stack">
+          <section className="flex flex-col gap-3">
             <h2>From your kitchen</h2>
-            {!d.activity.length && <p className="muted">Mark a recipe “Want to try” or leave a note after cooking it.</p>}
+            {!d.activity.length && <p className="text-muted-foreground">Mark a recipe “Want to try” or leave a note after cooking it.</p>}
             {d.activity.slice(0, 8).map((a) => (
-              <article key={a.id} className="card">
+              <article key={a.id} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
                 <p>
                   <strong>{a.actorName}</strong> {a.kind === 'made' ? 'made' : a.kind === 'want' ? 'wants to try' : 'left a note on'}{' '}
                   <Link to={kitchenPath(`/book/${a.recipeId}`, c.id)}>{a.recipeTitle}</Link>
                 </p>
                 {a.note && <p>{a.note}</p>}
-                <time className="small muted">{new Date(a.at).toLocaleDateString()}</time>
+                <time className="text-[0.875rem] text-muted-foreground">{new Date(a.at).toLocaleDateString()}</time>
               </article>
             ))}
           </section>
-          <p className="small muted">
+          <p className="text-[0.875rem] text-muted-foreground">
             {d.ownerName} provides this kitchen’s {d.tier.name} plan. {d.budget.importsLeft} imports remain across their kitchens.
             {d.budget.aiFeatures
               ? ` ${formatUsd(d.budget.allowanceLeftMicros)} of the monthly AI allowance remains; imports and planning both use it.`
-              : ' Manual planning and shopping are included.'}{' '}
+              : 'Manual planning and shopping are included.'}{' '}
             <Link to={kitchenPath('/community', c.id)}>Kitchen settings</Link>
           </p>
         </>

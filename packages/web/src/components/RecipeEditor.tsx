@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { formatAmount, parseIngredientLine, type Ingredient, type Recipe, type Step } from '@potluck/core';
 import { api } from '../api';
 import { ErrorNote, Field, TagInput } from './ui';
+import { buttonVariants } from '@/components/ui/button';
 
 function ingredientLine(i: Ingredient): string {
   const amount = formatAmount(i.quantity, i.unit);
@@ -100,27 +101,27 @@ export function RecipeEditor({ recipe, onCancel, onSaved }: { recipe: Recipe; on
   }
 
   return (
-    <form className="stack-lg" onSubmit={submit}>
-      <div className="row between wrap">
+    <form className="flex flex-col gap-8" onSubmit={submit}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1>Edit recipe</h1>
-        <div className="row">
-          <button type="button" className="btn" onClick={onCancel}>
+        <div className="flex items-center gap-2">
+          <button type="button" className={buttonVariants()} onClick={onCancel}>
             Cancel
           </button>
-          <button className="btn btn-primary" disabled={busy || !title.trim()}>
+          <button className={buttonVariants({ variant: 'default' })} disabled={busy || !title.trim()}>
             {busy ? 'Saving…' : 'Save'}
           </button>
         </div>
       </div>
       <ErrorNote error={error} />
-      <div className="card stack">
+      <div className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
         <Field label="Title">
           <input value={title} onChange={(e) => setTitle(e.target.value)} required />
         </Field>
         <Field label="Description">
           <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
-        <div className="form-grid">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] items-end gap-3">
           <Field label="Servings">
             <input type="number" min={1} value={servings} onChange={(e) => setServings(e.target.value)} />
           </Field>
@@ -138,9 +139,9 @@ export function RecipeEditor({ recipe, onCancel, onSaved }: { recipe: Recipe; on
           <TagInput value={tags} onChange={setTags} lowercase placeholder="chicken, weeknight, high-protein" />
         </Field>
       </div>
-      <div className="card stack">
+      <div className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
         <Field label="Ingredients" hint='One per line, e.g. "2 cups rice, rinsed". Start a line with "## " for a group heading.'>
-          <textarea rows={12} className="mono" value={ingredients} onChange={(e) => setIngredients(e.target.value)} />
+          <textarea rows={12} className="font-mono text-[0.88rem]" value={ingredients} onChange={(e) => setIngredients(e.target.value)} />
         </Field>
         <Field label="Steps" hint="Separate steps with a blank line.">
           <textarea rows={12} value={steps} onChange={(e) => setSteps(e.target.value)} />

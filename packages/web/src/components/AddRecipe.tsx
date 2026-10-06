@@ -1,7 +1,9 @@
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRef, useState, type FormEvent } from 'react';
 import { api, uploadToPresigned } from '../api';
 import { useSession } from '../lib/session';
 import { ErrorNote, Field } from './ui';
+import { buttonVariants } from '@/components/ui/button';
 
 export type AddMode = 'link' | 'photos' | 'text';
 
@@ -56,57 +58,66 @@ export function AddRecipe({ communityId, initialMode = 'link', onQueued }: { com
   const tg = publicConfig?.telegramBotUsername;
 
   return (
-    <section className="card stack" aria-labelledby="add-recipe-title">
-      <div className="row between wrap">
-        <h2 id="add-recipe-title">Add a recipe</h2>
-        <div className="segmented" role="tablist" aria-label="Import type">
-          {(['link', 'photos', 'text'] as AddMode[]).map((m) => (
-            <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? 'on' : ''} onClick={() => setMode(m)}>
-              {m === 'link' ? 'Link' : m === 'photos' ? 'Upload' : 'Text'}
+    <Tabs
+      value={mode}
+      onValueChange={(v) => setMode(v as AddMode)}
+      className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+      aria-labelledby="add-recipe-title"
+      asChild
+    >
+      <section>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="add-recipe-title">Add a recipe</h2>
+          <TabsList aria-label="Import type">
+            {(['link', 'photos', 'text'] as AddMode[]).map((m) => (
+              <TabsTrigger key={m} value={m}>
+                {m === 'link' ? 'Link' : m === 'photos' ? 'Upload' : 'Text'}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+        <form className="flex flex-col gap-3" onSubmit={submit}>
+          <p className="text-[0.875rem] text-muted-foreground">
+            Saving to <strong>{me?.communities.find((c) => c.id === communityId)?.name}</strong> and My recipes. Imports use this group owner’s account
+            allowance.
+          </p>
+          <TabsContent value="link">
+            <Field label="Video or recipe link" hint="TikTok, Instagram, YouTube, Facebook, Pinterest or a recipe website.">
+              <input type="url" inputMode="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.tiktok.com/@chef/video/…" />
+            </Field>
+          </TabsContent>
+          <TabsContent value="photos">
+            <Field
+              label="Photos or a video"
+              hint="Cookbook pages, a handwritten card, screenshots of comments that list the ingredients, or one saved cooking video."
+            >
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/*,video/mp4,video/quicktime,video/webm"
+                multiple
+                onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 6))}
+              />
+            </Field>
+          </TabsContent>
+          <TabsContent value="text">
+            <Field label="Recipe text" hint="Paste a recipe from anywhere. Potluck will structure it.">
+              <textarea rows={6} value={text} onChange={(e) => setText(e.target.value)} />
+            </Field>
+          </TabsContent>
+          <ErrorNote error={error} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <button className={buttonVariants({ variant: 'default' })} disabled={busy || !valid}>
+              {busy ? progress || 'Sending…' : 'Import recipe'}
             </button>
-          ))}
-        </div>
-      </div>
-      <form className="stack" onSubmit={submit}>
-        <p className="small muted">
-          Saving to <strong>{me?.communities.find((c) => c.id === communityId)?.name}</strong> and My recipes. Imports use this group owner’s account allowance.
-        </p>
-        {mode === 'link' && (
-          <Field label="Video or recipe link" hint="TikTok, Instagram, YouTube, Facebook, Pinterest or a recipe website.">
-            <input type="url" inputMode="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.tiktok.com/@chef/video/…" />
-          </Field>
-        )}
-        {mode === 'photos' && (
-          <Field
-            label="Photos or a video"
-            hint="Cookbook pages, a handwritten card, screenshots of comments that list the ingredients, or one saved cooking video."
-          >
-            <input
-              ref={fileInput}
-              type="file"
-              accept="image/*,video/mp4,video/quicktime,video/webm"
-              multiple
-              onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 6))}
-            />
-          </Field>
-        )}
-        {mode === 'text' && (
-          <Field label="Recipe text" hint="Paste a recipe from anywhere. Potluck will structure it.">
-            <textarea rows={6} value={text} onChange={(e) => setText(e.target.value)} />
-          </Field>
-        )}
-        <ErrorNote error={error} />
-        <div className="row between wrap">
-          <button className="btn btn-primary" disabled={busy || !valid}>
-            {busy ? progress || 'Sending…' : 'Import recipe'}
-          </button>
-          {tg && (
-            <a className="muted small" href={`https://t.me/${tg}`} target="_blank" rel="noreferrer">
-              Tip: send links to @{tg} on Telegram
-            </a>
-          )}
-        </div>
-      </form>
-    </section>
+            {tg && (
+              <a className="text-[0.875rem] text-muted-foreground" href={`https://t.me/${tg}`} target="_blank" rel="noreferrer">
+                Tip: send links to @{tg} on Telegram
+              </a>
+            )}
+          </div>
+        </form>
+      </section>
+    </Tabs>
   );
 }

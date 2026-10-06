@@ -214,14 +214,17 @@ them for the retry.
 
 ## Web design system
 
-Calm, minimal, editorial. Defined as tokens at the top of `packages/web/src/styles.css`, with light and dark
-modes that follow the system setting.
+Warm editorial cookbook: oat paper, espresso ink and one paprika accent, with light and dark modes that follow the system setting or `data-theme`.
 
-- **Type:** Geist for text and Geist Mono for amounts, codes and timestamps, both self-hosted.
-- **Color:** one warm-neutral gray family plus a single herb-green accent. Primary buttons are near-black.
-  Status colors are pale pastels.
-- **Shape:** containers 12px, buttons and inputs 8px, tags and chips fully round.
+- **Stack:** Tailwind CSS v4 with shadcn/ui components on Radix. Styling lives in utility classes; there is no page CSS.
+- **Tokens:** raw values in `packages/web/src/tokens.css`. `theme.css` maps them onto Tailwind and shadcn names: `primary` is paprika, `accent` is soft paprika, `muted` is the oat surface and `muted-foreground` is muted text. App-only colors keep descriptive names (`surface-2`, `ink`, `foreground-2`).
+- **Element defaults:** `base.css`, in `@layer base` after preflight. It covers body, the paper grain, headings, links, prose lists, native form controls and the reduced-motion safety net.
+- **Components:** shadcn primitives in `src/components/ui/`, restyled to the cookbook look. App-level pieces are in `src/components/ui.tsx`: `FormDialog`, `ConfirmAction` (destructive actions), `ConfirmButton` (inline two-step), `Field`, `TagInput`, `Segmented`. Use `cn()` to combine classes; it knows the theme's custom colors and shadows.
+- **Type:** Fraunces for display (`font-serif`), Geist for text (`font-sans`), Geist Mono for amounts and codes (`font-mono`). All three are self-hosted.
+- **Shape:** small marks 8px (`rounded-sm`), controls 12px (`rounded-md`), cards 16px (`rounded-lg`), big containers 22px (`rounded-xl`), buttons and chips fully round.
+- **Layout:** phone tab bar below 860px, top navigation from `wide:` (860px) up. Dialogs are centered on every screen size.
 - **Icons:** Phosphor. No emoji in the interface.
 - **Motion:** short fades and rises on `transform` and `opacity` only, all disabled for reduced-motion users.
-- **Loading:** skeletons shaped like the content they replace.
+- **Loading:** skeletons shaped like the content they replace. Routes other than the landing page load lazily.
 - **Photos:** public-domain images in `packages/web/public/images`, credited in `CREDITS.md` there.
+- **Checks:** `npm run test:visual` compares screenshots of every screen and dialog in both themes and sizes against a local baseline, records axe findings, and checks dialog keyboard behavior (`npm run test:visual:update` refreshes the baseline). `npm run lint:classes` reports class strings whose utilities conflict. In development, `/__ui` shows every primitive.

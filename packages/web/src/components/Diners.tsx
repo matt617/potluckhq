@@ -4,7 +4,7 @@ import { api } from '../api';
 import { useAsync } from '../lib/hooks';
 import { useSession, canAdmin, useCommunity } from '../lib/session';
 import { newId } from '../lib/util';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,24 +39,24 @@ export function Diners() {
     });
   }
   return (
-    <section className="stack card">
+    <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
       <h2>Who eats here?</h2>
-      <p className="muted">
-        Members join through nominations and add their own diner profile. Children and guests don’t need an account. Adding a guest here does not
-        grant kitchen access. Only the food requirements you enter here are shared with this kitchen and used for its meal suggestions.
+      <p className="text-muted-foreground">
+        Members join through nominations and add their own diner profile. Children and guests don’t need an account. Adding a guest here does not grant kitchen
+        access. Only the food requirements you enter here are shared with this kitchen and used for its meal suggestions.
       </p>
       <ErrorNote error={error ?? state.error} />
-      <ul className="members">
+      <ul className="m-0 list-none p-0 [&_li]:flex [&_li]:flex-wrap [&_li]:items-center [&_li]:gap-2.5 [&_li]:px-0 [&_li]:py-2.5 [&_li]:[border-bottom:1px_dashed_var(--border)] [&_li:last-child]:[border-bottom:0] [&_li>span:first-child]:min-w-[140px] [&_li>span:first-child]:flex-1 [&_li>span:first-child]:font-medium [&_select]:min-h-[38px] [&_select]:w-[auto]">
         {state.data?.diners.map((d) => (
           <li key={d.id}>
             <span>
-              {d.name} · {d.userId ? (d.userId === me?.user.id ? 'Your linked profile' : 'Member profile') : 'Child or guest · no account'} ·{' '}
-              {d.portions} portions{d.usual ? ' · Usually eating' : ''}
+              {d.name} · {d.userId ? (d.userId === me?.user.id ? 'Your linked profile' : 'Member profile') : 'Child or guest · no account'} · {d.portions}{' '}
+              portions{d.usual ? ' · Usually eating' : ''}
             </span>
             {(d.userId === me?.user.id || (!d.userId && canAdmin(c.role))) && (
-              <div className="row">
+              <div className="flex items-center gap-2">
                 <button
-                  className="btn btn-small"
+                  className={buttonVariants({ size: 'sm' })}
                   onClick={() => {
                     setIsNew(false);
                     setEditing(d);
@@ -65,7 +65,7 @@ export function Diners() {
                   Edit
                 </button>
                 <ConfirmAction
-                  className="btn btn-small"
+                  className={buttonVariants({ size: 'sm' })}
                   title={`Remove ${d.name}?`}
                   description="Their portions and food requirements stop being used for this kitchen’s plans and suggestions."
                   confirmLabel="Remove profile"
@@ -85,14 +85,14 @@ export function Diners() {
           </li>
         ))}
       </ul>
-      <div className="row wrap">
+      <div className="flex flex-wrap items-center gap-2">
         {!own && (
-          <button className="btn" onClick={() => add(true)}>
+          <button className={buttonVariants()} onClick={() => add(true)}>
             Add me as a diner
           </button>
         )}
         {canAdmin(c.role) && (
-          <button className="btn" onClick={() => add(false)}>
+          <button className={buttonVariants()} onClick={() => add(false)}>
             Add a child or guest
           </button>
         )}
@@ -167,12 +167,7 @@ export function Diners() {
               <Field key={k} label={label}>
                 <TagInput
                   value={editing.diet[k]}
-                  onChange={(next) =>
-                    setEditing({
-                      ...editing,
-                      diet: { ...editing.diet, [k]: next },
-                    })
-                  }
+                  onChange={(next) => setEditing({ ...editing, diet: { ...editing.diet, [k]: next } })}
                   placeholder={placeholder}
                 />
               </Field>

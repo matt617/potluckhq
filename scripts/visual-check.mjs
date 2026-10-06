@@ -47,7 +47,7 @@ const screens = [
     name: 'book-loading',
     path: '/book?kitchen=home',
     hang: '/api/communities/home/recipes',
-    wait: (p) => p.getByRole('status').filter({ hasText: /Loading/ }).first(),
+    wait: (p) => p.getByRole('status').filter({ hasText: 'Loading recipes' }),
   },
   { name: 'recipe-kitchen', path: `/book/r-home?kitchen=home&week=${week}`, wait: (p) => p.getByRole('heading', { name: 'Roast tomatoes', level: 1 }) },
   { name: 'recipe-personal', path: '/book/r-personal', wait: (p) => p.getByLabel('Collections', { exact: true }) },
@@ -56,6 +56,38 @@ const screens = [
   { name: 'shop', path: `/shop?kitchen=home&week=${week}`, wait: (p) => p.getByText('tomatoes').first() },
   { name: 'community', path: '/community?kitchen=home', wait: (p) => p.getByRole('heading', { name: 'Who eats here?' }) },
   { name: 'account', path: '/account', wait: (p) => p.getByRole('heading', { name: 'Profile', exact: true }) },
+  { name: 'onboarding', path: '/book', noKitchens: true, wait: (p) => p.getByRole('button', { name: 'Save my first recipe' }) },
+  { name: 'book-imports', path: '/book?kitchen=home', imports: true, wait: (p) => p.getByText('Reading recipe').first() },
+  {
+    name: 'add-recipe-link',
+    path: '/book?kitchen=home',
+    full: true,
+    wait: (p) => p.getByRole('button', { name: 'Add recipe' }),
+    act: async (p) => {
+      await p.getByRole('button', { name: 'Add recipe' }).click();
+      await p.getByRole('tab', { name: 'Link' }).waitFor();
+    },
+  },
+  {
+    name: 'add-recipe-text',
+    path: '/book?kitchen=home',
+    full: true,
+    wait: (p) => p.getByRole('button', { name: 'Add recipe' }),
+    act: async (p) => {
+      await p.getByRole('button', { name: 'Add recipe' }).click();
+      await p.getByRole('tab', { name: 'Text' }).click();
+    },
+  },
+  {
+    name: 'recipe-edit',
+    path: `/book/r-home?kitchen=home&week=${week}`,
+    full: true,
+    wait: (p) => p.getByRole('button', { name: 'Edit recipe' }),
+    act: async (p) => {
+      await p.getByRole('button', { name: 'Edit recipe' }).click();
+      await p.getByLabel('Tags').waitFor();
+    },
+  },
   // Dev-only shadcn gallery in the cookbook theme.
   { name: 'ui-gallery', path: '/__ui', signedOut: true, wait: (p) => p.getByRole('heading', { name: 'UI gallery' }) },
   { name: 'ui-dialog', path: '/__ui?open=dialog', signedOut: true, full: false, wait: (p) => p.getByRole('dialog') },
@@ -102,8 +134,27 @@ const screens = [
     path: '/book?kitchen=home',
     wait: (p) => p.getByRole('link', { name: /Roast tomatoes/ }).first(),
     act: async (p) => {
-      await p.locator('select:has(option[value="__new"])').first().selectOption('__new');
+      await p.getByRole('combobox', { name: /Kitchen or recipe circle/ }).click();
+      await p.getByRole('option', { name: 'New kitchen' }).click();
       await p.getByRole('dialog').waitFor();
+    },
+  },
+  {
+    name: 'switcher-open',
+    path: '/book?kitchen=home',
+    wait: (p) => p.getByRole('link', { name: /Roast tomatoes/ }).first(),
+    act: async (p) => {
+      await p.getByRole('combobox', { name: /Kitchen or recipe circle/ }).click();
+      await p.getByRole('option', { name: 'New kitchen' }).waitFor();
+    },
+  },
+  {
+    name: 'menu-more',
+    path: '/book?kitchen=home',
+    wait: (p) => p.getByRole('link', { name: /Roast tomatoes/ }).first(),
+    act: async (p) => {
+      await p.getByRole('button', { name: 'More' }).click();
+      await p.getByRole('dialog').getByRole('link', { name: 'My recipes' }).waitFor();
     },
   },
   {
@@ -189,6 +240,17 @@ const keyboardChecks = [
   { name: 'add to plan dialog', path: `/book/r-home?kitchen=home&week=${week}`, trigger: (p) => p.getByRole('button', { name: 'Cook this week' }) },
   { name: 'origin review dialog', path: '/book/r-personal', trigger: (p) => p.getByRole('button', { name: 'Review changes to the original' }) },
   { name: 'remove confirmation', path: '/community?kitchen=home', role: 'alertdialog', trigger: (p) => p.getByRole('button', { name: 'Remove profile' }).first() },
+  {
+    name: 'new kitchen dialog',
+    path: '/book?kitchen=home',
+    trigger: (p) => p.getByRole('combobox', { name: /Kitchen or recipe circle/ }),
+    open: async (p) => {
+      await p.keyboard.press('Enter');
+      await p.getByRole('option', { name: 'New kitchen' }).waitFor();
+      await p.keyboard.press('End');
+      await p.keyboard.press('Enter');
+    },
+  },
 ];
 
 async function keyboardCheck(browser, check) {
@@ -206,7 +268,8 @@ async function keyboardCheck(browser, check) {
     await page.goto(`${origin}${check.path}`);
     const trigger = check.trigger(page);
     await trigger.focus();
-    await page.keyboard.press('Enter');
+    if (check.open) await check.open(page);
+    else await page.keyboard.press('Enter');
     const dialog = page.getByRole(check.role ?? 'dialog');
     await dialog.waitFor();
     const inside = () => page.evaluate((role) => !!document.activeElement?.closest(`[role=${role}]`), check.role ?? 'dialog');
@@ -235,7 +298,7 @@ async function keyboardCheck(browser, check) {
   }
 }
 
-function fixtures({ failPlanSave = false } = {}) {
+function fixtures({ failPlanSave = false, imports = false, noKitchens = false } = {}) {
   const user = {
     id: 'u1',
     displayName: 'Sam',
@@ -297,7 +360,20 @@ function fixtures({ failPlanSave = false } = {}) {
     updatedAt: '2026-10-01',
   };
   const personal = { ...recipe, id: 'r-personal', ownerId: 'u1', kitchenId: undefined, communityIds: [], copiedFrom: { recipeId: 'r-home' } };
-  const technique = { ...recipe, id: 'tech', kind: 'technique', title: 'Knife skills', ingredients: [], tags: ['technique'] };
+  const technique = {
+    ...recipe,
+    id: 'tech',
+    kind: 'technique',
+    title: 'Knife skills',
+    ingredients: [],
+    tags: ['technique'],
+    technique: {
+      summary: 'A claw grip and a rocking motion give even, safe slices.',
+      whyItWorks: 'Tucked fingertips keep the knuckles against the blade, so the knife guides itself.',
+      appliesTo: ['onions', 'herbs', 'stir-fry vegetables'],
+      mistakes: ['Lifting the tip off the board', 'Flat fingers under the blade'],
+    },
+  };
   const recipes = new Map([
     [recipe.id, recipe],
     [personal.id, personal],
@@ -312,6 +388,7 @@ function fixtures({ failPlanSave = false } = {}) {
     entries: [
       { id: 'meal', day: 0, slot: 'dinner', recipeId: 'r-home', servings: 2, dinerIds: ['sam'], cookId: 'u1' },
       { id: 'label', day: 2, slot: 'lunch', label: 'Leftover soup', servings: 1 },
+      { id: 'left', day: 1, slot: 'dinner', leftoverOf: 'meal', recipeId: 'r-home', servings: 1 },
     ],
     updatedAt: '2026-10-04',
   };
@@ -333,14 +410,23 @@ function fixtures({ failPlanSave = false } = {}) {
     updatedAt: '2026-10-04',
     planFingerprint: 'new',
   };
-  const communities = [home, circle];
+  const communities = noKitchens ? [] : [home, circle];
 
   function api(method, p, b) {
     if (p === '/api/me/nominations') return { nominations: [] };
     if (p === '/api/me') return { user, budget, communities, channels: [] };
     if (p === '/api/library') return { recipes: [summary(personal)], annotations };
     if (p.startsWith('/api/library/')) return p.endsWith('/annotation') ? annotations[0] : { recipe: personal };
-    if (p === '/api/imports') return { imports: [] };
+    if (p === '/api/imports')
+      return {
+        imports: imports
+          ? [
+              { id: 'job-1', communityId: 'home', userId: 'u1', status: 'failed', kind: 'url', url: 'https://www.tiktok.com/@chef/video/1', channel: 'web', errorCode: 'blocked', createdAt: `${week}T10:00:00`, updatedAt: `${week}T10:00:00` },
+              { id: 'job-2', communityId: 'home', userId: 'u1', status: 'failed', kind: 'image', channel: 'web', errorCode: 'not_recipe', createdAt: `${week}T09:00:00`, updatedAt: `${week}T09:00:00` },
+              { id: 'job-3', communityId: 'home', userId: 'u1', status: 'extracting', kind: 'url', url: 'https://www.instagram.com/reel/abc', channel: 'web', createdAt: `${week}T11:50:00`, updatedAt: `${week}T11:50:00` },
+            ]
+          : [],
+      };
     if (p.startsWith('/api/recipes/')) {
       const rid = p.split('/')[3];
       if (p.endsWith('/origin'))
@@ -450,6 +536,7 @@ async function capture(browser, variant, screen) {
   if (screen.full) await page.evaluate(() => window.scrollTo(0, 0));
   await page.mouse.move(0, 0); // no stray hover states in captures
   await settle(page);
+  if (process.env.VISUAL_EVAL) console.error(screen.name, variant.name, JSON.stringify(await page.evaluate(process.env.VISUAL_EVAL)));
   const file = `${outDir}/${screen.name}--${variant.name}.png`;
   await page.screenshot({ path: file, fullPage: screen.full, animations: 'disabled', caret: 'hide' });
   let axe = [];

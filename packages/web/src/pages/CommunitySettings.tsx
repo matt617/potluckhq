@@ -4,12 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { tierConfig, type InviteResponse, type Role } from '@potluck/core';
 import { api } from '../api';
 import { ConfirmAction, ErrorNote, Field, Spinner } from '../components/ui';
+import { metaBadge } from '../lib/styles';
 import { useAsync } from '../lib/hooks';
 import { canAdmin, useCommunity, useSession } from '../lib/session';
 import { copyText, formatDate } from '../lib/util';
 import { Diners } from '../components/Diners';
 import { KitchenAdministration } from '../components/KitchenAdministration';
 import { toast } from 'sonner';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export function CommunitySettings() {
   const community = useCommunity();
@@ -76,28 +79,31 @@ export function CommunitySettings() {
   if (detail.loading && !detail.data) return <Spinner />;
 
   return (
-    <div className="stack-lg">
+    <div className="flex flex-col gap-8">
       <h1>{community.name}</h1>
       <ErrorNote error={detail.error} onRetry={() => void detail.reload()} />
       <ErrorNote error={error} />
 
-      <section className="card stack" aria-labelledby="members-title">
-        <div className="row between wrap">
-          <h2 id="members-title" className="h3">
+      <section
+        className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+        aria-labelledby="members-title"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="members-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
             Members
           </h2>
-          <span className="muted small">
+          <span className="text-[0.875rem] text-muted-foreground">
             {members.length} of {memberLimit} on {limits.name}
           </span>
         </div>
-        <ul className="members">
+        <ul className="m-0 list-none p-0 [&_li]:flex [&_li]:flex-wrap [&_li]:items-center [&_li]:gap-2.5 [&_li]:px-0 [&_li]:py-2.5 [&_li]:[border-bottom:1px_dashed_var(--border)] [&_li:last-child]:[border-bottom:0] [&_li>span:first-child]:min-w-[140px] [&_li>span:first-child]:flex-1 [&_li>span:first-child]:font-medium [&_select]:min-h-[38px] [&_select]:w-[auto]">
           {members.map((m) => {
             const self = m.userId === me?.user.id;
             return (
               <li key={m.userId}>
                 <span>
                   {m.displayName || 'Member'}
-                  {self && <span className="muted"> (you)</span>}
+                  {self && <span className="text-muted-foreground"> (you)</span>}
                 </span>
                 {isOwner && m.role !== 'owner' ? (
                   <select
@@ -118,11 +124,11 @@ export function CommunitySettings() {
                     <option value="admin">Admin</option>
                   </select>
                 ) : (
-                  <span className="badge">{m.role}</span>
+                  <span className={cn(metaBadge, 'ml-1')}>{m.role}</span>
                 )}
                 {admin && !self && m.role !== 'owner' && (role === 'owner' || m.role === 'member') && (
                   <ConfirmAction
-                    className="btn btn-ghost btn-small"
+                    className={buttonVariants({ variant: 'ghost', size: 'sm' })}
                     title={`Remove ${m.displayName}?`}
                     description="They lose access to this space’s recipes and plans. You can nominate them again later."
                     confirmLabel="Remove"
@@ -147,26 +153,27 @@ export function CommunitySettings() {
 
         {admin && <MemberNominations full={full} />}
         {admin && (
-          <details className="stack invite-box">
-            <summary className="h4">Invite someone new to Potluck</summary>
-            <p className="small muted">
-              Use a shareable link when someone doesn’t have an account. Anyone with this link can join with the selected role until it expires or is
-              revoked.
+          <details className="flex flex-col gap-3 pt-2 [&_select]:w-[auto]">
+            <summary className="mb-1 cursor-pointer font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">
+              Invite someone new to Potluck
+            </summary>
+            <p className="text-[0.875rem] text-muted-foreground">
+              Use a shareable link when someone doesn’t have an account. Anyone with this link can join with the selected role until it expires or is revoked.
             </p>
             {full ? (
-              <p className="muted small">
+              <p className="text-[0.875rem] text-muted-foreground">
                 {community.kind === 'circle'
                   ? 'This circle has reached its 20-member limit.'
                   : 'This kitchen is full. The owner can upgrade the plan to add more people.'}
               </p>
             ) : (
-              <div className="row wrap">
+              <div className="flex flex-wrap items-center gap-2">
                 <select aria-label="Invite role" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as 'member' | 'admin')}>
                   <option value="member">as member</option>
                   {isOwner && <option value="admin">as admin</option>}
                 </select>
                 <button
-                  className="btn btn-primary"
+                  className={buttonVariants({ variant: 'default' })}
                   disabled={busy === 'invite'}
                   onClick={() =>
                     act('invite', async () =>
@@ -183,16 +190,16 @@ export function CommunitySettings() {
               </div>
             )}
             {invite && (
-              <div className="stack">
+              <div className="flex flex-col gap-3">
                 <input readOnly value={invite.url} aria-label="Invite link" onFocus={(e) => e.currentTarget.select()} />
-                <div className="row wrap">
-                  <button className="btn" onClick={async () => toast((await copyText(invite.url)) ? 'Copied' : 'Copy failed')}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button className={buttonVariants()} onClick={async () => toast((await copyText(invite.url)) ? 'Copied' : 'Copy failed')}>
                     Copy link
                   </button>
-                  <button className="btn" onClick={() => void shareInvite()}>
+                  <button className={buttonVariants()} onClick={() => void shareInvite()}>
                     Share…
                   </button>
-                  <span className="muted small">Expires {formatDate(invite.expiresAt)}</span>
+                  <span className="text-[0.875rem] text-muted-foreground">Expires {formatDate(invite.expiresAt)}</span>
                 </div>
               </div>
             )}
@@ -203,8 +210,11 @@ export function CommunitySettings() {
       {community.kind !== 'circle' && <Diners />}
       <KitchenAdministration />
       {admin && (
-        <section className="card stack" aria-labelledby="settings-title">
-          <h2 id="settings-title" className="h3">
+        <section
+          className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+          aria-labelledby="settings-title"
+        >
+          <h2 id="settings-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
             Settings
           </h2>
           <Field label="Name">
@@ -219,7 +229,7 @@ export function CommunitySettings() {
             </Field>
           )}
           <button
-            className="btn btn-primary"
+            className={buttonVariants({ variant: 'default' })}
             disabled={busy === 'save' || !name.trim()}
             onClick={() =>
               act(
@@ -244,15 +254,18 @@ export function CommunitySettings() {
         </section>
       )}
 
-      <section className="card stack danger-zone" aria-labelledby="danger-title">
-        <h2 id="danger-title" className="h3">
+      <section
+        className="flex min-w-0 flex-col gap-3 rounded-lg border border-[color-mix(in_srgb,_var(--danger)_30%,_var(--border))] bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] [&_input]:max-w-[260px]"
+        aria-labelledby="danger-title"
+      >
+        <h2 id="danger-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
           {isOwner ? 'Delete this kitchen or circle' : 'Leave this kitchen or circle'}
         </h2>
         {isOwner ? (
           <>
-            <p className="muted small">
-              Deletes this shared space and its plans, shopping lists and local recipe versions. Personal saves and independent copies elsewhere
-              remain. Transfer ownership above to let the group continue.
+            <p className="text-[0.875rem] text-muted-foreground">
+              Deletes this shared space and its plans, shopping lists and local recipe versions. Personal saves and independent copies elsewhere remain.
+              Transfer ownership above to let the group continue.
             </p>
             <ConfirmAction
               title={`Delete ${community.name}?`}

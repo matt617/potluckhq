@@ -4,6 +4,9 @@ import { detectPlatform, type ChannelKind, type ImportJob, type ImportStatus, ty
 import { api } from '../api';
 import { timeAgo } from '../lib/util';
 import { ErrorNote } from './ui';
+import { metaBadge } from '../lib/styles';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export type AlternativeMode = 'photos' | 'text';
 
@@ -132,40 +135,50 @@ export function ImportList({
   const title = failed === imports.length ? (failed === 1 ? "Couldn't import" : `${failed} imports failed`) : failed ? 'Imports' : 'Importing';
 
   return (
-    <section className="card imports-card" aria-labelledby="imports-title">
-      <h2 id="imports-title" className="h3">
+    <section className="imports-card min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]" aria-labelledby="imports-title">
+      <h2 id="imports-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         {title}
       </h2>
-      <ul className="imports" aria-live="polite">
+      <ul className="mx-0 mt-2 mb-0 flex list-none flex-col p-0" aria-live="polite">
         {imports.map((job) => {
           const isFailed = job.status === 'failed';
           return (
-            <li key={job.id} className={isFailed ? 'import import-failed' : 'import'}>
-              <span className="import-icon" aria-hidden>
-                {isFailed ? <WarningCircle size={20} weight="fill" /> : <span className="pulse" />}
+            <li key={job.id} className="grid grid-cols-[22px_1fr] items-start gap-3 border-t border-border px-0 py-3 text-[0.92rem]">
+              <span className={cn('grid h-[22px] place-items-center', isFailed ? 'text-destructive' : 'text-warning-foreground')} aria-hidden>
+                {isFailed ? (
+                  <WarningCircle size={20} weight="fill" />
+                ) : (
+                  <span className="h-2 w-2 [animation:import-pulse_1.2s_ease-in-out_infinite] rounded-full bg-current" />
+                )}
               </span>
-              <div className="import-body">
-                <div className="import-head">
-                  <strong className="import-src">{sourceLabel(job)}</strong>
-                  {job.channel !== 'web' && <span className="badge">via {CHANNEL_NAME[job.channel]}</span>}
+              <div className="min-w-0">
+                <div className="flex min-h-[22px] flex-wrap items-center gap-x-2 gap-y-1">
+                  <strong className="font-semibold">{sourceLabel(job)}</strong>
+                  {job.channel !== 'web' && <span className={metaBadge}>via {CHANNEL_NAME[job.channel]}</span>}
                   {job.url && (
-                    <a className="import-link" href={job.url} target="_blank" rel="noreferrer" aria-label="Open the original">
+                    <a
+                      className="inline-grid [place-items:center] rounded-[4px] text-muted-foreground hover:text-foreground"
+                      href={job.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Open the original"
+                    >
                       <ArrowSquareOut size={15} aria-hidden />
                     </a>
                   )}
-                  <span className="import-meta">
+                  <span className="text-[0.82rem] text-muted-foreground">
                     {isFailed ? 'Failed' : ACTIVE_LABEL[job.status]} · {timeAgo(job.createdAt)}
                   </span>
                 </div>
                 {isFailed && (
                   <>
-                    <p className="import-error">{failureMessage(job)}</p>
-                    <div className="import-actions">
+                    <p className="mx-0 mt-1 mb-0 leading-[1.45] text-foreground-2">{failureMessage(job)}</p>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
                       {actionsFor(job).map((a) => (
                         <button
                           key={a.label}
                           type="button"
-                          className={a.primary ? 'btn btn-small' : 'btn btn-small btn-ghost'}
+                          className={buttonVariants({ variant: a.primary ? 'outline' : 'ghost', size: 'sm' })}
                           disabled={busy === job.id}
                           onClick={() => void a.run()}
                         >

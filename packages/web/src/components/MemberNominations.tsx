@@ -8,6 +8,7 @@ import { useCommunity, useSession } from '../lib/session';
 import { formatDate } from '../lib/util';
 import { ErrorNote, Field } from './ui';
 import { toast } from 'sonner';
+import { buttonVariants } from '@/components/ui/button';
 
 export function MemberNominations({ full }: { full: boolean }) {
   const c = useCommunity();
@@ -52,18 +53,18 @@ export function MemberNominations({ full }: { full: boolean }) {
     }
   }
   return (
-    <div className="stack invite-box">
-      <h3 className="h4">Nominate a member</h3>
-      <p className="small muted">
-        Search people from your kitchens and circles by name, or find another Potluck member by their complete email address. They receive a
-        nomination here in Potluck and must accept before gaining access.
+    <div className="flex flex-col gap-3 pt-2 [&_select]:w-[auto]">
+      <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Nominate a member</h3>
+      <p className="text-[0.875rem] text-muted-foreground">
+        Search people from your kitchens and circles by name, or find another Potluck member by their complete email address. They receive a nomination here in
+        Potluck and must accept before gaining access.
       </p>
       {full ? (
         <p role="status">This space is full. The owner can manage members or change their plan before adding someone.</p>
       ) : (
         <>
           <form
-            className="stack"
+            className="flex flex-col gap-3"
             onSubmit={(e) => {
               e.preventDefault();
               void search();
@@ -86,12 +87,12 @@ export function MemberNominations({ full }: { full: boolean }) {
                 }}
               />
             </Field>
-            <button className="btn" disabled={busy || query.trim().length < 2}>
+            <button className={buttonVariants()} disabled={busy || query.trim().length < 2}>
               {busy ? 'Working…' : 'Search members'}
             </button>
           </form>
           {searched && (
-            <div className="stack" aria-live="polite">
+            <div className="flex flex-col gap-3" aria-live="polite">
               {!results.length && (
                 <p>
                   {cursor
@@ -100,14 +101,14 @@ export function MemberNominations({ full }: { full: boolean }) {
                 </p>
               )}
               {results.map((m) => (
-                <div className="row between wrap" key={m.userId}>
+                <div className="flex flex-wrap items-center justify-between gap-2" key={m.userId}>
                   <span>
                     <strong>{m.displayName}</strong>
-                    <span className="block small muted">{m.context}</span>
+                    <span className="block text-[0.875rem] text-muted-foreground">{m.context}</span>
                   </span>
                   <button
                     type="button"
-                    className="btn btn-small"
+                    className={buttonVariants({ size: 'sm' })}
                     disabled={busy || m.status !== 'available'}
                     aria-pressed={selected?.userId === m.userId}
                     onClick={() => {
@@ -126,14 +127,14 @@ export function MemberNominations({ full }: { full: boolean }) {
                 </div>
               ))}
               {cursor && (
-                <button className="btn" disabled={busy} onClick={() => void search(true)}>
+                <button className={buttonVariants()} disabled={busy} onClick={() => void search(true)}>
                   Continue searching
                 </button>
               )}
             </div>
           )}
           {selected && (
-            <div className="stack rounded-md border border-border p-4">
+            <div className="flex flex-col gap-3 rounded-md border border-border p-4">
               <p>
                 Nominate <strong>{selected.displayName}</strong> to <strong>{c.name}</strong>.
               </p>
@@ -145,7 +146,7 @@ export function MemberNominations({ full }: { full: boolean }) {
                   </select>
                 </Field>
               )}
-              <p className="small muted">
+              <p className="text-[0.875rem] text-muted-foreground">
                 {role === 'admin'
                   ? 'Admins can also manage members and settings.'
                   : c.kind === 'circle'
@@ -153,15 +154,15 @@ export function MemberNominations({ full }: { full: boolean }) {
                     : 'Members can edit shared recipes, plan meals and shop.'}{' '}
                 Their private food profile stays private.
               </p>
-              <div className="row wrap">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  className="btn btn-primary"
+                  className={buttonVariants({ variant: 'default' })}
                   disabled={busy}
                   onClick={() => void act(() => api.nominate(c.id, selected.userId, role), `Nomination sent to ${selected.displayName}`)}
                 >
                   {busy ? 'Nominating…' : `Nominate ${selected.displayName}`}
                 </button>
-                <button className="btn btn-ghost" disabled={busy} onClick={() => setSelected(undefined)}>
+                <button className={buttonVariants({ variant: 'ghost' })} disabled={busy} onClick={() => setSelected(undefined)}>
                   Change member
                 </button>
               </div>
@@ -172,15 +173,17 @@ export function MemberNominations({ full }: { full: boolean }) {
       <ErrorNote error={error ?? pending.error} />
       <h4>Pending nominations</h4>
       {pending.loading && <p role="status">Loading nominations…</p>}
-      {!pending.loading && !pending.error && !pending.data?.nominations.length && <p className="small muted">No nominations awaiting acceptance.</p>}
+      {!pending.loading && !pending.error && !pending.data?.nominations.length && (
+        <p className="text-[0.875rem] text-muted-foreground">No nominations awaiting acceptance.</p>
+      )}
       {pending.data?.nominations.map((n) => (
-        <div className="row between wrap" key={n.userId}>
+        <div className="flex flex-wrap items-center justify-between gap-2" key={n.userId}>
           <span>
             <strong>{n.displayName}</strong> · {n.role}
-            <span className="block small muted">Awaiting acceptance · expires {formatDate(n.expiresAt)}</span>
+            <span className="block text-[0.875rem] text-muted-foreground">Awaiting acceptance · expires {formatDate(n.expiresAt)}</span>
           </span>
           <button
-            className="btn btn-small"
+            className={buttonVariants({ size: 'sm' })}
             disabled={busy}
             onClick={() => void act(() => api.cancelNomination(c.id, n.userId), 'Nomination withdrawn')}
           >
@@ -188,7 +191,7 @@ export function MemberNominations({ full }: { full: boolean }) {
           </button>
         </div>
       ))}
-      <button className="btn btn-ghost btn-small" disabled={busy || pending.loading} onClick={() => void pending.reload()}>
+      <button className={buttonVariants({ variant: 'ghost', size: 'sm' })} disabled={busy || pending.loading} onClick={() => void pending.reload()}>
         Refresh nominations
       </button>
     </div>
@@ -233,24 +236,30 @@ export function NominationInbox() {
   const nominations = state.data?.nominations.filter((n) => !dismissed.includes(`${n.communityId}:${n.expiresAt}`)) ?? [];
   if (!nominations.length && !error && !state.error) return null;
   return (
-    <section className="card stack mb-6" aria-label="Your membership nominations">
-      <h2 className="h3">Your nominations</h2>
+    <section
+      className="mb-6 flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+      aria-label="Your membership nominations"
+    >
+      <h2 className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">Your nominations</h2>
       <ErrorNote error={error ?? state.error} onRetry={() => void state.reload()} />
       {nominations.map((n) => (
-        <div className="stack" key={n.communityId}>
+        <div className="flex flex-col gap-3" key={n.communityId}>
           <p>
-            <strong>{n.nominatedByName}</strong> nominated you to <strong>{n.communityName}</strong> as {n.role === 'admin' ? 'an admin' : 'a member'}
-            .
+            <strong>{n.nominatedByName}</strong> nominated you to <strong>{n.communityName}</strong> as {n.role === 'admin' ? 'an admin' : 'a member'}.
           </p>
-          <p className="small muted">
-            Accept to access this space’s shared recipes and {n.role === 'admin' ? 'manage its members and settings' : 'participate with its members'}
-            . Your private food profile is not shared. Expires {formatDate(n.expiresAt)}.
+          <p className="text-[0.875rem] text-muted-foreground">
+            Accept to access this space’s shared recipes and {n.role === 'admin' ? 'manage its members and settings' : 'participate with its members'}. Your
+            private food profile is not shared. Expires {formatDate(n.expiresAt)}.
           </p>
-          <div className="row wrap">
-            <button className="btn btn-primary" disabled={!!busy} onClick={() => void respond(n.communityId, n.userId, n.expiresAt, true)}>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              className={buttonVariants({ variant: 'default' })}
+              disabled={!!busy}
+              onClick={() => void respond(n.communityId, n.userId, n.expiresAt, true)}
+            >
               {busy === n.communityId ? 'Saving…' : 'Accept nomination'}
             </button>
-            <button className="btn" disabled={!!busy} onClick={() => void respond(n.communityId, n.userId, n.expiresAt, false)}>
+            <button className={buttonVariants()} disabled={!!busy} onClick={() => void respond(n.communityId, n.userId, n.expiresAt, false)}>
               Decline
             </button>
           </div>

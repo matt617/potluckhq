@@ -55,7 +55,7 @@ export function RecordPicker({
           aria-expanded={open}
           aria-controls={open ? listId : undefined}
           disabled={disabled}
-          className="w-full min-w-0 justify-between text-left font-normal"
+          className="w-full min-w-0 shrink justify-between text-left font-normal"
         >
           <span className="truncate">{selected?.label ?? (value ? 'Selection unavailable — choose again' : placeholder)}</span>
           <CaretUpDown className="shrink-0" aria-hidden />
@@ -64,7 +64,7 @@ export function RecordPicker({
       <PopoverContent
         onEscapeKeyDown={(e) => e.stopPropagation()}
         align="start"
-        className="w-[var(--radix-popover-trigger-width)] min-w-64 max-w-[calc(100vw-2rem)] p-0"
+        className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] min-w-64 p-0"
       >
         <Command>
           <CommandInput aria-label={`Search ${label.toLowerCase()}`} placeholder={`Search ${label.toLowerCase()}…`} />

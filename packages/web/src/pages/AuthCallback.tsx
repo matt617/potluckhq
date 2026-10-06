@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { handleCallback, login } from '../lib/auth';
-import { Spinner } from '../components/ui';
+import { Spinner } from '../components/loading';
+import { buttonVariants } from '@/components/ui/button';
 
 export function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
@@ -15,11 +16,11 @@ export function AuthCallback() {
   }, []);
   if (error) {
     return (
-      <main className="page narrow">
-        <div className="card stack">
+      <main className="mx-auto max-w-[540px] px-4 pt-[10vh] pb-[72px] focus:outline-none wide:px-8 wide:pb-[112px]">
+        <div className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
           <h1>Sign-in didn't finish</h1>
-          <p className="muted">{error}</p>
-          <button className="btn btn-primary" onClick={() => void login('/book')}>
+          <p className="text-muted-foreground">{error}</p>
+          <button className={buttonVariants({ variant: 'default' })} onClick={() => void login('/book')}>
             Try again
           </button>
         </div>

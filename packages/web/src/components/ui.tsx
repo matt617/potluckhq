@@ -16,61 +16,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Skeleton as SkeletonBlock } from '@/components/ui/skeleton';
 import { Toggle } from '@/components/ui/toggle';
+import { ToggleGroup as ToggleGroupPrimitive } from 'radix-ui';
+import { segmentedItemClasses, segmentedListClasses } from '@/components/ui/tabs';
 
-type SkeletonVariant = 'page' | 'grid' | 'list';
-
-/** Loading placeholder shaped like the content it stands in for. */
-export function Skeleton({ variant = 'page', label = 'Loading' }: { variant?: SkeletonVariant; label?: string }) {
-  return (
-    <div role="status" aria-live="polite" aria-busy="true" className="flex flex-col gap-4">
-      <span className="sr-only">{label}</span>
-      {variant === 'grid' && (
-        <div className="grid [grid-template-columns:repeat(auto-fill,minmax(min(100%,248px),1fr))] gap-x-[22px] gap-y-9" aria-hidden>
-          {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="overflow-hidden">
-              <SkeletonBlock className="aspect-[4/3] rounded-lg" />
-              <div className="flex flex-col gap-2 px-1 py-3.5">
-                <SkeletonBlock className="h-[0.9em] rounded-[6px]" style={{ width: `${70 - (i % 3) * 12}%` }} />
-                <SkeletonBlock className="h-[0.9em] w-[45%] rounded-[6px]" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      {variant === 'list' && (
-        <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-card" aria-hidden>
-          {Array.from({ length: 7 }, (_, i) => (
-            <SkeletonBlock key={i} className="h-[0.9em] rounded-[6px]" style={{ width: `${82 - (i % 4) * 11}%` }} />
-          ))}
-        </div>
-      )}
-      {variant === 'page' && (
-        <div className="flex flex-col gap-6" aria-hidden>
-          <SkeletonBlock className="h-[1.8em] w-[38%] rounded-[6px]" />
-          <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-card">
-            <SkeletonBlock className="h-[0.9em] w-[72%] rounded-[6px]" />
-            <SkeletonBlock className="h-[0.9em] w-[58%] rounded-[6px]" />
-            <SkeletonBlock className="h-[0.9em] w-[64%] rounded-[6px]" />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Full-page loading state used before the app shell exists. */
-export function Spinner({ label = 'Loading' }: { label?: string }) {
-  return (
-    <div className="mx-auto flex max-w-[1160px] flex-col gap-5 px-4 py-12">
-      <Skeleton label={label} />
-    </div>
-  );
-}
+export { Skeleton, Spinner } from './loading';
 
 export function ErrorNote({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   if (!error) return null;
@@ -142,7 +95,7 @@ export function ConfirmButton({
   children,
   confirmLabel = 'Tap again to confirm',
   onConfirm,
-  className = 'btn',
+  className = buttonVariants(),
   disabled,
 }: {
   children: ReactNode;
@@ -186,7 +139,7 @@ export function ConfirmAction({
   description,
   confirmLabel,
   onConfirm,
-  className = 'btn btn-danger',
+  className = buttonVariants({ variant: 'destructive' }),
   disabled,
 }: {
   children: ReactNode;
@@ -293,12 +246,16 @@ export function FormDialog({
 /** Page title block: small context line, serif title, optional actions on the right. */
 export function PageHeader({ eyebrow, title, children }: { eyebrow?: ReactNode; title: ReactNode; children?: ReactNode }) {
   return (
-    <header className="page-head">
-      <div className="page-head-text">
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+    <header className="flex animate-rise flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-border pb-[22px] motion-reduce:animate-none">
+      <div className="flex min-w-0 flex-col gap-1.5">
+        {eyebrow && (
+          <p className="font-serif text-[1.05rem] font-[450] tracking-[-0.005em] text-accent-foreground italic [font-variation-settings:'SOFT'_100]">
+            {eyebrow}
+          </p>
+        )}
         <h1>{title}</h1>
       </div>
-      {children && <div className="page-head-actions">{children}</div>}
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </header>
   );
 }
@@ -334,6 +291,29 @@ export function Field({ label, hint, error, className, children }: { label: stri
   );
 }
 
+/** Single-choice filter drawn as a segmented pill. Always has a selection. */
+export function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+  label,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+  label: string;
+}) {
+  return (
+    <ToggleGroupPrimitive.Root type="single" value={value} onValueChange={(v) => v && onChange(v as T)} aria-label={label} className={segmentedListClasses}>
+      {options.map((o) => (
+        <ToggleGroupPrimitive.Item key={o.value} value={o.value} className={segmentedItemClasses}>
+          {o.label}
+        </ToggleGroupPrimitive.Item>
+      ))}
+    </ToggleGroupPrimitive.Root>
+  );
+}
+
 export function Chip({ active, onClick, children, title }: { active: boolean; onClick: () => void; children: ReactNode; title?: string }) {
   return (
     <Toggle variant="outline" className="capitalize" pressed={active} onPressedChange={onClick} title={title}>
@@ -346,7 +326,7 @@ export function Empty({ title, icon, children }: { title: string; icon?: ReactNo
   return (
     <div className="flex max-w-[680px] flex-col items-start gap-3.5 rounded-xl bg-[radial-gradient(120%_90%_at_100%_0%,color-mix(in_srgb,var(--accent-soft)_85%,transparent),transparent_60%),var(--surface-2)] px-7 py-14 md:px-12 md:py-16 [&_p]:max-w-[50ch] [&_p]:text-foreground-2">
       {icon && (
-        <span className="grid size-14 -rotate-4 place-items-center rounded-[18px] bg-card text-primary shadow-card [&_svg]:size-7" aria-hidden>
+        <span className="grid size-14 -rotate-4 place-items-center rounded-[18px] bg-card text-primary shadow-paper [&_svg]:size-7" aria-hidden>
           {icon}
         </span>
       )}
@@ -393,7 +373,7 @@ export function TagInput({
   }
   return (
     <div
-      className="flex min-h-[46px] cursor-text flex-wrap items-center gap-1.5 rounded-md border border-input bg-card px-2.5 py-[7px] transition-[border-color,box-shadow] duration-150 ease-smooth hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--border-strong))] focus-within:border-ring focus-within:shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent)_18%,transparent)]"
+      className="flex min-h-[46px] cursor-text flex-wrap items-center gap-1.5 rounded-md border border-input bg-card px-2.5 py-[7px] transition-[border-color,box-shadow] duration-150 ease-smooth focus-within:border-ring focus-within:shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent)_18%,transparent)] hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--border-strong))]"
       onClick={() => inputRef.current?.focus()}
     >
       {value.map((item, i) => (

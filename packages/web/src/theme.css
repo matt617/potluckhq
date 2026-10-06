@@ -1,5 +1,5 @@
 /*
- * Tailwind theme mapped onto the cookbook tokens defined on :root in styles.css.
+ * Tailwind theme mapped onto the cookbook tokens defined on :root in tokens.css.
  * Names follow shadcn/ui, so its components pick up the palette:
  *   primary = paprika accent, accent = soft paprika highlight, muted = oat surface,
  *   muted-foreground = muted text. App-only colors keep descriptive names.
@@ -65,7 +65,7 @@
   --font-serif: var(--display);
   --font-mono: var(--mono);
 
-  --shadow-card: var(--shadow);
+  --shadow-paper: var(--shadow);
   --shadow-lift: var(--shadow-hover);
   --shadow-float: var(--shadow-pop);
   --shadow-glow: var(--shadow-accent);
@@ -73,6 +73,16 @@
   --ease-smooth: var(--ease);
   --ease-spring: var(--spring);
 
+  /* The layout switches from phone tab bar to top navigation at 860px. */
+  --breakpoint-wide: 860px;
+
+  --animate-rise: rise 600ms var(--ease) both;
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
   --animate-shimmer: shimmer 1.6s ease-in-out infinite;
   @keyframes shimmer {
     from {

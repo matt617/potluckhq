@@ -1,5 +1,7 @@
 # Tailwind v4 and shadcn/ui migration plan
 
+**Status: complete** on branch `tailwind-shadcn-ui` (see Outcome at the end).
+
 Move `@potluck/web` from hand-written CSS to Tailwind v4 with shadcn/ui components in one branch and one pull request. The work is split into steps, each with its own commit and a validation gate. Do not start a step until the previous gate passes.
 
 The goal is to keep the warm editorial cookbook look from #10 and fix the UX problems: bloated dialogs, list fields that require typed commas, and inconsistent controls. Visual parity holds until step 5. After that, visual changes must be intended and reviewed.
@@ -92,6 +94,8 @@ This is the step that fixes the dialogs.
 
 ## Step 6: Pages, in four groups
 
+Before the groups, one mechanical pass replaces the shared helper classes (stack, row, card, muted, small, h3, h4, btn and the rest) with exact utility equivalents across every page, since every group uses them. Legacy rules that overrode a helper by context, or on the same element, lose to utilities, so their effect moves into the markup in the same commit.
+
 Convert each group's markup to utilities and the new components, then delete that group's CSS section in the same commit. One commit per group, with a full gate after each.
 
 | Group | Files | CSS sections removed |
@@ -138,4 +142,20 @@ Agreed on 2026-10-05:
 
 ## Follow-ups found during the migration
 
+- **Bundle size.** shadcn's dependencies took the JS bundle from 143 kB to 205 kB gzipped by step 5 (Radix, tailwind-merge, sonner, cmdk, floating-ui). Split routes with `React.lazy` in step 8 so public pages and rarely used screens don't pay for the planner and dialogs.
 - **Muted text contrast.** `--muted` (#7c7064) on `--bg` (#f6f1e8) is 4.28:1, below the 4.5:1 AA minimum for body text. It's behind most of the 23 color-contrast findings in the step 0 baseline. Darken it slightly once visual parity is no longer required (step 5 or later), and record the drop in axe findings.
+
+## Outcome
+
+All steps are done; each commit records its gate results. The deviations from the plan:
+
+- **Helper pass.** Before the page groups, one mechanical pass replaced the shared helper classes (stack, row, card, muted, small, h3, h4, btn and others) across every page.
+- **Converter.** Page CSS was converted with a script that turns legacy rules into exact utilities, per element and in stylesheet order. Classes with contextual rules were converted by hand. Each group's captures were compared against a baseline rendered from the commit before that group.
+- **`npm run lint:classes`.** Reports class strings with conflicting utilities. It found six order-dependent strings from earlier steps.
+- **Code splitting.** Moved earlier than planned, because the shadcn dependencies grew the bundle. Landing page JS is now 121.6 kB gzipped, against 143.1 kB before the migration and 212.7 kB at its peak.
+- **Accepted visual changes:**
+  - redesigned dialogs and confirmations
+  - the header switcher and More menu
+  - segmented controls with darker inactive text
+  - the footer wordmark visible on phones
+  - 1–8px line-height shifts from preflight

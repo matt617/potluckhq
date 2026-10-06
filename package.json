@@ -20,7 +20,8 @@
     "test:kitchens:browser": "node scripts/kitchen-browser-check.mjs",
     "build:kitchen-migration": "esbuild scripts/migrate-kitchens.ts --bundle --platform=node --format=esm --external:@aws-sdk/* --outfile=artifacts/migrate-kitchens.mjs",
     "test:visual": "node scripts/visual-check.mjs",
-    "test:visual:update": "node scripts/visual-check.mjs --update"
+    "test:visual:update": "node scripts/visual-check.mjs --update",
+    "lint:classes": "node --experimental-strip-types scripts/lint-classes.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
@@ -29,6 +30,7 @@
     "playwright": "^1.63.0",
     "pngjs": "^7.0.0",
     "prettier": "^3.9.9",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
   },

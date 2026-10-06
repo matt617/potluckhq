@@ -7,12 +7,15 @@ import { api } from '../api';
 import { RecipeEditor } from '../components/RecipeEditor';
 import { TechniqueView } from '../components/TechniqueView';
 import { ConfirmAction, ErrorNote, Spinner } from '../components/ui';
+import { metaBadge } from '../lib/styles';
 import { useAsync } from '../lib/hooks';
 import { useCommunity, useSession, canAdmin } from '../lib/session';
 import { clock, mediaUrl, minutes, youtubeAt } from '../lib/util';
 import { AddToPlan, RecipeParticipation } from '../components/RecipeParticipation';
 import { kitchenPath } from '../lib/kitchen-context';
 import { toast } from 'sonner';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 function groupIngredients(list: Ingredient[]): [string, Ingredient[]][] {
   const groups = new Map<string, Ingredient[]>();
@@ -23,6 +26,8 @@ function groupIngredients(list: Ingredient[]): [string, Ingredient[]][] {
   return [...groups.entries()];
 }
 
+/** Round ± buttons in the servings stepper. */
+const STEPPER_BUTTON = 'min-h-8 min-w-8 border-0 bg-card p-0 text-[1.05rem] shadow-paper';
 export function RecipeDetail() {
   const { rid = '' } = useParams();
   const { me, publicConfig, community } = useSession();
@@ -86,8 +91,11 @@ export function RecipeDetail() {
   }
 
   return (
-    <article className="stack-lg recipe">
-      <Link to="/book" className="back">
+    <article className="recipe flex flex-col gap-8">
+      <Link
+        to="/book"
+        className="ml-[-10px] inline-flex items-center gap-1.5 self-start rounded-full py-1.5 pr-3.5 pl-2.5 text-[0.92rem] font-medium text-muted-foreground no-underline [transition:color_160ms_var(--ease),_background-color_160ms_var(--ease)] hover:bg-surface-2 hover:text-foreground [&_svg]:[transition:transform_200ms_var(--ease)] [&:hover_svg]:[transform:translateX(-3px)]"
+      >
         <ArrowLeft size={16} weight="bold" aria-hidden />
         {isTechnique ? 'Back to the book' : 'All recipes'}
       </Link>
@@ -95,12 +103,12 @@ export function RecipeDetail() {
         <TechniqueView recipe={recipe} media={state.data?.media} thumb={thumb} onMediaExpired={refreshMedia} />
       ) : (
         <>
-          <header className="recipe-head">
-            {thumb && <img className="recipe-hero" src={thumb} alt={recipe.title} />}
-            <div className="stack">
+          <header className="grid [animation:rise_700ms_var(--ease)_both] gap-6 min-[760px]:grid-cols-[minmax(0,_1.05fr)_minmax(0,_1fr)] min-[760px]:items-center min-[760px]:gap-12 [&_h1]:text-[clamp(2.2rem,_5vw,_3.6rem)] [&_h1]:tracking-[-0.03em]">
+            {thumb && <img className="aspect-[4/3] max-h-[460px] w-full rounded-xl object-cover shadow-lift" src={thumb} alt={recipe.title} />}
+            <div className="flex flex-col gap-[14px]">
               <h1>{recipe.title}</h1>
-              {recipe.description && <p className="lead">{recipe.description}</p>}
-              <p className="muted">
+              {recipe.description && <p className="max-w-[58ch] text-[1.12rem] leading-[1.55] text-foreground-2">{recipe.description}</p>}
+              <p className="text-muted-foreground">
                 {[
                   recipe.prepMin ? `Prep ${minutes(recipe.prepMin)}` : '',
                   recipe.cookMin ? `Cook ${minutes(recipe.cookMin)}` : '',
@@ -111,16 +119,16 @@ export function RecipeDetail() {
                   .join(' · ')}
               </p>
               {recipe.tags.length > 0 && (
-                <div className="tags">
+                <div className="flex flex-wrap gap-1">
                   {recipe.tags.map((t) => (
-                    <span key={t} className="badge">
+                    <span key={t} className={metaBadge}>
                       {t}
                     </span>
                   ))}
                 </div>
               )}
               {recipe.source.url && (
-                <p className="small">
+                <p className="text-[0.875rem]">
                   Source:{' '}
                   <a href={recipe.source.url} target="_blank" rel="noreferrer">
                     {recipe.source.author ? `${recipe.source.author} on ${recipe.source.platform}` : recipe.source.platform}
@@ -130,38 +138,59 @@ export function RecipeDetail() {
             </div>
           </header>
 
-          <div className="row wrap">
+          <div className="flex flex-wrap items-center gap-2">
             <AddToPlan recipe={recipe} servings={target} />
-            {recipe.archived && <p className="muted">Archived. Existing meal plans retain this recipe.</p>}
+            {recipe.archived && <p className="text-muted-foreground">Archived. Existing meal plans retain this recipe.</p>}
           </div>
-          <div className="recipe-cols">
-            <section className="card stack" aria-labelledby="ing-title">
-              <div className="row between wrap">
+          <div className="grid gap-5 wide:grid-cols-[minmax(300px,2fr)_3fr] wide:items-start wide:gap-6 wide:[&>:first-child]:sticky wide:[&>:first-child]:top-[88px]">
+            <section
+              className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+              aria-labelledby="ing-title"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 id="ing-title">Ingredients</h2>
-                <div className="stepper" aria-label="Servings">
-                  <button type="button" className="btn btn-small" aria-label="Fewer servings" onClick={() => setServings(Math.max(1, target - 1))}>
+                <div
+                  className="inline-flex items-center gap-1 rounded-full bg-surface-2 p-[3px] text-[0.9rem] font-semibold tabular-nums [&_span]:px-1.5 [&_span]:py-0"
+                  aria-label="Servings"
+                >
+                  <button
+                    type="button"
+                    className={cn(buttonVariants({ size: 'sm' }), STEPPER_BUTTON)}
+                    aria-label="Fewer servings"
+                    onClick={() => setServings(Math.max(1, target - 1))}
+                  >
                     −
                   </button>
                   <span>
                     {target} {target === 1 ? 'serving' : 'servings'}
                   </span>
-                  <button type="button" className="btn btn-small" aria-label="More servings" onClick={() => setServings(target + 1)}>
+                  <button
+                    type="button"
+                    className={cn(buttonVariants({ size: 'sm' }), STEPPER_BUTTON)}
+                    aria-label="More servings"
+                    onClick={() => setServings(target + 1)}
+                  >
                     +
                   </button>
                 </div>
               </div>
               {groups.map(([group, items]) => (
                 <div key={group || 'main'}>
-                  {group && <h3 className="h4">{group}</h3>}
-                  <ul className="ingredients">
+                  {group && <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">{group}</h3>}
+                  <ul className="m-0 list-none p-0 [&_li]:grid [&_li]:grid-cols-[6.5em_1fr] [&_li]:gap-2.5 [&_li]:px-0 [&_li]:py-2.5 [&_li]:[border-bottom:1px_dashed_var(--border-strong)] [&_li:last-child]:[border-bottom:0]">
                     {items.map((i, idx) => (
                       <li key={`${i.name}-${idx}`}>
-                        <span className="amount">{formatAmount(scaleQuantity(i.quantity, recipe.servings, target), i.unit)}</span>
+                        <span className="pt-[1px] font-mono text-[0.88rem] font-medium text-accent-foreground tabular-nums">
+                          {formatAmount(scaleQuantity(i.quantity, recipe.servings, target), i.unit)}
+                        </span>
                         <span>
                           {i.name}
-                          {i.note && <span className="muted">, {i.note}</span>}
+                          {i.note && <span className="text-muted-foreground">, {i.note}</span>}
                           {i.estimated && (
-                            <span className="badge badge-warn" title="The video did not say how much; this amount is estimated.">
+                            <span
+                              className={cn(metaBadge, 'ml-1 bg-warning-soft text-warning-foreground')}
+                              title="The video did not say how much; this amount is estimated."
+                            >
                               est.
                             </span>
                           )}
@@ -171,21 +200,24 @@ export function RecipeDetail() {
                   </ul>
                 </div>
               ))}
-              {anyEstimated && <p className="small muted">Amounts marked "est." were not stated in the video and were estimated.</p>}
+              {anyEstimated && <p className="text-[0.875rem] text-muted-foreground">Amounts marked "est." were not stated in the video and were estimated.</p>}
               {recipe.equipment && recipe.equipment.length > 0 && (
-                <p className="small">
+                <p className="text-[0.875rem]">
                   <strong>Equipment:</strong> {recipe.equipment.join(', ')}
                 </p>
               )}
             </section>
 
-            <section className="card stack" aria-labelledby="steps-title">
+            <section
+              className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+              aria-labelledby="steps-title"
+            >
               <h2 id="steps-title">Steps</h2>
-              <ol className="steps">
+              <ol className="m-0 flex list-none flex-col gap-[22px] p-0 [counter-reset:step] [&_a]:inline-flex [&_a]:items-center [&_a]:gap-1 [&_a]:rounded-[6px] [&_a]:bg-surface-2 [&_a]:px-2 [&_a]:py-0.5 [&_a]:font-mono [&_a]:text-[0.8rem] [&_a]:font-medium [&_a]:text-foreground-2 [&_a]:no-underline [&_a:hover]:bg-accent [&_a:hover]:text-accent-foreground [&_li]:relative [&_li]:min-h-[2.4rem] [&_li]:max-w-[70ch] [&_li]:pl-[3.4rem] [&_li]:[counter-increment:step] [&_li::before]:absolute [&_li::before]:top-[-0.1rem] [&_li::before]:left-0 [&_li::before]:grid [&_li::before]:h-[2.4rem] [&_li::before]:w-[2.4rem] [&_li::before]:[place-items:center] [&_li::before]:rounded-full [&_li::before]:bg-accent [&_li::before]:font-serif [&_li::before]:text-[1.2rem] [&_li::before]:font-semibold [&_li::before]:text-accent-foreground [&_li::before]:italic [&_li::before]:[content:counter(step)] [&_li>p+p]:mt-1 [&_li>p+p:empty]:hidden [&_li>p:first-child]:text-[1.02rem] [&_li>p:first-child]:leading-[1.65] [&_li>p:first-child]:text-foreground">
                 {recipe.steps.map((s, idx) => (
                   <li key={idx}>
                     <p>{s.text}</p>
-                    <p className="small muted">
+                    <p className="text-[0.875rem] text-muted-foreground">
                       {typeof s.timestampSec === 'number' && recipe.source.url && (
                         <a href={youtubeAt(recipe.source.url, s.timestampSec)} target="_blank" rel="noreferrer">
                           ▶ {clock(s.timestampSec)} in video
@@ -198,8 +230,8 @@ export function RecipeDetail() {
               </ol>
               {recipe.tips && recipe.tips.length > 0 && (
                 <>
-                  <h3 className="h4">Tips</h3>
-                  <ul className="tips">
+                  <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Tips</h3>
+                  <ul className="m-0 rounded-md bg-warning-soft py-3.5 pr-[18px] pl-[34px] text-foreground-2">
                     {recipe.tips.map((t, idx) => (
                       <li key={idx}>{t}</li>
                     ))}
@@ -210,11 +242,11 @@ export function RecipeDetail() {
           </div>
 
           {recipe.nutrition && (
-            <section className="card" aria-labelledby="nut-title">
-              <h2 id="nut-title" className="h3">
-                Nutrition per serving <span className="badge">AI estimate</span>
+            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]" aria-labelledby="nut-title">
+              <h2 id="nut-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
+                Nutrition per serving <span className={cn(metaBadge, 'ml-1')}>AI estimate</span>
               </h2>
-              <dl className="nutrition">
+              <dl className="mx-0 mt-3.5 mb-0 grid grid-cols-[repeat(auto-fit,_minmax(120px,_1fr))] gap-2.5 [&_dd]:mx-0 [&_dd]:mt-0.5 [&_dd]:mb-0 [&_dd]:font-serif [&_dd]:text-[1.9rem] [&_dd]:leading-[1.1] [&_dd]:font-medium [&_dd]:tracking-[-0.03em] [&_dd]:[font-variant-numeric:tabular-nums_lining-nums] [&_div]:rounded-md [&_div]:bg-surface-2 [&_div]:px-4 [&_div]:py-3.5 [&_dt]:text-[0.8rem] [&_dt]:font-medium [&_dt]:text-muted-foreground">
                 <div>
                   <dt>Calories</dt>
                   <dd>{Math.round(recipe.nutrition.calories)}</dd>
@@ -241,12 +273,15 @@ export function RecipeDetail() {
         </>
       )}
 
-      <section className="card stack" aria-label="Recipe actions">
+      <section
+        className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+        aria-label="Recipe actions"
+      >
         <ErrorNote error={error} />
-        <div className="row wrap">
+        <div className="flex flex-wrap items-center gap-2">
           {recipe.archived && community && canAdmin(community.role) && (
             <button
-              className="btn"
+              className={buttonVariants()}
               onClick={() =>
                 void run(async () => {
                   const next = await api.updateRecipe(recipe.id, {
@@ -261,12 +296,12 @@ export function RecipeDetail() {
             </button>
           )}
           {canEdit && (
-            <button className="btn" onClick={() => setEditing(true)}>
+            <button className={buttonVariants()} onClick={() => setEditing(true)}>
               Edit {isTechnique ? 'technique' : 'recipe'}
             </button>
           )}
           {shareable.length > 0 && (
-            <div className="row">
+            <div className="flex max-w-full min-w-0 items-center gap-2">
               <RecordPicker
                 label="Save to kitchen or circle"
                 value={shareTo}
@@ -279,7 +314,7 @@ export function RecipeDetail() {
                 }))}
               />
               <button
-                className="btn"
+                className={buttonVariants()}
                 disabled={!shareable.some((c) => c.id === shareTo)}
                 onClick={() =>
                   run(async () => {
@@ -295,7 +330,7 @@ export function RecipeDetail() {
           )}
           {inThisCommunity && community && (isOwner || canAdmin(community.role)) && (
             <ConfirmAction
-              className="btn"
+              className={buttonVariants()}
               title={`Archive in ${community.name}?`}
               description="It leaves this space’s recipe book and future plans. Copies people saved elsewhere stay."
               confirmLabel="Archive"

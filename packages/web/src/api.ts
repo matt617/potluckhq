@@ -90,10 +90,12 @@ const enc = encodeURIComponent;
 type Ok = { ok: boolean };
 
 export const api = {
-  searchMembers: (cid: string, query: string, cursor?: string) => request<{ members: MemberCandidate[]; cursor?: string }>('POST', `/api/communities/${enc(cid)}/member-search`, { query, cursor }),
+  searchMembers: (cid: string, query: string, cursor?: string) =>
+    request<{ members: MemberCandidate[]; cursor?: string }>('POST', `/api/communities/${enc(cid)}/member-search`, { query, cursor }),
   nominations: (cid: string) => request<{ nominations: MemberNomination[] }>('GET', `/api/communities/${enc(cid)}/nominations`),
   myNominations: () => request<{ nominations: MemberNomination[] }>('GET', '/api/me/nominations'),
-  nominate: (cid: string, userId: string, role: 'member' | 'admin') => request<{ nomination: MemberNomination }>('POST', `/api/communities/${enc(cid)}/nominations`, { userId, role }),
+  nominate: (cid: string, userId: string, role: 'member' | 'admin') =>
+    request<{ nomination: MemberNomination }>('POST', `/api/communities/${enc(cid)}/nominations`, { userId, role }),
   cancelNomination: (cid: string, uid: string) => request<Ok>('DELETE', `/api/communities/${enc(cid)}/nominations/${enc(uid)}`),
   acceptNomination: (cid: string) => request<Community>('POST', `/api/communities/${enc(cid)}/nominations/accept`),
   startKitchen: () => request<Community>('POST', '/api/kitchens/start'),

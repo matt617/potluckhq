@@ -1,0 +1,8 @@
+{
+  "singleQuote": true,
+  "printWidth": 160,
+  "plugins": ["prettier-plugin-tailwindcss"],
+  "tailwindStylesheet": "./src/app.css",
+  "tailwindFunctions": ["cn", "cva"],
+  "tailwindAttributes": ["className"]
+}
