@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tierConfig, type InviteResponse, type Role } from '@potluck/core';
 import { api } from '../api';
-import { ConfirmAction, ErrorNote, Field, Spinner } from '../components/ui';
+import { ConfirmAction, ErrorNote, Field, Spinner, metaBadge } from '../components/ui';
 import { useAsync } from '../lib/hooks';
 import { canAdmin, useCommunity, useSession } from '../lib/session';
 import { copyText, formatDate } from '../lib/util';
@@ -10,6 +10,7 @@ import { Diners } from '../components/Diners';
 import { KitchenAdministration } from '../components/KitchenAdministration';
 import { toast } from 'sonner';
 import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export function CommunitySettings() {
   const community = useCommunity();
@@ -86,7 +87,7 @@ export function CommunitySettings() {
             {members.length} of {memberLimit} on {limits.name}
           </span>
         </div>
-        <ul className="members">
+        <ul className="list-none m-0 p-0 [&_li]:flex [&_li]:items-center [&_li]:gap-2.5 [&_li]:flex-wrap [&_li]:py-2.5 [&_li]:px-0 [&_li]:[border-bottom:1px_dashed_var(--border)] [&_li:last-child]:[border-bottom:0] [&_li>span:first-child]:flex-1 [&_li>span:first-child]:min-w-[140px] [&_li>span:first-child]:font-medium [&_select]:w-[auto] [&_select]:min-h-[38px]">
           {members.map((m) => {
             const self = m.userId === me?.user.id;
             return (
@@ -114,7 +115,7 @@ export function CommunitySettings() {
                     <option value="admin">Admin</option>
                   </select>
                 ) : (
-                  <span className="badge">{m.role}</span>
+                  <span className={cn(metaBadge, 'ml-1')}>{m.role}</span>
                 )}
                 {admin && !self && m.role !== 'owner' && (role === 'owner' || m.role === 'member') && (
                   <ConfirmAction
@@ -142,7 +143,7 @@ export function CommunitySettings() {
         </ul>
 
         {admin && (
-          <div className="flex flex-col gap-3 invite-box">
+          <div className="flex flex-col gap-3 pt-2 [&_select]:w-[auto]">
             <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Invite someone</h3>
             {full ? (
               <p className="text-muted-foreground text-[0.875rem]">
@@ -227,7 +228,7 @@ export function CommunitySettings() {
         </section>
       )}
 
-      <section className="min-w-0 rounded-lg border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3 danger-zone" aria-labelledby="danger-title">
+      <section className="min-w-0 rounded-lg border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3 border-[color-mix(in_srgb,_var(--danger)_30%,_var(--border))] [&_input]:max-w-[260px]" aria-labelledby="danger-title">
         <h2 id="danger-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
           {isOwner ? 'Delete this kitchen or circle' : 'Leave this kitchen or circle'}
         </h2>

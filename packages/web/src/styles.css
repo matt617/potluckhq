@@ -225,16 +225,6 @@ p {
   text-wrap: pretty;
 }
 
-.eyebrow {
-  font-family: var(--display);
-  font-style: italic;
-  font-variation-settings: 'SOFT' 100;
-  font-size: 1.05rem;
-  font-weight: 450;
-  color: var(--accent-text);
-  letter-spacing: -0.005em;
-}
-
 .skip-link {
   position: absolute;
   left: 12px;
@@ -260,24 +250,6 @@ p {
 }
 
 /* layout */
-
-.page {
-  max-width: 1160px;
-  margin: 0 auto;
-  padding: 28px var(--gutter) 72px;
-}
-.page:focus {
-  outline: none;
-}
-@media (min-width: 860px) {
-  .page {
-    padding: 48px 32px 112px;
-  }
-}
-.page.narrow {
-  max-width: 540px;
-  padding-top: 10vh;
-}
 
 .card {
   background: var(--surface);
@@ -478,30 +450,6 @@ summary:focus-visible {
 }
 
 /* notes and feedback */
-.note {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: var(--radius-sm);
-  flex-wrap: wrap;
-}
-
-.note-upgrade {
-  background: var(--accent-soft);
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-}
-.note-upgrade strong {
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 1.08rem;
-}
-.note-upgrade p {
-  margin-top: 4px;
-}
 
 /* skeleton loaders, shaped like the content they stand in for */
 
@@ -513,24 +461,6 @@ summary:focus-visible {
 }
 
 /* sheet dialog */
-
-.onboarding {
-  max-width: 600px;
-  margin: 6vh 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 32px;
-  border-radius: var(--radius-lg);
-  background:
-    radial-gradient(110% 80% at 100% 0%, color-mix(in srgb, var(--accent-soft) 90%, transparent), transparent 65%),
-    var(--surface);
-}
-@media (min-width: 860px) {
-  .onboarding {
-    padding: 44px 48px;
-  }
-}
 
 /* recipe book */
 
@@ -625,97 +555,6 @@ details.card[open] summary {
 }
 
 /* community and account */
-.members {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.members li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 10px 0;
-  border-bottom: 1px dashed var(--border);
-}
-.members li:last-child {
-  border-bottom: 0;
-}
-.members li > span:first-child {
-  flex: 1;
-  min-width: 140px;
-  font-weight: 500;
-}
-.members select {
-  width: auto;
-  min-height: 38px;
-}
-.invite-box {
-  padding-top: 8px;
-}
-.invite-box select {
-  width: auto;
-}
-.danger-zone {
-  border-color: color-mix(in srgb, var(--danger) 30%, var(--border));
-}
-.link-code {
-  background: var(--surface-2);
-  border-radius: var(--radius-sm);
-  padding: 14px 16px;
-}
-.code-big {
-  font-family: var(--mono);
-  font-size: 1.3rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  background: var(--surface);
-  padding: 3px 10px;
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-.meter {
-  height: 8px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  overflow: hidden;
-}
-.meter span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 70%, var(--surface)), var(--accent));
-}
-.tiers {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
-.tier {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--surface);
-}
-.tier ul {
-  margin: 0;
-  padding-left: 1.1em;
-  color: var(--muted);
-  font-size: 0.9rem;
-  flex: 1;
-}
-.tier-current {
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent);
-  background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface));
-}
-.tier .badge {
-  align-self: flex-start;
-  margin-left: 0;
-}
 
 /* 404 */
 .not-found {
@@ -1240,22 +1079,6 @@ details.card[open] summary {
   font-size: 0.86rem;
   letter-spacing: 0.01em;
   color: var(--text) !important;
-}
-
-.danger-delete {
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-}
-.danger-list {
-  margin: 0;
-  padding-left: 1.2em;
-  color: var(--text-2);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.danger-zone input {
-  max-width: 260px;
 }
 
 /* ------------------------------------------------------------------ */

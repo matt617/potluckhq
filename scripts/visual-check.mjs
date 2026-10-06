@@ -56,6 +56,7 @@ const screens = [
   { name: 'shop', path: `/shop?kitchen=home&week=${week}`, wait: (p) => p.getByText('tomatoes').first() },
   { name: 'community', path: '/community?kitchen=home', wait: (p) => p.getByRole('heading', { name: 'Who eats here?' }) },
   { name: 'account', path: '/account', wait: (p) => p.getByRole('heading', { name: 'Profile', exact: true }) },
+  { name: 'onboarding', path: '/book', noKitchens: true, wait: (p) => p.getByRole('button', { name: 'Save my first recipe' }) },
   { name: 'book-imports', path: '/book?kitchen=home', imports: true, wait: (p) => p.getByText('Reading recipe').first() },
   {
     name: 'add-recipe-link',
@@ -296,7 +297,7 @@ async function keyboardCheck(browser, check) {
   }
 }
 
-function fixtures({ failPlanSave = false, imports = false } = {}) {
+function fixtures({ failPlanSave = false, imports = false, noKitchens = false } = {}) {
   const user = {
     id: 'u1',
     displayName: 'Sam',
@@ -408,7 +409,7 @@ function fixtures({ failPlanSave = false, imports = false } = {}) {
     updatedAt: '2026-10-04',
     planFingerprint: 'new',
   };
-  const communities = [home, circle];
+  const communities = noKitchens ? [] : [home, circle];
 
   function api(method, p, b) {
     if (p === '/api/me') return { user, budget, communities, channels: [] };

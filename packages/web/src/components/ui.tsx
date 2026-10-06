@@ -297,7 +297,7 @@ export function PageHeader({ eyebrow, title, children }: { eyebrow?: ReactNode; 
   return (
     <header className="flex animate-rise flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-border pb-[22px] motion-reduce:animate-none">
       <div className="flex min-w-0 flex-col gap-1.5">
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+        {eyebrow && <p className="font-serif italic [font-variation-settings:'SOFT'_100] text-[1.05rem] font-[450] text-accent-foreground tracking-[-0.005em]">{eyebrow}</p>}
         <h1>{title}</h1>
       </div>
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}

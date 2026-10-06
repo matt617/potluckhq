@@ -39,14 +39,14 @@ export function Layout() {
   if (loading && !me) return <Spinner />;
   if (!me) {
     return (
-      <main className="page">
+      <main className="mx-auto max-w-[1160px] px-4 pt-7 pb-[72px] focus:outline-none wide:px-8 wide:pt-12 wide:pb-[112px]">
         <ErrorNote error={error ?? new ApiError(0, 'Could not load your account.')} onRetry={() => void refreshMe()} />
       </main>
     );
   }
   if (requested && !me.communities.some((c) => c.id === requested))
     return (
-      <main className="page flex flex-col gap-3">
+      <main className="mx-auto max-w-[1160px] px-4 pt-7 pb-[72px] focus:outline-none wide:px-8 wide:pt-12 wide:pb-[112px] flex flex-col gap-3">
         <ErrorNote error={new Error('You no longer have access to this kitchen or circle.')} />
         <Link to="/library">Open My recipes</Link>
       </main>
@@ -103,7 +103,7 @@ export function Layout() {
           </PopoverContent>
         </Popover>
       </header>
-      <main className="page" id="main" tabIndex={-1}>
+      <main className="mx-auto max-w-[1160px] px-4 pt-7 pb-[72px] focus:outline-none wide:px-8 wide:pt-12 wide:pb-[112px]" id="main" tabIndex={-1}>
         {community || pathname === '/account' || pathname === '/library' || pathname === '/circles' || /^\/book\/.+/.test(pathname) ? (
           <div key={`${community?.id ?? 'personal'}:${pathname}`}>
             <Outlet />

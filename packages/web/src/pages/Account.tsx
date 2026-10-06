@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { formatUsd, tierConfig, type LinkCodeResponse, type TierId } from '@potluck/core';
 import { api } from '../api';
-import { ConfirmAction, ConfirmButton, ErrorNote, Field, Spinner, TagInput } from '../components/ui';
+import { ConfirmAction, ConfirmButton, ErrorNote, Field, Spinner, TagInput, metaBadge } from '../components/ui';
 import { logout } from '../lib/auth';
 import { useSession } from '../lib/session';
 import { cents, formatDate } from '../lib/util';
 import { toast } from 'sonner';
 import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export function Account() {
   const { me, setMe, publicConfig, refreshMe } = useSession();
@@ -184,11 +185,11 @@ function ChatsSection() {
         chat.
       </p>
       {me!.channels.length > 0 ? (
-        <ul className="members">
+        <ul className="list-none m-0 p-0 [&_li]:flex [&_li]:items-center [&_li]:gap-2.5 [&_li]:flex-wrap [&_li]:py-2.5 [&_li]:px-0 [&_li]:[border-bottom:1px_dashed_var(--border)] [&_li:last-child]:[border-bottom:0] [&_li>span:first-child]:flex-1 [&_li>span:first-child]:min-w-[140px] [&_li>span:first-child]:font-medium [&_select]:w-[auto] [&_select]:min-h-[38px]">
           {me!.channels.map((c) => (
             <li key={`${c.kind}:${c.address}`}>
               <span>
-                <span className="badge">{c.kind}</span> {c.address}
+                <span className={cn(metaBadge, 'ml-1')}>{c.kind}</span> {c.address}
               </span>
               <span className="text-muted-foreground text-[0.875rem]">since {formatDate(c.linkedAt)}</span>
               <ConfirmButton
@@ -218,9 +219,9 @@ function ChatsSection() {
             {code ? 'Get a new code' : 'Link a chat'}
           </button>
           {code && (
-            <div className="link-code flex flex-col gap-3">
+            <div className="bg-surface-2 rounded-md py-3.5 px-4 flex flex-col gap-3">
               <p>
-                Your code is <code className="code-big">{code.code}</code>, valid until {new Date(code.expiresAt).toLocaleTimeString()}.
+                Your code is <code className="font-mono text-[1.3rem] font-medium tracking-[0.14em] bg-card py-[3px] px-2.5 rounded-[8px] shadow-paper">{code.code}</code>, valid until {new Date(code.expiresAt).toLocaleTimeString()}.
               </p>
               <p className="text-[0.875rem]">{code.instructions}</p>
               <div className="flex items-center gap-2 flex-wrap">
@@ -263,7 +264,7 @@ function UsageSection() {
       <h2 id="usage-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         This month
       </h2>
-      <dl className="stats">
+      <dl className="grid grid-cols-[repeat(auto-fit,_minmax(120px,_1fr))] gap-2.5 mt-3.5 mx-0 mb-0 [&_div]:rounded-md [&_div]:bg-surface-2 [&_div]:py-3.5 [&_div]:px-4 [&_dt]:text-[0.8rem] [&_dt]:font-medium [&_dt]:text-muted-foreground [&_dd]:mt-0.5 [&_dd]:mx-0 [&_dd]:mb-0 [&_dd]:font-serif [&_dd]:text-[1.9rem] [&_dd]:font-medium [&_dd]:tracking-[-0.03em] [&_dd]:leading-[1.1] [&_dd]:[font-variant-numeric:tabular-nums_lining-nums]">
         <div>
           <dt>Plan</dt>
           <dd>{tier.name}</dd>
@@ -290,7 +291,7 @@ function UsageSection() {
         )}
       </dl>
       {tier.aiFeatures ? (
-        <div className="meter" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="AI allowance used">
+        <div className="h-2 rounded-full bg-surface-2 overflow-hidden [&_span]:block [&_span]:h-full [&_span]:rounded-[inherit] [&_span]:[background:linear-gradient(90deg,_color-mix(in_srgb,_var(--accent)_70%,_var(--surface)),_var(--accent))]" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="AI allowance used">
           <span style={{ width: `${pct}%` }} />
         </div>
       ) : (
@@ -326,9 +327,17 @@ function BillingSection() {
         Plan and billing
       </h2>
       {!cfg.billingEnabled && <p className="text-[0.875rem] text-muted-foreground">Billing is not set up on this Potluck yet.</p>}
-      <div className="tiers">
+      <div className="grid gap-3 grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))]">
         {cfg.tiers.map((t) => (
-          <div key={t.id} className={`tier${t.id === current ? ' tier-current' : ''}`}>
+          <div
+            key={t.id}
+            className={cn(
+              'flex flex-col gap-2 rounded-lg border p-5 [&_ul]:m-0 [&_ul]:flex-1 [&_ul]:pl-[1.1em] [&_ul]:text-[0.9rem] [&_ul]:text-muted-foreground',
+              t.id === current
+                ? 'border-[color-mix(in_srgb,var(--accent)_60%,transparent)] bg-[color-mix(in_srgb,var(--accent-soft)_45%,var(--surface))] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent)_60%,transparent)]'
+                : 'border-border bg-card',
+            )}
+          >
             <h3>{t.name}</h3>
             <p className="price">{t.priceCents ? `${cents(t.priceCents)}/mo` : 'Free'}</p>
             <ul>
@@ -340,7 +349,7 @@ function BillingSection() {
               <li>{t.aiFeatures ? `AI planning, ${formatUsd(t.aiAllowanceMicros)} AI allowance` : 'No AI planning'}</li>
             </ul>
             {t.id === current ? (
-              <span className="badge">Current plan</span>
+              <span className={cn(metaBadge, 'self-start')}>Current plan</span>
             ) : t.id !== 'free' && cfg.billingEnabled ? (
               paid ? (
                 <button className={buttonVariants()} disabled={!!busy} onClick={() => go('portal', api.portal)}>
@@ -418,7 +427,7 @@ function DangerZone() {
   }
 
   return (
-    <section id="data" className="min-w-0 rounded-lg border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3 danger-zone" aria-labelledby="danger-zone-title">
+    <section id="data" className="min-w-0 rounded-lg border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3 border-[color-mix(in_srgb,_var(--danger)_30%,_var(--border))] [&_input]:max-w-[260px]" aria-labelledby="danger-zone-title">
       <h2 id="danger-zone-title">Your data</h2>
       <div className="flex flex-col gap-3">
         <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Download my data</h3>
@@ -431,10 +440,10 @@ function DangerZone() {
           </button>
         </div>
       </div>
-      <div className="flex flex-col gap-3 danger-delete">
+      <div className="flex flex-col gap-3 pt-4 border-t border-border">
         <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Delete account</h3>
         <p className="text-[0.875rem]">Deleting your account is permanent and cannot be undone. When you delete it:</p>
-        <ul className="text-[0.875rem] danger-list">
+        <ul className="text-[0.875rem] m-0 pl-[1.2em] text-foreground-2 flex flex-col gap-1">
           <li>Your personal recipes, private notes and shared contributions are deleted. Independent recipe copies already saved by others remain.</li>
           <li>You leave every kitchen and circle you belong to.</li>
           {owned.length > 0 ? (

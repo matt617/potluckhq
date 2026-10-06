@@ -46,7 +46,7 @@ export function Diners() {
         used for its meal suggestions.
       </p>
       <ErrorNote error={error ?? state.error} />
-      <ul className="members">
+      <ul className="list-none m-0 p-0 [&_li]:flex [&_li]:items-center [&_li]:gap-2.5 [&_li]:flex-wrap [&_li]:py-2.5 [&_li]:px-0 [&_li]:[border-bottom:1px_dashed_var(--border)] [&_li:last-child]:[border-bottom:0] [&_li>span:first-child]:flex-1 [&_li>span:first-child]:min-w-[140px] [&_li>span:first-child]:font-medium [&_select]:w-[auto] [&_select]:min-h-[38px]">
         {state.data?.diners.map((d) => (
           <li key={d.id}>
             <span>

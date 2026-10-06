@@ -83,7 +83,7 @@ export function TechniqueView({
           thumb && <img className="w-full aspect-[4/3] max-h-[460px] object-cover rounded-xl shadow-lift" src={thumb} alt={recipe.title} />
         )}
         <div className="flex flex-col gap-[14px] min-[760px]:pt-6">
-          <p className="eyebrow">Cooking technique</p>
+          <p className="font-serif italic [font-variation-settings:'SOFT'_100] text-[1.05rem] font-[450] text-accent-foreground tracking-[-0.005em]">Cooking technique</p>
           <h1>{recipe.title}</h1>
           {(t?.summary || recipe.description) && <p className="max-w-[58ch] text-[1.12rem] leading-[1.55] text-foreground-2">{t?.summary || recipe.description}</p>}
           {t && t.appliesTo.length > 0 && (
