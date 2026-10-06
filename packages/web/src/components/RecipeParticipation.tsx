@@ -149,9 +149,11 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
     }
   }
   return (
-    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
+    <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
       <h2>Keep and share</h2>
-      <p className="text-[0.875rem] text-muted-foreground">Saved copies can be edited independently. Removing an original does not remove copies others already saved.</p>
+      <p className="text-[0.875rem] text-muted-foreground">
+        Saved copies can be edited independently. Removing an original does not remove copies others already saved.
+      </p>
       <ErrorNote error={error} />
       <p role="status">{message}</p>
       {(personal || cid) && (
@@ -269,7 +271,7 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
           <Field label="Cooking note" hint="Shared with members of this kitchen or circle">
             <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
           </Field>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             {(['want', 'made', 'note'] as const).map((kind) => (
               <button
                 key={kind}

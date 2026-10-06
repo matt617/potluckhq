@@ -76,7 +76,9 @@
   h2 {
     font-family: var(--display);
     font-optical-sizing: auto;
-    font-variation-settings: 'SOFT' 50, 'WONK' 0;
+    font-variation-settings:
+      'SOFT' 50,
+      'WONK' 0;
     font-weight: 550;
   }
   h1 {
@@ -96,7 +98,9 @@
   h3 {
     font-family: var(--display);
     font-optical-sizing: auto;
-    font-variation-settings: 'SOFT' 50, 'WONK' 0;
+    font-variation-settings:
+      'SOFT' 50,
+      'WONK' 0;
     font-weight: 550;
   }
   p {
@@ -115,7 +119,10 @@
     min-height: 46px;
     width: 100%;
     min-width: 0;
-    transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease), background-color 160ms var(--ease);
+    transition:
+      border-color 160ms var(--ease),
+      box-shadow 160ms var(--ease),
+      background-color 160ms var(--ease);
   }
   select {
     appearance: none;
@@ -159,7 +166,10 @@
     border-radius: 7px;
     background: var(--surface) center / 14px no-repeat;
     cursor: pointer;
-    transition: background-color 200ms var(--ease), border-color 200ms var(--ease), transform 300ms var(--spring);
+    transition:
+      background-color 200ms var(--ease),
+      border-color 200ms var(--ease),
+      transform 300ms var(--spring);
   }
   input[type='checkbox']:hover {
     border-color: var(--accent);

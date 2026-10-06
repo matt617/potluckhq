@@ -102,7 +102,7 @@ export function RecipeEditor({ recipe, onCancel, onSaved }: { recipe: Recipe; on
 
   return (
     <form className="flex flex-col gap-8" onSubmit={submit}>
-      <div className="flex items-center gap-2 justify-between flex-wrap">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1>Edit recipe</h1>
         <div className="flex items-center gap-2">
           <button type="button" className={buttonVariants()} onClick={onCancel}>
@@ -114,7 +114,7 @@ export function RecipeEditor({ recipe, onCancel, onSaved }: { recipe: Recipe; on
         </div>
       </div>
       <ErrorNote error={error} />
-      <div className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
         <Field label="Title">
           <input value={title} onChange={(e) => setTitle(e.target.value)} required />
         </Field>
@@ -139,7 +139,7 @@ export function RecipeEditor({ recipe, onCancel, onSaved }: { recipe: Recipe; on
           <TagInput value={tags} onChange={setTags} lowercase placeholder="chicken, weeknight, high-protein" />
         </Field>
       </div>
-      <div className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
         <Field label="Ingredients" hint='One per line, e.g. "2 cups rice, rinsed". Start a line with "## " for a group heading.'>
           <textarea rows={12} className="font-mono text-[0.88rem]" value={ingredients} onChange={(e) => setIngredients(e.target.value)} />
         </Field>

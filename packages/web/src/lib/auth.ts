@@ -51,7 +51,12 @@ async function challengeFor(verifier: string): Promise<string> {
 export function decodeJwt(token: string): IdClaims | null {
   try {
     const payload = token.split('.')[1] ?? '';
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '='));
+    const json = atob(
+      payload
+        .replace(/-/g, '+')
+        .replace(/_/g, '/')
+        .padEnd(Math.ceil(payload.length / 4) * 4, '='),
+    );
     return JSON.parse(decodeURIComponent(escape(json))) as IdClaims;
   } catch {
     return null;

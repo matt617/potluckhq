@@ -33,12 +33,14 @@ export function InvitePage() {
 
   return (
     <main className="mx-auto max-w-[540px] px-4 pt-[10vh] pb-[72px] focus:outline-none wide:px-8 wide:pb-[112px]">
-      <div className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
         {preview.loading && <Spinner />}
         <ErrorNote error={preview.error} />
         {preview.data && (
           <>
-            <p className="font-serif italic [font-variation-settings:'SOFT'_100] text-[1.05rem] font-[450] text-accent-foreground tracking-[-0.005em]">You're invited</p>
+            <p className="font-serif text-[1.05rem] font-[450] tracking-[-0.005em] text-accent-foreground italic [font-variation-settings:'SOFT'_100]">
+              You're invited
+            </p>
             <h1>Join {preview.data.communityName}</h1>
             <p className="text-muted-foreground">
               {preview.data.invitedByName} invited you to{' '}
@@ -48,7 +50,9 @@ export function InvitePage() {
               This invite expires {formatDate(preview.data.expiresAt, { month: 'long', day: 'numeric' })}.
             </p>
             {preview.data.full ? (
-              <div className="flex items-center justify-between gap-3 flex-wrap bg-accent border border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] rounded-lg py-4 px-[18px] [&_strong]:font-serif [&_strong]:font-semibold [&_strong]:text-[1.08rem] [&_p]:mt-1">This group has reached its member limit. The owner can review membership or kitchen plan options.</div>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] bg-accent px-[18px] py-4 [&_p]:mt-1 [&_strong]:font-serif [&_strong]:text-[1.08rem] [&_strong]:font-semibold">
+                This group has reached its member limit. The owner can review membership or kitchen plan options.
+              </div>
             ) : signedIn ? (
               <button className={buttonVariants({ variant: 'default', size: 'lg' })} disabled={busy} onClick={accept}>
                 {busy ? 'Joining…' : 'Accept invite'}

@@ -39,14 +39,14 @@ export function Diners() {
     });
   }
   return (
-    <section className="flex flex-col gap-3 min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
+    <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
       <h2>Who eats here?</h2>
       <p className="text-muted-foreground">
         Diners are separate from members. Children and guests don’t need an account. Only the food requirements you enter here are shared with this kitchen and
         used for its meal suggestions.
       </p>
       <ErrorNote error={error ?? state.error} />
-      <ul className="list-none m-0 p-0 [&_li]:flex [&_li]:items-center [&_li]:gap-2.5 [&_li]:flex-wrap [&_li]:py-2.5 [&_li]:px-0 [&_li]:[border-bottom:1px_dashed_var(--border)] [&_li:last-child]:[border-bottom:0] [&_li>span:first-child]:flex-1 [&_li>span:first-child]:min-w-[140px] [&_li>span:first-child]:font-medium [&_select]:w-[auto] [&_select]:min-h-[38px]">
+      <ul className="m-0 list-none p-0 [&_li]:flex [&_li]:flex-wrap [&_li]:items-center [&_li]:gap-2.5 [&_li]:px-0 [&_li]:py-2.5 [&_li]:[border-bottom:1px_dashed_var(--border)] [&_li:last-child]:[border-bottom:0] [&_li>span:first-child]:min-w-[140px] [&_li>span:first-child]:flex-1 [&_li>span:first-child]:font-medium [&_select]:min-h-[38px] [&_select]:w-[auto]">
         {state.data?.diners.map((d) => (
           <li key={d.id}>
             <span>
@@ -84,7 +84,7 @@ export function Diners() {
           </li>
         ))}
       </ul>
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         {!own && (
           <button className={buttonVariants()} onClick={() => add(true)}>
             Add me as a diner
@@ -157,7 +157,11 @@ export function Diners() {
             <legend className="mb-3 p-0 font-serif text-lg font-semibold">Food requirements</legend>
             {DIET_FIELDS.map(([k, label, placeholder]) => (
               <Field key={k} label={label}>
-                <TagInput value={editing.diet[k]} onChange={(next) => setEditing({ ...editing, diet: { ...editing.diet, [k]: next } })} placeholder={placeholder} />
+                <TagInput
+                  value={editing.diet[k]}
+                  onChange={(next) => setEditing({ ...editing, diet: { ...editing.diet, [k]: next } })}
+                  placeholder={placeholder}
+                />
               </Field>
             ))}
           </fieldset>

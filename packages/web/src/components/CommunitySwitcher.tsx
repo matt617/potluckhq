@@ -34,7 +34,7 @@ export function CommunitySwitcher() {
   );
 
   return (
-    <div className="min-w-0 max-w-60 flex-1">
+    <div className="max-w-60 min-w-0 flex-1">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button

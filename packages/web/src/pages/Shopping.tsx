@@ -14,7 +14,6 @@ import { cn } from '@/lib/utils';
 
 const aisleLabel = (a: Aisle) => AISLES.find((x) => x.id === a)?.label ?? 'Other';
 
-
 /** Borderless arrows in the week switcher; they lift onto the surface on hover. */
 const WEEK_NAV_BUTTON = 'min-w-9 border-0 bg-transparent px-2.5 py-0 hover:bg-card hover:shadow-paper';
 export function Shopping() {
@@ -114,7 +113,12 @@ export function Shopping() {
         {i.display && <span className="ml-[auto] font-mono text-[0.82rem] text-muted-foreground">{i.display}</span>}
       </label>
       {i.manual && (
-        <button type="button" className={cn(buttonVariants({ variant: 'ghost' }), 'min-w-9 p-1')} aria-label={`Remove ${i.name}`} onClick={() => void removeItem(i)}>
+        <button
+          type="button"
+          className={cn(buttonVariants({ variant: 'ghost' }), 'min-w-9 p-1')}
+          aria-label={`Remove ${i.name}`}
+          onClick={() => void removeItem(i)}
+        >
           <X size={16} weight="bold" aria-hidden />
         </button>
       )}
@@ -136,18 +140,18 @@ export function Shopping() {
         eyebrow={items.length ? `${items.length - done.length} to get · ${done.length} in the cart` : `Week of ${formatDate(week)}`}
         title="Shopping list"
       >
-        <div className="flex items-center flex-nowrap gap-1 p-1 rounded-full bg-surface-2">
+        <div className="flex flex-nowrap items-center gap-1 rounded-full bg-surface-2 p-1">
           <button className={cn(buttonVariants({ size: 'sm' }), WEEK_NAV_BUTTON)} aria-label="Previous week" onClick={() => setWeek(addDays(week, -7))}>
             <CaretLeft size={16} weight="bold" aria-hidden />
           </button>
-          <span className="font-semibold text-[0.9rem] min-w-[9em] text-center tabular-nums">Week of {formatDate(week)}</span>
+          <span className="min-w-[9em] text-center text-[0.9rem] font-semibold tabular-nums">Week of {formatDate(week)}</span>
           <button className={cn(buttonVariants({ size: 'sm' }), WEEK_NAV_BUTTON)} aria-label="Next week" onClick={() => setWeek(addDays(week, 7))}>
             <CaretRight size={16} weight="bold" aria-hidden />
           </button>
         </div>
       </PageHeader>
 
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           className={buttonVariants({ variant: 'default' })}
           disabled={!!busy}
@@ -182,9 +186,13 @@ export function Shopping() {
         )}
       </div>
       <ErrorNote error={error} />
-      {state.data?.stale && <p className="flex flex-wrap items-center justify-between gap-3 rounded-md px-4 py-3">Your plan or a recipe changed. Review the shopping update before your next trip.</p>}
+      {state.data?.stale && (
+        <p className="flex flex-wrap items-center justify-between gap-3 rounded-md px-4 py-3">
+          Your plan or a recipe changed. Review the shopping update before your next trip.
+        </p>
+      )}
       {preview && preview.weekStart === week && preview.communityId === community.id && (
-        <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
+        <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
           <h2>Review shopping update</h2>
           <p className="text-[0.875rem] text-muted-foreground">
             Manual items stay on your list. Changed quantities are marked as needing a new check, including items you already purchased.
@@ -223,7 +231,10 @@ export function Shopping() {
 
       {list && (
         <>
-          <form className="min-w-0 border border-border bg-card shadow-paper flex items-center flex-wrap p-2 rounded-full gap-1.5 [&_input]:border-transparent [&_input]:bg-transparent [&_input]:rounded-full [&_input:hover]:border-transparent [&_input:hover]:bg-surface-2 [&_input:first-child]:flex-[2_1_160px] max-[520px]:rounded-lg" onSubmit={addItem}>
+          <form
+            className="flex min-w-0 flex-wrap items-center gap-1.5 rounded-full border border-border bg-card p-2 shadow-paper max-[520px]:rounded-lg [&_input]:rounded-full [&_input]:border-transparent [&_input]:bg-transparent [&_input:first-child]:flex-[2_1_160px] [&_input:hover]:border-transparent [&_input:hover]:bg-surface-2"
+            onSubmit={addItem}
+          >
             <input aria-label="Item" placeholder="Add an item" value={newName} onChange={(e) => setNewName(e.target.value)} />
             <input aria-label="Amount" placeholder="Amount" className="flex-[1_1_90px]" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} />
             <button className={buttonVariants()} disabled={!newName.trim() || busy === 'add'}>
@@ -233,7 +244,9 @@ export function Shopping() {
 
           {!items.length && (
             <Empty title="Nothing on the list yet" icon={<Basket size={22} weight="duotone" />}>
-              <p className="text-muted-foreground">Plan some meals for this week, then build the list. Ingredients are merged across recipes and grouped by aisle.</p>
+              <p className="text-muted-foreground">
+                Plan some meals for this week, then build the list. Ingredients are merged across recipes and grouped by aisle.
+              </p>
               <Link to={kitchenPath('/plan', community.id, week)} className={buttonVariants()}>
                 Go to plan
               </Link>
@@ -241,23 +254,30 @@ export function Shopping() {
           )}
 
           {byAisle.map((g) => (
-            <section key={g.aisle.id} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]" aria-labelledby={`aisle-${g.aisle.id}`}>
-              <h2 id={`aisle-${g.aisle.id}`} className="flex items-center gap-2.5 text-[1.25rem] mb-1">
-                {g.aisle.label} <span className="font-sans text-[0.75rem] font-semibold min-w-[22px] h-[22px] py-0 px-[7px] inline-grid [place-items:center] rounded-full bg-surface-2 text-muted-foreground tabular-nums">{g.items.length}</span>
+            <section
+              key={g.aisle.id}
+              className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+              aria-labelledby={`aisle-${g.aisle.id}`}
+            >
+              <h2 id={`aisle-${g.aisle.id}`} className="mb-1 flex items-center gap-2.5 text-[1.25rem]">
+                {g.aisle.label}{' '}
+                <span className="inline-grid h-[22px] min-w-[22px] [place-items:center] rounded-full bg-surface-2 px-[7px] py-0 font-sans text-[0.75rem] font-semibold text-muted-foreground tabular-nums">
+                  {g.items.length}
+                </span>
               </h2>
               <ul className="mx-0 mt-1.5 mb-0 list-none p-0">{g.items.map(row)}</ul>
             </section>
           ))}
 
           {staples.length > 0 && (
-            <details className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] [&_summary]:flex [&_summary]:min-h-8 [&_summary]:cursor-pointer [&_summary]:list-none [&_summary]:items-center [&_summary]:gap-2.5 [&_summary]:font-medium [&_summary::-webkit-details-marker]:hidden [&_summary::before]:size-2 [&_summary::before]:[content:''] [&_summary::before]:[border-right:2px_solid_var(--muted)] [&_summary::before]:[border-bottom:2px_solid_var(--muted)] [&_summary::before]:[transform:rotate(-45deg)] [&_summary::before]:[transition:transform_250ms_var(--ease)] open:[&_summary]:mb-1.5 open:[&_summary::before]:[transform:rotate(45deg)]">
+            <details className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] [&_summary]:flex [&_summary]:min-h-8 [&_summary]:cursor-pointer [&_summary]:list-none [&_summary]:items-center [&_summary]:gap-2.5 [&_summary]:font-medium open:[&_summary]:mb-1.5 [&_summary::-webkit-details-marker]:hidden [&_summary::before]:size-2 [&_summary::before]:[transform:rotate(-45deg)] [&_summary::before]:[content:''] [&_summary::before]:[border-bottom:2px_solid_var(--muted)] [&_summary::before]:[border-right:2px_solid_var(--muted)] [&_summary::before]:[transition:transform_250ms_var(--ease)] open:[&_summary::before]:[transform:rotate(45deg)]">
               <summary>Pantry staples you probably have ({staples.length})</summary>
               <ul className="mx-0 mt-1.5 mb-0 list-none p-0">{staples.map(row)}</ul>
             </details>
           )}
 
           {done.length > 0 && (
-            <details className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] [&_summary]:flex [&_summary]:min-h-8 [&_summary]:cursor-pointer [&_summary]:list-none [&_summary]:items-center [&_summary]:gap-2.5 [&_summary]:font-medium [&_summary::-webkit-details-marker]:hidden [&_summary::before]:size-2 [&_summary::before]:[content:''] [&_summary::before]:[border-right:2px_solid_var(--muted)] [&_summary::before]:[border-bottom:2px_solid_var(--muted)] [&_summary::before]:[transform:rotate(-45deg)] [&_summary::before]:[transition:transform_250ms_var(--ease)] open:[&_summary]:mb-1.5 open:[&_summary::before]:[transform:rotate(45deg)]">
+            <details className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] [&_summary]:flex [&_summary]:min-h-8 [&_summary]:cursor-pointer [&_summary]:list-none [&_summary]:items-center [&_summary]:gap-2.5 [&_summary]:font-medium open:[&_summary]:mb-1.5 [&_summary::-webkit-details-marker]:hidden [&_summary::before]:size-2 [&_summary::before]:[transform:rotate(-45deg)] [&_summary::before]:[content:''] [&_summary::before]:[border-bottom:2px_solid_var(--muted)] [&_summary::before]:[border-right:2px_solid_var(--muted)] [&_summary::before]:[transition:transform_250ms_var(--ease)] open:[&_summary::before]:[transform:rotate(45deg)]">
               <summary>In the cart ({done.length})</summary>
               <ul className="mx-0 mt-1.5 mb-0 list-none p-0">{done.map(row)}</ul>
             </details>

@@ -61,12 +61,12 @@ export function AddRecipe({ communityId, initialMode = 'link', onQueued }: { com
     <Tabs
       value={mode}
       onValueChange={(v) => setMode(v as AddMode)}
-      className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3"
+      className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
       aria-labelledby="add-recipe-title"
       asChild
     >
       <section>
-        <div className="flex items-center gap-2 justify-between flex-wrap">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="add-recipe-title">Add a recipe</h2>
           <TabsList aria-label="Import type">
             {(['link', 'photos', 'text'] as AddMode[]).map((m) => (
@@ -106,12 +106,12 @@ export function AddRecipe({ communityId, initialMode = 'link', onQueued }: { com
             </Field>
           </TabsContent>
           <ErrorNote error={error} />
-          <div className="flex items-center gap-2 justify-between flex-wrap">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <button className={buttonVariants({ variant: 'default' })} disabled={busy || !valid}>
               {busy ? progress || 'Sending…' : 'Import recipe'}
             </button>
             {tg && (
-              <a className="text-muted-foreground text-[0.875rem]" href={`https://t.me/${tg}`} target="_blank" rel="noreferrer">
+              <a className="text-[0.875rem] text-muted-foreground" href={`https://t.me/${tg}`} target="_blank" rel="noreferrer">
                 Tip: send links to @{tg} on Telegram
               </a>
             )}

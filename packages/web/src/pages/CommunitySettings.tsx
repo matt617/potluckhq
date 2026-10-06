@@ -79,16 +79,19 @@ export function CommunitySettings() {
       <ErrorNote error={detail.error} onRetry={() => void detail.reload()} />
       <ErrorNote error={error} />
 
-      <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="members-title">
-        <div className="flex items-center gap-2 justify-between flex-wrap">
+      <section
+        className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+        aria-labelledby="members-title"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="members-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
             Members
           </h2>
-          <span className="text-muted-foreground text-[0.875rem]">
+          <span className="text-[0.875rem] text-muted-foreground">
             {members.length} of {memberLimit} on {limits.name}
           </span>
         </div>
-        <ul className="list-none m-0 p-0 [&_li]:flex [&_li]:items-center [&_li]:gap-2.5 [&_li]:flex-wrap [&_li]:py-2.5 [&_li]:px-0 [&_li]:[border-bottom:1px_dashed_var(--border)] [&_li:last-child]:[border-bottom:0] [&_li>span:first-child]:flex-1 [&_li>span:first-child]:min-w-[140px] [&_li>span:first-child]:font-medium [&_select]:w-[auto] [&_select]:min-h-[38px]">
+        <ul className="m-0 list-none p-0 [&_li]:flex [&_li]:flex-wrap [&_li]:items-center [&_li]:gap-2.5 [&_li]:px-0 [&_li]:py-2.5 [&_li]:[border-bottom:1px_dashed_var(--border)] [&_li:last-child]:[border-bottom:0] [&_li>span:first-child]:min-w-[140px] [&_li>span:first-child]:flex-1 [&_li>span:first-child]:font-medium [&_select]:min-h-[38px] [&_select]:w-[auto]">
           {members.map((m) => {
             const self = m.userId === me?.user.id;
             return (
@@ -147,13 +150,13 @@ export function CommunitySettings() {
           <div className="flex flex-col gap-3 pt-2 [&_select]:w-[auto]">
             <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Invite someone</h3>
             {full ? (
-              <p className="text-muted-foreground text-[0.875rem]">
+              <p className="text-[0.875rem] text-muted-foreground">
                 {community.kind === 'circle'
                   ? 'This circle has reached its 20-member limit.'
                   : 'This kitchen is full. The owner can upgrade the plan to add more people.'}
               </p>
             ) : (
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex flex-wrap items-center gap-2">
                 <select aria-label="Invite role" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as 'member' | 'admin')}>
                   <option value="member">as member</option>
                   <option value="admin">as admin</option>
@@ -170,14 +173,14 @@ export function CommunitySettings() {
             {invite && (
               <div className="flex flex-col gap-3">
                 <input readOnly value={invite.url} aria-label="Invite link" onFocus={(e) => e.currentTarget.select()} />
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex flex-wrap items-center gap-2">
                   <button className={buttonVariants()} onClick={async () => toast((await copyText(invite.url)) ? 'Copied' : 'Copy failed')}>
                     Copy link
                   </button>
                   <button className={buttonVariants()} onClick={() => void shareInvite()}>
                     Share…
                   </button>
-                  <span className="text-muted-foreground text-[0.875rem]">Expires {formatDate(invite.expiresAt)}</span>
+                  <span className="text-[0.875rem] text-muted-foreground">Expires {formatDate(invite.expiresAt)}</span>
                 </div>
               </div>
             )}
@@ -188,7 +191,10 @@ export function CommunitySettings() {
       {community.kind !== 'circle' && <Diners />}
       <KitchenAdministration />
       {admin && (
-        <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="settings-title">
+        <section
+          className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+          aria-labelledby="settings-title"
+        >
           <h2 id="settings-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
             Settings
           </h2>
@@ -229,13 +235,16 @@ export function CommunitySettings() {
         </section>
       )}
 
-      <section className="min-w-0 rounded-lg border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3 border-[color-mix(in_srgb,_var(--danger)_30%,_var(--border))] [&_input]:max-w-[260px]" aria-labelledby="danger-title">
+      <section
+        className="flex min-w-0 flex-col gap-3 rounded-lg border border-[color-mix(in_srgb,_var(--danger)_30%,_var(--border))] bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] [&_input]:max-w-[260px]"
+        aria-labelledby="danger-title"
+      >
         <h2 id="danger-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
           {isOwner ? 'Delete this kitchen or circle' : 'Leave this kitchen or circle'}
         </h2>
         {isOwner ? (
           <>
-            <p className="text-muted-foreground text-[0.875rem]">
+            <p className="text-[0.875rem] text-muted-foreground">
               Deletes this shared space and its plans, shopping lists and local recipe versions. Personal saves and independent copies elsewhere remain.
               Transfer ownership above to let the group continue.
             </p>

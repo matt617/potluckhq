@@ -36,7 +36,7 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
             See plans
           </Link>
         ) : (
-          <p className="text-muted-foreground text-[0.875rem]">The kitchen owner can upgrade to unlock AI planning for everyone here.</p>
+          <p className="text-[0.875rem] text-muted-foreground">The kitchen owner can upgrade to unlock AI planning for everyone here.</p>
         )}
       </section>
     );
@@ -67,7 +67,10 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
   }
 
   return (
-    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="ai-title">
+    <section
+      className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+      aria-labelledby="ai-title"
+    >
       <h2 id="ai-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         Suggest a plan with AI
       </h2>
@@ -89,7 +92,9 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
         </div>
         <p className="text-[0.875rem] text-muted-foreground">Applies to this draft. Shared summaries do not include personal health details.</p>
       </details>
-      {constraints.includes('glp1') && <p className="text-[0.875rem] text-muted-foreground">GLP-1 suggestions favor smaller, protein-forward portions. They are not medical advice.</p>}
+      {constraints.includes('glp1') && (
+        <p className="text-[0.875rem] text-muted-foreground">GLP-1 suggestions favor smaller, protein-forward portions. They are not medical advice.</p>
+      )}
       <fieldset className="m-0 border-0 p-0 [&_legend]:mb-2 [&_legend]:p-0 [&_legend]:text-[0.9rem] [&_legend]:font-medium">
         <legend>Away or not cooking</legend>
         <div className="flex flex-wrap gap-2">
@@ -123,7 +128,7 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
         <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
       <ErrorNote error={error} />
-      <div className="flex items-center gap-2 justify-between flex-wrap">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <button className={buttonVariants({ variant: 'default' })} disabled={busy} onClick={suggest}>
           {busy ? 'Planning…' : 'Suggest plan'}
         </button>
@@ -135,8 +140,11 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
 
 export function AiResult({ res, onDismiss }: { res: SuggestPlanResponse; onDismiss: () => void }) {
   return (
-    <section className="min-w-0 rounded-lg border p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3 border-[color-mix(in_srgb,_var(--accent)_45%,_var(--border))] [background:radial-gradient(100%_120%_at_0%_0%,_color-mix(in_srgb,_var(--accent-soft)_80%,_transparent),_transparent_60%),_var(--surface)]" aria-live="polite">
-      <div className="flex items-center gap-2 justify-between">
+    <section
+      className="flex min-w-0 flex-col gap-3 rounded-lg border border-[color-mix(in_srgb,_var(--accent)_45%,_var(--border))] p-5 shadow-paper [background:radial-gradient(100%_120%_at_0%_0%,_color-mix(in_srgb,_var(--accent-soft)_80%,_transparent),_transparent_60%),_var(--surface)] wide:px-7 wide:py-[26px]"
+      aria-live="polite"
+    >
+      <div className="flex items-center justify-between gap-2">
         <h2 className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">AI plan</h2>
         <button className={buttonVariants({ variant: 'ghost', size: 'sm' })} onClick={onDismiss}>
           Dismiss
@@ -151,7 +159,7 @@ export function AiResult({ res, onDismiss }: { res: SuggestPlanResponse; onDismi
       {res.newIdeas.length > 0 && (
         <>
           <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">New ideas to find</h3>
-          <ul className="m-0 pl-[1.2em] flex flex-col gap-1.5">
+          <ul className="m-0 flex flex-col gap-1.5 pl-[1.2em]">
             {res.newIdeas.map((idea) => (
               <li key={idea.title}>
                 <strong>{idea.title}.</strong> <span className="text-muted-foreground">{idea.why}</span>{' '}
@@ -167,7 +175,9 @@ export function AiResult({ res, onDismiss }: { res: SuggestPlanResponse; onDismi
           </ul>
         </>
       )}
-      <p className="text-[0.875rem] text-muted-foreground">This suggestion cost {formatUsd(res.costMicros)} of AI allowance. Review the grid below, then save.</p>
+      <p className="text-[0.875rem] text-muted-foreground">
+        This suggestion cost {formatUsd(res.costMicros)} of AI allowance. Review the grid below, then save.
+      </p>
     </section>
   );
 }

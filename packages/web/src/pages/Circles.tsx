@@ -17,12 +17,14 @@ export function Circles() {
   return (
     <div className="flex flex-col gap-8">
       <h1>Recipe circles</h1>
-      <p className="max-w-[58ch] text-[1.12rem] leading-[1.55] text-foreground-2">Exchange recipes with friends, coworkers or family. Everyone keeps their own meal plans, groceries and food profiles.</p>
+      <p className="max-w-[58ch] text-[1.12rem] leading-[1.55] text-foreground-2">
+        Exchange recipes with friends, coworkers or family. Everyone keeps their own meal plans, groceries and food profiles.
+      </p>
       <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,248px),1fr))] gap-x-[22px] gap-y-9 p-0">
         {me?.communities
           .filter((c) => c.kind === 'circle')
           .map((c) => (
-            <li className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" key={c.id}>
+            <li className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]" key={c.id}>
               <h2 className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
                 <Link to={kitchenPath('/book', c.id)}>{c.name}</Link>
               </h2>
@@ -32,7 +34,7 @@ export function Circles() {
           ))}
       </ul>
       <form
-        className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3"
+        className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);

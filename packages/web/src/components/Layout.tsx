@@ -48,7 +48,7 @@ export function Layout() {
   }
   if (requested && !me.communities.some((c) => c.id === requested))
     return (
-      <main className="mx-auto max-w-[1160px] px-4 pt-7 pb-[72px] focus:outline-none wide:px-8 wide:pt-12 wide:pb-[112px] flex flex-col gap-3">
+      <main className="mx-auto flex max-w-[1160px] flex-col gap-3 px-4 pt-7 pb-[72px] focus:outline-none wide:px-8 wide:pt-12 wide:pb-[112px]">
         <ErrorNote error={new Error('You no longer have access to this kitchen or circle.')} />
         <Link to="/library">Open My recipes</Link>
       </main>
@@ -57,12 +57,21 @@ export function Layout() {
 
   return (
     <div className="min-h-dvh pb-[calc(96px+env(safe-area-inset-bottom))] wide:pb-0">
-      <a className="absolute left-3 -top-[60px] z-[var(--z-skip)] bg-ink text-ink-foreground py-2.5 px-4 rounded-full font-medium focus:top-3 focus:text-ink-foreground" href="#main">
+      <a
+        className="absolute -top-[60px] left-3 z-[var(--z-skip)] rounded-full bg-ink px-4 py-2.5 font-medium text-ink-foreground focus:top-3 focus:text-ink-foreground"
+        href="#main"
+      >
         Skip to content
       </a>
       <header className="sticky top-0 z-10 flex min-h-16 items-center gap-4 border-b border-[color-mix(in_srgb,var(--border)_70%,transparent)] bg-[color-mix(in_srgb,var(--bg)_82%,transparent)] px-4 py-2.5 backdrop-blur-[14px] backdrop-saturate-[1.4] wide:px-8">
         <NavLink to={destination('/week')} className={brandClasses} aria-label="Potluck home">
-          <img src="/icon.svg" alt="" width={28} height={28} className="rounded-[9px] shadow-paper transition-transform duration-300 ease-spring group-hover:-rotate-8 group-hover:scale-105" />
+          <img
+            src="/icon.svg"
+            alt=""
+            width={28}
+            height={28}
+            className="rounded-[9px] shadow-paper transition-transform duration-300 ease-spring group-hover:scale-105 group-hover:-rotate-8"
+          />
           <span className="max-[420px]:hidden">Potluck</span>
         </NavLink>
         <CommunitySwitcher />
@@ -97,7 +106,11 @@ export function Layout() {
                 ...(community ? [{ to: destination('/community'), label: 'Kitchen settings and invitations' }] : []),
                 { to: '/account', label: 'Account and linked chats' },
               ].map((l) => (
-                <Link key={l.label} to={l.to} className="rounded-sm px-3 py-2.5 text-[0.94rem] text-foreground no-underline hover:bg-muted focus-visible:bg-muted">
+                <Link
+                  key={l.label}
+                  to={l.to}
+                  className="rounded-sm px-3 py-2.5 text-[0.94rem] text-foreground no-underline hover:bg-muted focus-visible:bg-muted"
+                >
                   {l.label}
                 </Link>
               ))}
@@ -151,4 +164,3 @@ export function Layout() {
     </div>
   );
 }
-

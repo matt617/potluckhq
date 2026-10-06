@@ -31,7 +31,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [communityId, setCommunityIdState] = useState<string | null>(() => readStore(COMMUNITY_KEY));
 
   useEffect(() => {
-    api.config().then(setPublicConfig).catch(() => setPublicConfig(null));
+    api
+      .config()
+      .then(setPublicConfig)
+      .catch(() => setPublicConfig(null));
   }, []);
 
   const refreshMe = useCallback(async () => {
@@ -60,12 +63,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const community = useMemo(() => {
     const list = me?.communities ?? [];
-    return (
-      list.find((c) => c.id === communityId) ??
-      list.find((c) => c.id === me?.user.defaultCommunityId) ??
-      list[0] ??
-      null
-    );
+    return list.find((c) => c.id === communityId) ?? list.find((c) => c.id === me?.user.defaultCommunityId) ?? list[0] ?? null;
   }, [me, communityId]);
 
   const value: SessionValue = {

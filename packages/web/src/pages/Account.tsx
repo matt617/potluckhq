@@ -32,7 +32,7 @@ export function Account() {
   if (!me) return <Spinner />;
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-center gap-2 justify-between flex-wrap">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1>Account</h1>
         <button className={buttonVariants({ variant: 'ghost' })} onClick={() => void logout()}>
           Sign out
@@ -88,11 +88,14 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
   }
 
   return (
-    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="profile-title">
+    <section
+      className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+      aria-labelledby="profile-title"
+    >
       <h2 id="profile-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         Profile
       </h2>
-      <p className="text-muted-foreground text-[0.875rem]">{u.email}</p>
+      <p className="text-[0.875rem] text-muted-foreground">{u.email}</p>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] items-end gap-3">
         <Field label="Display name">
           <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} />
@@ -117,7 +120,7 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
         </Field>
       </div>
       <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Food profile</h3>
-      <p className="text-muted-foreground text-[0.875rem]">
+      <p className="text-[0.875rem] text-muted-foreground">
         These preferences are private. In each kitchen’s settings, choose which food requirements to share as a diner. Joining a kitchen or circle does not
         share them automatically.
       </p>
@@ -143,7 +146,9 @@ function ProfileSection({ onSaved }: { onSaved: (m: NonNullable<ReturnType<typeo
         fiber-rich portions.
       </label>
       {glp1 && (
-        <p className="text-[0.875rem] text-muted-foreground">Potluck's suggestions are general food ideas, not medical advice. Follow your clinician's guidance on diet and dosing.</p>
+        <p className="text-[0.875rem] text-muted-foreground">
+          Potluck's suggestions are general food ideas, not medical advice. Follow your clinician's guidance on diet and dosing.
+        </p>
       )}
       <ErrorNote error={error} />
       <div>
@@ -177,22 +182,26 @@ function ChatsSection() {
   }
 
   return (
-    <section id="chats" className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="chats-title">
+    <section
+      id="chats"
+      className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+      aria-labelledby="chats-title"
+    >
       <h2 id="chats-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         Linked chats
       </h2>
-      <p className="text-muted-foreground text-[0.875rem]">
+      <p className="text-[0.875rem] text-muted-foreground">
         Link a private chat with the bot, then forward a recipe. It lands in your chosen kitchen. The bot receives direct messages; it does not join your group
         chat.
       </p>
       {me!.channels.length > 0 ? (
-        <ul className="list-none m-0 p-0 [&_li]:flex [&_li]:items-center [&_li]:gap-2.5 [&_li]:flex-wrap [&_li]:py-2.5 [&_li]:px-0 [&_li]:[border-bottom:1px_dashed_var(--border)] [&_li:last-child]:[border-bottom:0] [&_li>span:first-child]:flex-1 [&_li>span:first-child]:min-w-[140px] [&_li>span:first-child]:font-medium [&_select]:w-[auto] [&_select]:min-h-[38px]">
+        <ul className="m-0 list-none p-0 [&_li]:flex [&_li]:flex-wrap [&_li]:items-center [&_li]:gap-2.5 [&_li]:px-0 [&_li]:py-2.5 [&_li]:[border-bottom:1px_dashed_var(--border)] [&_li:last-child]:[border-bottom:0] [&_li>span:first-child]:min-w-[140px] [&_li>span:first-child]:flex-1 [&_li>span:first-child]:font-medium [&_select]:min-h-[38px] [&_select]:w-[auto]">
           {me!.channels.map((c) => (
             <li key={`${c.kind}:${c.address}`}>
               <span>
                 <span className={cn(metaBadge, 'ml-1')}>{c.kind}</span> {c.address}
               </span>
-              <span className="text-muted-foreground text-[0.875rem]">since {formatDate(c.linkedAt)}</span>
+              <span className="text-[0.875rem] text-muted-foreground">since {formatDate(c.linkedAt)}</span>
               <ConfirmButton
                 className={buttonVariants({ variant: 'ghost', size: 'sm' })}
                 confirmLabel="Unlink?"
@@ -220,19 +229,31 @@ function ChatsSection() {
             {code ? 'Get a new code' : 'Link a chat'}
           </button>
           {code && (
-            <div className="bg-surface-2 rounded-md py-3.5 px-4 flex flex-col gap-3">
+            <div className="flex flex-col gap-3 rounded-md bg-surface-2 px-4 py-3.5">
               <p>
-                Your code is <code className="font-mono text-[1.3rem] font-medium tracking-[0.14em] bg-card py-[3px] px-2.5 rounded-[8px] shadow-paper">{code.code}</code>, valid until {new Date(code.expiresAt).toLocaleTimeString()}.
+                Your code is{' '}
+                <code className="rounded-[8px] bg-card px-2.5 py-[3px] font-mono text-[1.3rem] font-medium tracking-[0.14em] shadow-paper">{code.code}</code>,
+                valid until {new Date(code.expiresAt).toLocaleTimeString()}.
               </p>
               <p className="text-[0.875rem]">{code.instructions}</p>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex flex-wrap items-center gap-2">
                 {tg && (
-                  <a className={buttonVariants({ variant: 'default' })} href={`https://t.me/${tg}?start=${encodeURIComponent(code.code)}`} target="_blank" rel="noreferrer">
+                  <a
+                    className={buttonVariants({ variant: 'default' })}
+                    href={`https://t.me/${tg}?start=${encodeURIComponent(code.code)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     Open Telegram
                   </a>
                 )}
                 {wa && (
-                  <a className={buttonVariants({ variant: 'default' })} href={`https://wa.me/${wa}?text=${encodeURIComponent(`link ${code.code}`)}`} target="_blank" rel="noreferrer">
+                  <a
+                    className={buttonVariants({ variant: 'default' })}
+                    href={`https://wa.me/${wa}?text=${encodeURIComponent(`link ${code.code}`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     Open WhatsApp
                   </a>
                 )}
@@ -261,11 +282,14 @@ function UsageSection() {
   const used = Math.max(0, tier.aiAllowanceMicros - budget.allowanceLeftMicros);
   const pct = tier.aiAllowanceMicros ? Math.min(100, Math.round((used / tier.aiAllowanceMicros) * 100)) : 0;
   return (
-    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="usage-title">
+    <section
+      className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+      aria-labelledby="usage-title"
+    >
       <h2 id="usage-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         This month
       </h2>
-      <dl className="grid grid-cols-[repeat(auto-fit,_minmax(120px,_1fr))] gap-2.5 mt-3.5 mx-0 mb-0 [&_div]:rounded-md [&_div]:bg-surface-2 [&_div]:py-3.5 [&_div]:px-4 [&_dt]:text-[0.8rem] [&_dt]:font-medium [&_dt]:text-muted-foreground [&_dd]:mt-0.5 [&_dd]:mx-0 [&_dd]:mb-0 [&_dd]:font-serif [&_dd]:text-[1.9rem] [&_dd]:font-medium [&_dd]:tracking-[-0.03em] [&_dd]:leading-[1.1] [&_dd]:[font-variant-numeric:tabular-nums_lining-nums]">
+      <dl className="mx-0 mt-3.5 mb-0 grid grid-cols-[repeat(auto-fit,_minmax(120px,_1fr))] gap-2.5 [&_dd]:mx-0 [&_dd]:mt-0.5 [&_dd]:mb-0 [&_dd]:font-serif [&_dd]:text-[1.9rem] [&_dd]:leading-[1.1] [&_dd]:font-medium [&_dd]:tracking-[-0.03em] [&_dd]:[font-variant-numeric:tabular-nums_lining-nums] [&_div]:rounded-md [&_div]:bg-surface-2 [&_div]:px-4 [&_div]:py-3.5 [&_dt]:text-[0.8rem] [&_dt]:font-medium [&_dt]:text-muted-foreground">
         <div>
           <dt>Plan</dt>
           <dd>{tier.name}</dd>
@@ -273,7 +297,7 @@ function UsageSection() {
         <div>
           <dt>Imports left</dt>
           <dd>
-            {budget.importsLeft} <span className="text-muted-foreground text-[0.875rem]">of {tier.importsPerMonth}</span>
+            {budget.importsLeft} <span className="text-[0.875rem] text-muted-foreground">of {tier.importsPerMonth}</span>
           </dd>
         </div>
         {tier.aiFeatures && (
@@ -281,7 +305,7 @@ function UsageSection() {
             <div>
               <dt>AI allowance used</dt>
               <dd>
-                {formatUsd(used)} <span className="text-muted-foreground text-[0.875rem]">of {formatUsd(tier.aiAllowanceMicros)}</span>
+                {formatUsd(used)} <span className="text-[0.875rem] text-muted-foreground">of {formatUsd(tier.aiAllowanceMicros)}</span>
               </dd>
             </div>
             <div>
@@ -292,7 +316,14 @@ function UsageSection() {
         )}
       </dl>
       {tier.aiFeatures ? (
-        <div className="h-2 rounded-full bg-surface-2 overflow-hidden [&_span]:block [&_span]:h-full [&_span]:rounded-[inherit] [&_span]:[background:linear-gradient(90deg,_color-mix(in_srgb,_var(--accent)_70%,_var(--surface)),_var(--accent))]" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="AI allowance used">
+        <div
+          className="h-2 overflow-hidden rounded-full bg-surface-2 [&_span]:block [&_span]:h-full [&_span]:rounded-[inherit] [&_span]:[background:linear-gradient(90deg,_color-mix(in_srgb,_var(--accent)_70%,_var(--surface)),_var(--accent))]"
+          role="meter"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pct}
+          aria-label="AI allowance used"
+        >
           <span style={{ width: `${pct}%` }} />
         </div>
       ) : (
@@ -323,12 +354,16 @@ function BillingSection() {
   }
 
   return (
-    <section id="billing" className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="billing-title">
+    <section
+      id="billing"
+      className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]"
+      aria-labelledby="billing-title"
+    >
       <h2 id="billing-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         Plan and billing
       </h2>
       {!cfg.billingEnabled && <p className="text-[0.875rem] text-muted-foreground">Billing is not set up on this Potluck yet.</p>}
-      <div className="grid gap-3 grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))]">
+      <div className="grid grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))] gap-3">
         {cfg.tiers.map((t) => (
           <div
             key={t.id}
@@ -357,7 +392,11 @@ function BillingSection() {
                   Switch in portal
                 </button>
               ) : (
-                <button className={buttonVariants({ variant: 'default' })} disabled={!!busy} onClick={() => go(t.id, () => api.checkout({ tier: t.id as Exclude<TierId, 'free'> }))}>
+                <button
+                  className={buttonVariants({ variant: 'default' })}
+                  disabled={!!busy}
+                  onClick={() => go(t.id, () => api.checkout({ tier: t.id as Exclude<TierId, 'free'> }))}
+                >
                   {busy === t.id ? 'Opening…' : `Upgrade to ${t.name}`}
                 </button>
               )
@@ -372,7 +411,7 @@ function BillingSection() {
             Imports and AI planning share your account’s allowance across all kitchens and circles you own. Credit packs extend both. Credits stay with your
             account when you transfer a kitchen.
           </p>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             {cfg.creditPacks.map((p) => (
               <button key={p.id} className={buttonVariants()} disabled={!!busy} onClick={() => go(p.id, () => api.checkout({ creditPackId: p.id }))}>
                 {busy === p.id ? 'Opening…' : `${cents(p.priceCents)} for ${formatUsd(p.creditMicros)} of AI`}
@@ -428,7 +467,11 @@ function DangerZone() {
   }
 
   return (
-    <section id="data" className="min-w-0 rounded-lg border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3 border-[color-mix(in_srgb,_var(--danger)_30%,_var(--border))] [&_input]:max-w-[260px]" aria-labelledby="danger-zone-title">
+    <section
+      id="data"
+      className="flex min-w-0 flex-col gap-3 rounded-lg border border-[color-mix(in_srgb,_var(--danger)_30%,_var(--border))] bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] [&_input]:max-w-[260px]"
+      aria-labelledby="danger-zone-title"
+    >
       <h2 id="danger-zone-title">Your data</h2>
       <div className="flex flex-col gap-3">
         <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Download my data</h3>
@@ -441,10 +484,10 @@ function DangerZone() {
           </button>
         </div>
       </div>
-      <div className="flex flex-col gap-3 pt-4 border-t border-border">
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
         <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Delete account</h3>
         <p className="text-[0.875rem]">Deleting your account is permanent and cannot be undone. When you delete it:</p>
-        <ul className="text-[0.875rem] m-0 pl-[1.2em] text-foreground-2 flex flex-col gap-1">
+        <ul className="m-0 flex flex-col gap-1 pl-[1.2em] text-[0.875rem] text-foreground-2">
           <li>Your personal recipes, private notes and shared contributions are deleted. Independent recipe copies already saved by others remain.</li>
           <li>You leave every kitchen and circle you belong to.</li>
           {owned.length > 0 ? (

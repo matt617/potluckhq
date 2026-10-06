@@ -21,7 +21,7 @@ export function Library() {
         <h1>My recipes</h1>
         <p className="text-muted-foreground">Your personal collection stays with you when you leave a kitchen. Notes here are private.</p>
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         <Link to="/book" className={buttonVariants()}>
           Kitchen recipes
         </Link>
@@ -44,7 +44,7 @@ export function Library() {
       {state.loading && <Skeleton variant="grid" />}
       <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,248px),1fr))] gap-x-[22px] gap-y-9 p-0">
         {recipes.map((r) => (
-          <li className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" key={r.id}>
+          <li className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]" key={r.id}>
             <Link to={`/book/${r.id}`}>
               <h2 className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">{r.title}</h2>
             </Link>

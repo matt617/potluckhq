@@ -49,7 +49,7 @@ export function ThisWeek() {
   }
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-center gap-2 justify-between flex-wrap">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1>This week in {c.name}</h1>
           <p className="text-muted-foreground">Decide together. Cook together.</p>
@@ -58,7 +58,7 @@ export function ThisWeek() {
           Invite someone
         </Link>
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         <button className={buttonVariants()} onClick={() => setWeek(addDays(week, -7))}>
           Previous week
         </button>
@@ -71,7 +71,7 @@ export function ThisWeek() {
       {!d && state.loading && <Skeleton />}
       {d && (
         <>
-          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
+          <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
             <h2>{week === weekStartOf() ? 'Tonight' : 'This week’s dinner'}</h2>
             <p>
               {d.plan.entries
@@ -79,7 +79,7 @@ export function ThisWeek() {
                 .map(title)
                 .join(' · ') || 'Dinner is still open. Choose something from your recipe book.'}
             </p>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2">
               <Link className={buttonVariants()} to={kitchenPath('/plan', c.id, week)}>
                 Choose meals
               </Link>
@@ -100,8 +100,8 @@ export function ThisWeek() {
               </Empty>
             )}
             {DAY_NAMES.map((day, index) => (
-              <div key={day} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
-                <div className="flex items-center gap-2 justify-between">
+              <div key={day} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
+                <div className="flex items-center justify-between gap-2">
                   <h3>
                     {day}
                     {index === today && week === weekStartOf() ? '· Today' : ''}
@@ -111,7 +111,7 @@ export function ThisWeek() {
                 {d.plan.entries
                   .filter((e) => e.day === index)
                   .map((e) => (
-                    <div className="flex items-center gap-2 justify-between flex-wrap" key={e.id}>
+                    <div className="flex flex-wrap items-center justify-between gap-2" key={e.id}>
                       <div>
                         <strong>{e.slot}: </strong>
                         {e.recipeId ? (
@@ -151,7 +151,7 @@ export function ThisWeek() {
               </div>
             ))}
           </section>
-          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
+          <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
             <h2>Shopping</h2>
             <p>
               {d.list.items.filter((i) => i.checked).length} of {d.list.items.length} items purchased.
@@ -170,7 +170,9 @@ export function ThisWeek() {
                 .map((r) => (
                   <li key={r.id} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
                     <Link to={kitchenPath(`/book/${r.id}`, c.id)}>{r.title}</Link>
-                    <p className="text-[0.875rem] text-muted-foreground">Added by {d.members.find((m) => m.userId === r.addedBy)?.displayName ?? 'a former member'}</p>
+                    <p className="text-[0.875rem] text-muted-foreground">
+                      Added by {d.members.find((m) => m.userId === r.addedBy)?.displayName ?? 'a former member'}
+                    </p>
                   </li>
                 ))}
             </ul>

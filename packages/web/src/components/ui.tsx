@@ -248,7 +248,11 @@ export function PageHeader({ eyebrow, title, children }: { eyebrow?: ReactNode; 
   return (
     <header className="flex animate-rise flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-border pb-[22px] motion-reduce:animate-none">
       <div className="flex min-w-0 flex-col gap-1.5">
-        {eyebrow && <p className="font-serif italic [font-variation-settings:'SOFT'_100] text-[1.05rem] font-[450] text-accent-foreground tracking-[-0.005em]">{eyebrow}</p>}
+        {eyebrow && (
+          <p className="font-serif text-[1.05rem] font-[450] tracking-[-0.005em] text-accent-foreground italic [font-variation-settings:'SOFT'_100]">
+            {eyebrow}
+          </p>
+        )}
         <h1>{title}</h1>
       </div>
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
@@ -288,7 +292,17 @@ export function Field({ label, hint, error, className, children }: { label: stri
 }
 
 /** Single-choice filter drawn as a segmented pill. Always has a selection. */
-export function Segmented<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string }) {
+export function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+  label,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+  label: string;
+}) {
   return (
     <ToggleGroupPrimitive.Root type="single" value={value} onValueChange={(v) => v && onChange(v as T)} aria-label={label} className={segmentedListClasses}>
       {options.map((o) => (
@@ -359,7 +373,7 @@ export function TagInput({
   }
   return (
     <div
-      className="flex min-h-[46px] cursor-text flex-wrap items-center gap-1.5 rounded-md border border-input bg-card px-2.5 py-[7px] transition-[border-color,box-shadow] duration-150 ease-smooth hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--border-strong))] focus-within:border-ring focus-within:shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent)_18%,transparent)]"
+      className="flex min-h-[46px] cursor-text flex-wrap items-center gap-1.5 rounded-md border border-input bg-card px-2.5 py-[7px] transition-[border-color,box-shadow] duration-150 ease-smooth focus-within:border-ring focus-within:shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent)_18%,transparent)] hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--border-strong))]"
       onClick={() => inputRef.current?.focus()}
     >
       {value.map((item, i) => (

@@ -101,7 +101,7 @@ export function RecipeBook() {
           {showAdd ? 'Close' : 'Add recipe'}
         </button>
       </PageHeader>
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         <Link to="/library" className={buttonVariants()}>
           My recipes
         </Link>
@@ -127,12 +127,17 @@ export function RecipeBook() {
       </label>
 
       <div className="flex flex-col gap-3">
-        <div className="relative [&_svg]:absolute [&_svg]:left-[18px] [&_svg]:top-[50%] [&_svg]:[transform:translateY(-50%)] [&_svg]:text-muted-foreground [&_svg]:pointer-events-none [&_input]:pl-[46px] [&_input]:min-h-[52px] [&_input]:rounded-full [&_input]:border-border [&_input]:shadow-paper">
+        <div className="relative [&_input]:min-h-[52px] [&_input]:rounded-full [&_input]:border-border [&_input]:pl-[46px] [&_input]:shadow-paper [&_svg]:pointer-events-none [&_svg]:absolute [&_svg]:top-[50%] [&_svg]:left-[18px] [&_svg]:[transform:translateY(-50%)] [&_svg]:text-muted-foreground">
           <MagnifyingGlass size={18} aria-hidden />
           <input type="search" placeholder="Search recipes or tags" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search recipes" />
         </div>
         {techniqueCount > 0 && (
-          <Segmented label="Show" value={kind} onChange={setKind} options={(['all', 'recipe', 'technique'] as KindFilter[]).map((k) => ({ value: k, label: KIND_LABEL[k] }))} />
+          <Segmented
+            label="Show"
+            value={kind}
+            onChange={setKind}
+            options={(['all', 'recipe', 'technique'] as KindFilter[]).map((k) => ({ value: k, label: KIND_LABEL[k] }))}
+          />
         )}
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2" aria-label="Filter by tag">
@@ -164,26 +169,49 @@ export function RecipeBook() {
           {filtered.map((r, idx) => {
             const thumb = mediaUrl(publicConfig?.mediaBaseUrl, r.thumbnailKey);
             return (
-              <li key={r.id} className="[animation:rise_640ms_var(--ease)_both] [animation-delay:calc(var(--i,_0)_*_45ms)]" style={{ '--i': Math.min(idx, 12) } as CSSProperties}>
-                <Link to={kitchenPath(`/book/${r.id}`, community.id)} className="group/card flex flex-col h-full text-inherit no-underline rounded-lg hover:text-inherit focus-visible:[outline-offset:6px] [&:hover_h3]:text-accent-foreground">
-                  <div className="relative aspect-[4/3] bg-surface-2 rounded-lg grid [place-items:center] text-muted-foreground overflow-hidden isolate shadow-paper [transition:box-shadow_400ms_var(--ease),_transform_400ms_var(--ease)] after:[content:''] after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.06)] after:pointer-events-none [&[data-tone='0']]:[background:var(--tone-0)] [&[data-tone='1']]:[background:var(--tone-1)] [&[data-tone='2']]:[background:var(--tone-2)] [&[data-tone='3']]:[background:var(--tone-3)] [&_img]:w-full [&_img]:h-full [&_img]:object-cover [&_img]:[transition:transform_700ms_var(--ease)] group-hover/card:shadow-lift group-hover/card:[transform:translateY(-3px)] group-hover/card:[&_img]:[transform:scale(1.05)] group-active/card:[transform:translateY(-1px)_scale(0.99)]" data-tone={toneOf(r.id)}>
-                    {r.kind === 'technique' && <span className="absolute top-2.5 left-2.5 z-1 py-[3px] px-2.5 rounded-full bg-[color-mix(in_srgb,_var(--ink)_82%,_transparent)] text-ink-foreground text-[0.72rem] font-semibold tracking-[0.02em] [backdrop-filter:blur(6px)]">Technique</span>}
-                    {justAdded.has(r.id) && <span className="absolute top-2.5 right-2.5 z-1 py-[3px] px-2.5 rounded-full bg-primary text-primary-foreground text-[0.72rem] font-semibold tracking-[0.02em]">Just added</span>}
+              <li
+                key={r.id}
+                className="[animation:rise_640ms_var(--ease)_both] [animation-delay:calc(var(--i,_0)_*_45ms)]"
+                style={{ '--i': Math.min(idx, 12) } as CSSProperties}
+              >
+                <Link
+                  to={kitchenPath(`/book/${r.id}`, community.id)}
+                  className="group/card flex h-full flex-col rounded-lg text-inherit no-underline hover:text-inherit focus-visible:[outline-offset:6px] [&:hover_h3]:text-accent-foreground"
+                >
+                  <div
+                    className="relative isolate grid aspect-[4/3] [place-items:center] overflow-hidden rounded-lg bg-surface-2 text-muted-foreground shadow-paper [transition:box-shadow_400ms_var(--ease),_transform_400ms_var(--ease)] group-hover/card:[transform:translateY(-3px)] group-hover/card:shadow-lift group-active/card:[transform:translateY(-1px)_scale(0.99)] after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.06)] after:[content:''] [&_img]:h-full [&_img]:w-full [&_img]:object-cover [&_img]:[transition:transform_700ms_var(--ease)] group-hover/card:[&_img]:[transform:scale(1.05)] [&[data-tone='0']]:[background:var(--tone-0)] [&[data-tone='1']]:[background:var(--tone-1)] [&[data-tone='2']]:[background:var(--tone-2)] [&[data-tone='3']]:[background:var(--tone-3)]"
+                    data-tone={toneOf(r.id)}
+                  >
+                    {r.kind === 'technique' && (
+                      <span className="absolute top-2.5 left-2.5 z-1 rounded-full bg-[color-mix(in_srgb,_var(--ink)_82%,_transparent)] px-2.5 py-[3px] text-[0.72rem] font-semibold tracking-[0.02em] text-ink-foreground [backdrop-filter:blur(6px)]">
+                        Technique
+                      </span>
+                    )}
+                    {justAdded.has(r.id) && (
+                      <span className="absolute top-2.5 right-2.5 z-1 rounded-full bg-primary px-2.5 py-[3px] text-[0.72rem] font-semibold tracking-[0.02em] text-primary-foreground">
+                        Just added
+                      </span>
+                    )}
                     {thumb ? (
                       <img src={thumb} alt="" loading="lazy" />
                     ) : (
-                      <span className="font-serif italic [font-variation-settings:'SOFT'_100,_'WONK'_1] font-medium text-[5.5rem] leading-[1] text-(color:--tone-ink) [transform:translateY(-4%)] [transition:transform_500ms_var(--spring)] group-hover/card:[transform:translateY(-4%)_rotate(-6deg)_scale(1.06)]" aria-hidden>
+                      <span
+                        className="[transform:translateY(-4%)] font-serif text-[5.5rem] leading-[1] font-medium text-(color:--tone-ink) italic [font-variation-settings:'SOFT'_100,_'WONK'_1] [transition:transform_500ms_var(--spring)] group-hover/card:[transform:translateY(-4%)_rotate(-6deg)_scale(1.06)]"
+                        aria-hidden
+                      >
                         {r.title.trim().charAt(0)}
                       </span>
                     )}
                   </div>
-                  <div className="pt-3.5 px-1 pb-0 flex flex-col gap-1.5 [&_h3]:font-serif [&_h3]:[font-variation-settings:'SOFT'_50] [&_h3]:text-[1.22rem] [&_h3]:font-[550] [&_h3]:leading-[1.2] [&_h3]:tracking-[-0.015em] [&_h3]:[transition:color_200ms_var(--ease)]">
+                  <div className="flex flex-col gap-1.5 px-1 pt-3.5 pb-0 [&_h3]:font-serif [&_h3]:text-[1.22rem] [&_h3]:leading-[1.2] [&_h3]:font-[550] [&_h3]:tracking-[-0.015em] [&_h3]:[font-variation-settings:'SOFT'_50] [&_h3]:[transition:color_200ms_var(--ease)]">
                     <h3>
                       {r.title}
                       {r.archived && <span className={cn(metaBadge, 'ml-1')}>Archived</span>}
                     </h3>
-                    <p className="text-[0.875rem] text-muted-foreground">Added by {members.data?.members.find((m) => m.userId === r.addedBy)?.displayName ?? 'a former member'}</p>
-                    <p className="text-muted-foreground text-[0.875rem]">
+                    <p className="text-[0.875rem] text-muted-foreground">
+                      Added by {members.data?.members.find((m) => m.userId === r.addedBy)?.displayName ?? 'a former member'}
+                    </p>
+                    <p className="text-[0.875rem] text-muted-foreground">
                       {(r.kind === 'technique'
                         ? ['Cooking technique']
                         : [minutes(r.totalMin), `${r.servings} servings`, r.proteinG ? `${Math.round(r.proteinG)} g protein` : '']

@@ -44,7 +44,7 @@ export function KitchenAdministration() {
       <p role="status">{message}</p>
       {d && (
         <>
-          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
+          <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
             <h2>Plan and import destination</h2>
             <p>
               <strong>{d.ownerName}</strong> provides the {d.tier.name} plan. {d.budget.importsLeft} imports remain across all kitchens and circles they own.
@@ -80,7 +80,7 @@ export function KitchenAdministration() {
             )}
           </section>
           {canAdmin(c.role) && (
-            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
+            <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
               <h2>Outstanding invitations</h2>
               <p className="text-[0.875rem] text-muted-foreground">
                 Members can save and edit shared recipes, plan meals and shop. Admins also manage invitations and kitchen settings. The owner manages billing
@@ -88,7 +88,7 @@ export function KitchenAdministration() {
               </p>
               {!d.invites.length && <p>No outstanding invitations.</p>}
               {d.invites.map((i) => (
-                <div className="flex items-center gap-2 justify-between flex-wrap" key={i.token}>
+                <div className="flex flex-wrap items-center justify-between gap-2" key={i.token}>
                   <span>
                     {i.role} invitation · expires {new Date(i.expiresAt).toLocaleDateString()}
                   </span>
@@ -106,7 +106,7 @@ export function KitchenAdministration() {
             </section>
           )}
           {(c.role === 'owner' || d.transfer?.to === me?.user.id) && (
-            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
+            <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
               <h2>Transfer ownership</h2>
               <p>
                 The new owner must accept. Their plan and allowance will support this {c.kind === 'circle' ? 'circle' : 'kitchen'} afterward. Subscriptions and
@@ -155,7 +155,7 @@ export function KitchenAdministration() {
             </section>
           )}
           {canAdmin(c.role) && (
-            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
+            <section className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
               <h2>Your kitchen’s rhythm</h2>
               <p className="text-[0.875rem] text-muted-foreground">
                 Weeks when you saved recipes, planned and shopped together. Only action flags and participant counts are shown; recipe text and food profiles
