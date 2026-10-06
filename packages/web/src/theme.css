@@ -1,5 +1,5 @@
 /*
- * Tailwind theme mapped onto the cookbook tokens defined on :root in styles.css.
+ * Tailwind theme mapped onto the cookbook tokens defined on :root in tokens.css.
  * Names follow shadcn/ui, so its components pick up the palette:
  *   primary = paprika accent, accent = soft paprika highlight, muted = oat surface,
  *   muted-foreground = muted text. App-only colors keep descriptive names.

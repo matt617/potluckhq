@@ -250,14 +250,14 @@ export function Shopping() {
           ))}
 
           {staples.length > 0 && (
-            <details className="card min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
+            <details className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] [&_summary]:flex [&_summary]:min-h-8 [&_summary]:cursor-pointer [&_summary]:list-none [&_summary]:items-center [&_summary]:gap-2.5 [&_summary]:font-medium [&_summary::-webkit-details-marker]:hidden [&_summary::before]:size-2 [&_summary::before]:[content:''] [&_summary::before]:[border-right:2px_solid_var(--muted)] [&_summary::before]:[border-bottom:2px_solid_var(--muted)] [&_summary::before]:[transform:rotate(-45deg)] [&_summary::before]:[transition:transform_250ms_var(--ease)] open:[&_summary]:mb-1.5 open:[&_summary::before]:[transform:rotate(45deg)]">
               <summary>Pantry staples you probably have ({staples.length})</summary>
               <ul className="mx-0 mt-1.5 mb-0 list-none p-0">{staples.map(row)}</ul>
             </details>
           )}
 
           {done.length > 0 && (
-            <details className="card min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px]">
+            <details className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] [&_summary]:flex [&_summary]:min-h-8 [&_summary]:cursor-pointer [&_summary]:list-none [&_summary]:items-center [&_summary]:gap-2.5 [&_summary]:font-medium [&_summary::-webkit-details-marker]:hidden [&_summary::before]:size-2 [&_summary::before]:[content:''] [&_summary::before]:[border-right:2px_solid_var(--muted)] [&_summary::before]:[border-bottom:2px_solid_var(--muted)] [&_summary::before]:[transform:rotate(-45deg)] [&_summary::before]:[transition:transform_250ms_var(--ease)] open:[&_summary]:mb-1.5 open:[&_summary::before]:[transform:rotate(45deg)]">
               <summary>In the cart ({done.length})</summary>
               <ul className="mx-0 mt-1.5 mb-0 list-none p-0">{done.map(row)}</ul>
             </details>

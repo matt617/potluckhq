@@ -50,7 +50,7 @@ export function Diners() {
         {state.data?.diners.map((d) => (
           <li key={d.id}>
             <span>
-              {d.name} · {d.portions} portions{d.usual ? ' · Usually eating' : ''}
+              {d.name} · {d.portions} portions{d.usual ? '· Usually eating' : ''}
             </span>
             {(d.userId === me?.user.id || (!d.userId && canAdmin(c.role))) && (
               <div className="flex items-center gap-2">

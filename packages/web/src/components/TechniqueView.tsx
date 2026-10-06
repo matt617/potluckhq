@@ -66,7 +66,7 @@ export function TechniqueView({
 
   return (
     <>
-      <header className="grid grid-cols-none gap-6 [animation:rise_700ms_var(--ease)_both] [&_h1]:text-[clamp(2.2rem,_5vw,_3.6rem)] [&_h1]:tracking-[-0.03em] min-[760px]:gap-12 min-[760px]:grid-cols-[minmax(260px,_0.8fr)_minmax(0,_1.2fr)] min-[760px]:items-start">
+      <header className="grid gap-6 [animation:rise_700ms_var(--ease)_both] [&_h1]:text-[clamp(2.2rem,_5vw,_3.6rem)] [&_h1]:tracking-[-0.03em] min-[760px]:gap-12 min-[760px]:grid-cols-[minmax(260px,_0.8fr)_minmax(0,_1.2fr)] min-[760px]:items-start">
         {media ? (
           <video
             ref={player}
@@ -120,12 +120,12 @@ export function TechniqueView({
 
       <section className="flex flex-col gap-3" aria-labelledby="tsteps-title">
         <h2 id="tsteps-title">How to do it</h2>
-        <ol className="list-none m-0 p-0 grid grid-cols-none gap-4 min-[700px]:grid-cols-[repeat(2,_minmax(0,_1fr))] min-[1040px]:grid-cols-[repeat(3,_minmax(0,_1fr))]">
+        <ol className="list-none m-0 p-0 grid gap-4 min-[700px]:grid-cols-[repeat(2,_minmax(0,_1fr))] min-[1040px]:grid-cols-[repeat(3,_minmax(0,_1fr))]">
           {recipe.steps.map((s, idx) => {
             const clip = clipFor(s.timestampSec);
             return (
               <li key={idx} className="flex flex-col bg-card border border-border rounded-lg overflow-hidden shadow-paper">
-                <div className="relative aspect-[4/5] [background:var(--tone-0)] grid grid-cols-none gap-0 [place-items:center]">
+                <div className="relative aspect-[4/5] [background:var(--tone-0)] grid [place-items:center]">
                   {clip ? (
                     <LoopClip src={clip.url} poster={clip.posterUrl} label={`Step ${idx + 1} clip`} onError={onMediaExpired} />
                   ) : (
@@ -156,7 +156,7 @@ export function TechniqueView({
         </ol>
       </section>
 
-      <div className="grid grid-cols-none gap-5 wide:grid-cols-[minmax(300px,2fr)_3fr] wide:items-start wide:gap-6 wide:[&>:first-child]:sticky wide:[&>:first-child]:top-[88px]">
+      <div className="grid gap-5 wide:grid-cols-[minmax(300px,2fr)_3fr] wide:items-start wide:gap-6 wide:[&>:first-child]:sticky wide:[&>:first-child]:top-[88px]">
         {recipe.ingredients.length > 0 && (
           <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="tused-title">
             <h2 id="tused-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">

@@ -83,7 +83,7 @@ export function Landing() {
       </header>
 
       <main id="main">
-        <section className="grid grid-cols-none gap-10 pt-8 px-0 pb-[72px] items-center min-[960px]:grid-cols-[minmax(0,_0.95fr)_minmax(0,_1.05fr)] min-[960px]:gap-14 min-[960px]:pt-14 min-[960px]:px-0 min-[960px]:pb-[120px] min-[560px]:[&_h1_span]:block min-[560px]:[&_h1_span]:whitespace-nowrap relative before:[content:''] before:absolute before:z-[-1] before:top-[-10%] before:right-[-20%] before:w-[70%] before:aspect-square before:rounded-full before:[background:radial-gradient(closest-side,_color-mix(in_srgb,_var(--accent)_22%,_transparent),_transparent)] before:[filter:blur(40px)] before:pointer-events-none [&_h1]:font-serif [&_h1]:[font-variation-settings:'SOFT'_50,_'WONK'_0] [&_h1]:text-[clamp(2.8rem,_6vw,_5rem)] [&_h1]:font-[520] [&_h1]:leading-[0.98] [&_h1]:tracking-[-0.035em] [&_h1_em]:font-[450] [&_h1_em]:[font-variation-settings:'SOFT'_100,_'WONK'_1]">
+        <section className="grid gap-10 pt-8 px-0 pb-[72px] items-center min-[960px]:grid-cols-[minmax(0,_0.95fr)_minmax(0,_1.05fr)] min-[960px]:gap-14 min-[960px]:pt-14 min-[960px]:px-0 min-[960px]:pb-[120px] min-[560px]:[&_h1_span]:block min-[560px]:[&_h1_span]:whitespace-nowrap relative before:[content:''] before:absolute before:z-[-1] before:top-[-10%] before:right-[-20%] before:w-[70%] before:aspect-square before:rounded-full before:[background:radial-gradient(closest-side,_color-mix(in_srgb,_var(--accent)_22%,_transparent),_transparent)] before:[filter:blur(40px)] before:pointer-events-none [&_h1]:font-serif [&_h1]:[font-variation-settings:'SOFT'_50,_'WONK'_0] [&_h1]:text-[clamp(2.8rem,_6vw,_5rem)] [&_h1]:font-[520] [&_h1]:leading-[0.98] [&_h1]:tracking-[-0.035em] [&_h1_em]:font-[450] [&_h1_em]:[font-variation-settings:'SOFT'_100,_'WONK'_1]">
           <div className="[&>*]:[animation:lp-enter_800ms_var(--ease)_both] [&>:nth-child(2)]:[animation-delay:80ms] [&>:nth-child(3)]:[animation-delay:160ms]">
             <h1>
               <span>The recipes you save.</span>{' '}
@@ -103,7 +103,7 @@ export function Landing() {
           </div>
           <div className="relative [animation:lp-enter_900ms_var(--ease)_120ms_both]">
             <img
-              className="w-full aspect-[4/3] max-h-[calc(100dvh_-_260px)] min-h-[300px] object-cover [object-position:62%_60%] rounded-xl shadow-float"
+              className="w-full aspect-[4/3] h-[calc(100dvh_-_260px)] max-h-[calc(100dvh_-_260px)] min-h-[300px] object-cover [object-position:62%_60%] rounded-xl shadow-float"
               src="/images/shakshuka.jpg"
               alt="Shakshuka with basil in a cast iron pan, with bread and a fork on a dark table"
               width={1400}
@@ -128,11 +128,11 @@ export function Landing() {
           </div>
         </section>
 
-        <section id="how" className="lp-how py-[72px] px-0 min-[960px]:pt-[112px] min-[960px]:px-0 min-[960px]:pb-[120px] [border-top:1px_dashed_var(--border-strong)]" aria-labelledby="how-title">
+        <section id="how" className="py-[72px] px-0 min-[960px]:pt-[112px] min-[960px]:px-0 min-[960px]:pb-[120px] [border-top:1px_dashed_var(--border-strong)]" aria-labelledby="how-title">
           <h2 id="how-title" data-reveal className="max-w-[20ch] mb-12 text-[clamp(2rem,_4.4vw,_3.4rem)] font-[520] tracking-[-0.03em] leading-[1.02] opacity-0 [transform:translateY(12px)] [transition:opacity_600ms_var(--ease),transform_600ms_var(--ease)] [transition-delay:calc(var(--i,0)*80ms)] data-revealed:opacity-100 data-revealed:[transform:none] motion-reduce:opacity-100 motion-reduce:[transform:none]">
             From a saved recipe to dinner together.
           </h2>
-          <ol className="list-none m-0 p-0 grid grid-cols-none gap-9 wide:grid-cols-[1.25fr_1fr_1fr] wide:gap-12 [&_li]:flex [&_li]:flex-col [&_li]:gap-2.5 [&_h3]:tracking-[-0.03em] [&_p]:text-foreground-2 [&_p]:max-w-[42ch] [&_li]:[border-top:0] [&_li]:pt-0 [&_li]:[counter-increment:lp-step] [counter-reset:lp-step] [&_li::before]:[content:'0'_counter(lp-step)] [&_li::before]:font-serif [&_li::before]:italic [&_li::before]:text-[1.1rem] [&_li::before]:text-accent-foreground [&_li::before]:pb-3.5 [&_li::before]:border-b-[2px] [&_li::before]:border-foreground [&_li::before]:mb-1.5 [&_h3]:font-serif [&_h3]:font-[550] [&_h3]:text-[2rem]">
+          <ol className="list-none m-0 p-0 grid gap-9 wide:grid-cols-[1.25fr_1fr_1fr] wide:gap-12 [&_li]:flex [&_li]:flex-col [&_li]:gap-2.5 [&_h3]:tracking-[-0.03em] [&_p]:text-foreground-2 [&_p]:max-w-[42ch] [&_li]:[border-top:0] [&_li]:pt-0 [&_li]:[counter-increment:lp-step] [counter-reset:lp-step] [&_li::before]:[content:'0'_counter(lp-step)] [&_li::before]:font-serif [&_li::before]:italic [&_li::before]:text-[1.1rem] [&_li::before]:text-accent-foreground [&_li::before]:pb-3.5 [&_li::before]:border-b-[2px] [&_li::before]:border-foreground [&_li::before]:mb-1.5 [&_h3]:font-serif [&_h3]:font-[550] [&_h3]:text-[2rem]">
             <li data-reveal className="opacity-0 [transform:translateY(12px)] [transition:opacity_600ms_var(--ease),transform_600ms_var(--ease)] [transition-delay:calc(var(--i,0)*80ms)] data-revealed:opacity-100 data-revealed:[transform:none] motion-reduce:opacity-100 motion-reduce:[transform:none]" style={stagger(0)}>
               <h3>Send</h3>
               <p>Paste a recipe link or upload a cookbook photo. Optionally link a private chat with the Potluck bot for easy forwarding.</p>
@@ -163,7 +163,7 @@ export function Landing() {
           <h2 id="bento-title" data-reveal className="max-w-[20ch] mb-12 text-[clamp(2rem,_4.4vw,_3.4rem)] font-[520] tracking-[-0.03em] leading-[1.02] opacity-0 [transform:translateY(12px)] [transition:opacity_600ms_var(--ease),transform_600ms_var(--ease)] [transition-delay:calc(var(--i,0)*80ms)] data-revealed:opacity-100 data-revealed:[transform:none] motion-reduce:opacity-100 motion-reduce:[transform:none]">
             Built for the week you actually have.
           </h2>
-          <div className="grid grid-cols-none gap-4 wide:grid-cols-[repeat(6,_1fr)] wide:[grid-auto-rows:minmax(200px,_auto)]">
+          <div className="grid gap-4 wide:grid-cols-[repeat(6,_1fr)] wide:[grid-auto-rows:minmax(200px,_auto)]">
             <div data-reveal className="wide:col-[span_4] border p-7 flex flex-col gap-3 overflow-hidden [&_p]:text-foreground-2 [&_p]:max-w-[46ch] border-[color-mix(in_srgb,_var(--accent)_18%,_transparent)] [&_h3]:font-serif [&_h3]:font-[550] rounded-xl shadow-paper [&_h3]:text-[1.5rem] [&_h3]:tracking-[-0.02em] [background:radial-gradient(90%_120%_at_100%_0%,_color-mix(in_srgb,_var(--accent)_16%,_transparent),_transparent_60%),_var(--accent-soft)] opacity-0 [transform:translateY(12px)] [transition:opacity_600ms_var(--ease),transform_600ms_var(--ease)] [transition-delay:calc(var(--i,0)*80ms)] data-revealed:opacity-100 data-revealed:[transform:none] motion-reduce:opacity-100 motion-reduce:[transform:none]" style={stagger(0)}>
               <h3>Plans that work around your schedule</h3>
               <p>Tell Potluck what the week looks like. It builds a plan from your own recipe book and explains why.</p>
@@ -183,18 +183,18 @@ export function Landing() {
                 <h3>One list, sorted by aisle</h3>
                 <ul className="list-none m-0 p-0 [&_li]:grid [&_li]:grid-cols-[auto_1fr_auto] [&_li]:items-center [&_li]:gap-2.5 [&_li]:py-[9px] [&_li]:px-0 [&_li]:border-b [&_li]:border-border [&_li]:text-[0.94rem] [&_li:last-child]:[border-bottom:0] [&_s]:text-muted-foreground" aria-label="Example shopping list">
                   <li>
-                    <span className="grid grid-cols-none gap-0 [place-items:center] w-[18px] h-[18px] border-[1.5px] rounded-[5px] bg-primary border-primary text-primary-foreground" aria-hidden>
+                    <span className="grid [place-items:center] w-[18px] h-[18px] border-[1.5px] rounded-[5px] bg-primary border-primary text-primary-foreground" aria-hidden>
                       <Check size={12} weight="bold" />
                     </span>
                     <s>Red onions</s>
                     <span className="tabular-nums text-muted-foreground">3</span>
                   </li>
                   <li>
-                    <span className="grid grid-cols-none gap-0 [place-items:center] w-[18px] h-[18px] border-[1.5px] border-border-strong rounded-[5px]" aria-hidden />
+                    <span className="grid [place-items:center] w-[18px] h-[18px] border-[1.5px] border-border-strong rounded-[5px]" aria-hidden />
                     Flat-leaf parsley<span className="tabular-nums text-muted-foreground">1 bunch</span>
                   </li>
                   <li>
-                    <span className="grid grid-cols-none gap-0 [place-items:center] w-[18px] h-[18px] border-[1.5px] border-border-strong rounded-[5px]" aria-hidden />
+                    <span className="grid [place-items:center] w-[18px] h-[18px] border-[1.5px] border-border-strong rounded-[5px]" aria-hidden />
                     Feta<span className="tabular-nums text-muted-foreground">200 g</span>
                   </li>
                 </ul>
@@ -219,11 +219,11 @@ export function Landing() {
           <h2 id="pricing-title" data-reveal className="max-w-[20ch] mb-12 text-[clamp(2rem,_4.4vw,_3.4rem)] font-[520] tracking-[-0.03em] leading-[1.02] opacity-0 [transform:translateY(12px)] [transition:opacity_600ms_var(--ease),transform_600ms_var(--ease)] [transition-delay:calc(var(--i,0)*80ms)] data-revealed:opacity-100 data-revealed:[transform:none] motion-reduce:opacity-100 motion-reduce:[transform:none]">
             Free for two. Room to grow.
           </h2>
-          <div className="grid grid-cols-none gap-4 mb-5 wide:grid-cols-[repeat(3,_1fr)]">
+          <div className="grid gap-4 mb-5 wide:grid-cols-[repeat(3,_1fr)]">
             {tiers.map((t, i) => {
               const featured = t.id === 'plus';
               return (
-                <div key={t.id} data-reveal className={cn(featured ? 'grid grid-cols-none grid-rows-[auto_1fr_auto] gap-5 p-7 border border-[color-mix(in_srgb,_var(--accent)_65%,_transparent)] rounded-xl shadow-paper [background:radial-gradient(100%_70%_at_100%_0%,_color-mix(in_srgb,_var(--accent-soft)_90%,_transparent),_transparent_70%),_var(--surface)]' : 'grid grid-cols-none grid-rows-[auto_1fr_auto] gap-5 p-7 border border-border bg-card rounded-xl shadow-paper', 'opacity-0 [transform:translateY(12px)] [transition:opacity_600ms_var(--ease),transform_600ms_var(--ease)] [transition-delay:calc(var(--i,0)*80ms)] data-revealed:opacity-100 data-revealed:[transform:none] motion-reduce:opacity-100 motion-reduce:[transform:none]')} style={stagger(i)}>
+                <div key={t.id} data-reveal className={cn(featured ? 'grid grid-rows-[auto_1fr_auto] gap-5 p-7 border border-[color-mix(in_srgb,_var(--accent)_65%,_transparent)] rounded-xl shadow-paper [background:radial-gradient(100%_70%_at_100%_0%,_color-mix(in_srgb,_var(--accent-soft)_90%,_transparent),_transparent_70%),_var(--surface)]' : 'grid grid-rows-[auto_1fr_auto] gap-5 p-7 border border-border bg-card rounded-xl shadow-paper', 'opacity-0 [transform:translateY(12px)] [transition:opacity_600ms_var(--ease),transform_600ms_var(--ease)] [transition-delay:calc(var(--i,0)*80ms)] data-revealed:opacity-100 data-revealed:[transform:none] motion-reduce:opacity-100 motion-reduce:[transform:none]')} style={stagger(i)}>
                   <div className="[&_h3]:flex [&_h3]:items-center [&_h3]:gap-1.5 [&_h3]:font-serif [&_h3]:text-[1.5rem] [&_h3]:font-[550]">
                     <h3>
                       {t.name}

@@ -1,37 +1,6 @@
-/*
- * Tailwind v4 entry. During the migration the existing stylesheets live in a `legacy`
- * layer below `components` and `utilities`, so utility classes win over old rules.
- * Preflight is off until step 7 of docs/tailwind-migration.md.
- */
-@layer theme, base, legacy, components, utilities;
-@import 'tailwindcss/theme.css' layer(theme);
-@import 'tailwindcss/utilities.css' layer(utilities);
+/* Tailwind v4 entry: preflight and utilities, the cookbook tokens, the theme mapping and element defaults. */
+@import 'tailwindcss';
 @import 'tw-animate-css';
+@import './tokens.css';
 @import './theme.css';
-@import './kitchen.css' layer(legacy);
-@import './styles.css' layer(legacy);
-
-/*
- * Until preflight is enabled, give shadcn components (marked with data-slot) the two
- * resets they rely on: borders default to the theme border color, and form controls
- * inherit the page font instead of the browser's.
- */
-@layer base {
-  :where([data-slot]),
-  :where([data-slot]) *,
-  :where([data-slot])::before,
-  :where([data-slot])::after {
-    border-color: var(--color-border);
-  }
-  :where(button, input, select, textarea)[data-slot] {
-    font: inherit;
-    letter-spacing: inherit;
-    color: inherit;
-    margin: 0;
-  }
-  :where(button)[data-slot] {
-    background-color: transparent;
-    border: 0 solid;
-    padding: 0;
-  }
-}
+@import './base.css';

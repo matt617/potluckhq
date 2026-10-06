@@ -144,7 +144,7 @@ export function ImportList({
           return (
             <li key={job.id} className="grid grid-cols-[22px_1fr] items-start gap-3 border-t border-border px-0 py-3 text-[0.92rem]">
               <span className={cn('grid h-[22px] place-items-center', isFailed ? 'text-destructive' : 'text-warning-foreground')} aria-hidden>
-                {isFailed ? <WarningCircle size={20} weight="fill" /> : <span className="w-2 h-2 rounded-full bg-current [animation:pulse_1.2s_ease-in-out_infinite]" />}
+                {isFailed ? <WarningCircle size={20} weight="fill" /> : <span className="w-2 h-2 rounded-full bg-current [animation:import-pulse_1.2s_ease-in-out_infinite]" />}
               </span>
               <div className="min-w-0">
                 <div className="flex min-h-[22px] flex-wrap items-center gap-x-2 gap-y-1">

@@ -95,7 +95,7 @@ export function RecipeDetail() {
         <TechniqueView recipe={recipe} media={state.data?.media} thumb={thumb} onMediaExpired={refreshMedia} />
       ) : (
         <>
-          <header className="grid grid-cols-none gap-6 [animation:rise_700ms_var(--ease)_both] [&_h1]:text-[clamp(2.2rem,_5vw,_3.6rem)] [&_h1]:tracking-[-0.03em] min-[760px]:grid-cols-[minmax(0,_1.05fr)_minmax(0,_1fr)] min-[760px]:items-center min-[760px]:gap-12">
+          <header className="grid gap-6 [animation:rise_700ms_var(--ease)_both] [&_h1]:text-[clamp(2.2rem,_5vw,_3.6rem)] [&_h1]:tracking-[-0.03em] min-[760px]:grid-cols-[minmax(0,_1.05fr)_minmax(0,_1fr)] min-[760px]:items-center min-[760px]:gap-12">
             {thumb && <img className="w-full aspect-[4/3] max-h-[460px] object-cover rounded-xl shadow-lift" src={thumb} alt={recipe.title} />}
             <div className="flex flex-col gap-[14px]">
               <h1>{recipe.title}</h1>
@@ -134,7 +134,7 @@ export function RecipeDetail() {
             <AddToPlan recipe={recipe} servings={target} />
             {recipe.archived && <p className="text-muted-foreground">Archived. Existing meal plans retain this recipe.</p>}
           </div>
-          <div className="grid grid-cols-none gap-5 wide:grid-cols-[minmax(300px,2fr)_3fr] wide:items-start wide:gap-6 wide:[&>:first-child]:sticky wide:[&>:first-child]:top-[88px]">
+          <div className="grid gap-5 wide:grid-cols-[minmax(300px,2fr)_3fr] wide:items-start wide:gap-6 wide:[&>:first-child]:sticky wide:[&>:first-child]:top-[88px]">
             <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="ing-title">
               <div className="flex items-center gap-2 justify-between flex-wrap">
                 <h2 id="ing-title">Ingredients</h2>
@@ -181,7 +181,7 @@ export function RecipeDetail() {
 
             <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="steps-title">
               <h2 id="steps-title">Steps</h2>
-              <ol className="list-none m-0 p-0 [counter-reset:step] flex flex-col gap-[22px] [&_li]:[counter-increment:step] [&_li]:relative [&_li]:pl-[3.4rem] [&_li]:max-w-[70ch] [&_li]:min-h-[2.4rem] [&_li::before]:[content:counter(step)] [&_li::before]:absolute [&_li::before]:left-0 [&_li::before]:top-[-0.1rem] [&_li::before]:w-[2.4rem] [&_li::before]:h-[2.4rem] [&_li::before]:grid [&_li::before]:grid-cols-none [&_li::before]:gap-0 [&_li::before]:[place-items:center] [&_li::before]:rounded-full [&_li::before]:bg-accent [&_li::before]:text-accent-foreground [&_li::before]:font-serif [&_li::before]:italic [&_li::before]:font-semibold [&_li::before]:text-[1.2rem] [&_li>p:first-child]:text-[1.02rem] [&_li>p:first-child]:leading-[1.65] [&_li>p:first-child]:text-foreground [&_li>p+p:empty]:hidden [&_li>p+p]:mt-1 [&_a]:inline-flex [&_a]:items-center [&_a]:gap-1 [&_a]:font-mono [&_a]:text-[0.8rem] [&_a]:no-underline [&_a]:font-medium [&_a]:py-0.5 [&_a]:px-2 [&_a]:rounded-[6px] [&_a]:bg-surface-2 [&_a]:text-foreground-2 [&_a:hover]:bg-accent [&_a:hover]:text-accent-foreground">
+              <ol className="list-none m-0 p-0 [counter-reset:step] flex flex-col gap-[22px] [&_li]:[counter-increment:step] [&_li]:relative [&_li]:pl-[3.4rem] [&_li]:max-w-[70ch] [&_li]:min-h-[2.4rem] [&_li::before]:[content:counter(step)] [&_li::before]:absolute [&_li::before]:left-0 [&_li::before]:top-[-0.1rem] [&_li::before]:w-[2.4rem] [&_li::before]:h-[2.4rem] [&_li::before]:grid [&_li::before]:[place-items:center] [&_li::before]:rounded-full [&_li::before]:bg-accent [&_li::before]:text-accent-foreground [&_li::before]:font-serif [&_li::before]:italic [&_li::before]:font-semibold [&_li::before]:text-[1.2rem] [&_li>p:first-child]:text-[1.02rem] [&_li>p:first-child]:leading-[1.65] [&_li>p:first-child]:text-foreground [&_li>p+p:empty]:hidden [&_li>p+p]:mt-1 [&_a]:inline-flex [&_a]:items-center [&_a]:gap-1 [&_a]:font-mono [&_a]:text-[0.8rem] [&_a]:no-underline [&_a]:font-medium [&_a]:py-0.5 [&_a]:px-2 [&_a]:rounded-[6px] [&_a]:bg-surface-2 [&_a]:text-foreground-2 [&_a:hover]:bg-accent [&_a:hover]:text-accent-foreground">
                 {recipe.steps.map((s, idx) => (
                   <li key={idx}>
                     <p>{s.text}</p>

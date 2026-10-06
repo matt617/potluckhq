@@ -1,0 +1,135 @@
+/*
+  Potluck design system
+  Read: a well-loved cookbook on the kitchen counter. Warm oat paper, espresso ink,
+  one paprika accent, Fraunces for display type and Geist for everything you read quickly.
+  Shape rule: big containers 22px, cards 16px, controls 12px, buttons and chips fully round.
+*/
+:root {
+  --bg: #f6f1e8;
+  --surface: #fffcf6;
+  --surface-2: #efe8dc;
+  --surface-3: #e6dccb;
+  --text: #231c15;
+  --text-2: #4a4036;
+  --muted: #7c7064;
+  --border: #e6dccd;
+  --border-strong: #d3c6b2;
+  --accent: #b8462a;
+  --accent-hover: #9f3a20;
+  --accent-ink: #fffaf3;
+  --accent-soft: #f6e4d9;
+  --accent-text: #9a3a21;
+  --ink: #231c15;
+  --ink-hover: #3b3026;
+  --ink-text: #fffaf3;
+  --danger: #a8322a;
+  --danger-soft: #f8e3df;
+  --ok: #3f6b3a;
+  --ok-soft: #e6eedd;
+  --warn-soft: #f6e9cc;
+  --warn-ink: #7a5410;
+  --info-soft: #e5ebe9;
+  --info-ink: #3b5a5e;
+  --tone-0: linear-gradient(150deg, #f1c7b2, #de8f71);
+  --tone-1: linear-gradient(150deg, #f4e0ad, #dfb25f);
+  --tone-2: linear-gradient(150deg, #d7dfc0, #a5b98a);
+  --tone-3: linear-gradient(150deg, #e7cfcf, #c0939a);
+  --tone-ink: rgb(35 28 21 / 0.55);
+  --shadow: 0 1px 2px rgb(74 52 30 / 0.05), 0 2px 8px -2px rgb(74 52 30 / 0.06);
+  --shadow-hover: 0 2px 4px rgb(74 52 30 / 0.05), 0 14px 32px -10px rgb(74 52 30 / 0.2);
+  --shadow-pop: 0 2px 6px rgb(74 52 30 / 0.06), 0 28px 64px -16px rgb(74 52 30 / 0.32);
+  --shadow-accent: 0 1px 2px rgb(150 50 20 / 0.2), 0 8px 20px -8px rgb(184 70 42 / 0.55);
+  --grain-opacity: 0.5;
+  --radius-lg: 22px;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --gutter: 16px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --font: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --display: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
+  --mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --z-sticky: 10;
+  --z-flash: 30;
+  --z-skip: 40;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #15110d;
+    --surface: #1e1914;
+    --surface-2: #28211a;
+    --surface-3: #332a21;
+    --text: #f2ebe0;
+    --text-2: #d3c8b8;
+    --muted: #a29583;
+    --border: #322920;
+    --border-strong: #46392c;
+    --accent: #e8896a;
+    --accent-hover: #f09b7e;
+    --accent-ink: #1c0f09;
+    --accent-soft: #38221a;
+    --accent-text: #f0a487;
+    --ink: #f2ebe0;
+    --ink-hover: #ddd2c2;
+    --ink-text: #15110d;
+    --danger: #f08a7d;
+    --danger-soft: #3b1f1a;
+    --ok: #9cc790;
+    --ok-soft: #1f2a1b;
+    --warn-soft: #352914;
+    --warn-ink: #e8c27a;
+    --info-soft: #1c2626;
+    --info-ink: #9cc1c2;
+    --tone-0: linear-gradient(150deg, #5a3324, #3b2219);
+    --tone-1: linear-gradient(150deg, #5a4622, #3a2d17);
+    --tone-2: linear-gradient(150deg, #3d4a30, #283120);
+    --tone-3: linear-gradient(150deg, #4f3437, #342225);
+    --tone-ink: rgb(242 235 224 / 0.5);
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-hover: 0 2px 4px rgb(0 0 0 / 0.3), 0 16px 36px -12px rgb(0 0 0 / 0.6);
+    --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.35), 0 28px 64px -16px rgb(0 0 0 / 0.7);
+    --shadow-accent: 0 8px 22px -10px rgb(232 137 106 / 0.5);
+    --grain-opacity: 0.35;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #15110d;
+  --surface: #1e1914;
+  --surface-2: #28211a;
+  --surface-3: #332a21;
+  --text: #f2ebe0;
+  --text-2: #d3c8b8;
+  --muted: #a29583;
+  --border: #322920;
+  --border-strong: #46392c;
+  --accent: #e8896a;
+  --accent-hover: #f09b7e;
+  --accent-ink: #1c0f09;
+  --accent-soft: #38221a;
+  --accent-text: #f0a487;
+  --ink: #f2ebe0;
+  --ink-hover: #ddd2c2;
+  --ink-text: #15110d;
+  --danger: #f08a7d;
+  --danger-soft: #3b1f1a;
+  --ok: #9cc790;
+  --ok-soft: #1f2a1b;
+  --warn-soft: #352914;
+  --warn-ink: #e8c27a;
+  --info-soft: #1c2626;
+  --info-ink: #9cc1c2;
+  --tone-0: linear-gradient(150deg, #5a3324, #3b2219);
+  --tone-1: linear-gradient(150deg, #5a4622, #3a2d17);
+  --tone-2: linear-gradient(150deg, #3d4a30, #283120);
+  --tone-3: linear-gradient(150deg, #4f3437, #342225);
+  --tone-ink: rgb(242 235 224 / 0.5);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-hover: 0 2px 4px rgb(0 0 0 / 0.3), 0 16px 36px -12px rgb(0 0 0 / 0.6);
+  --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.35), 0 28px 64px -16px rgb(0 0 0 / 0.7);
+  --shadow-accent: 0 8px 22px -10px rgb(232 137 106 / 0.5);
+  --grain-opacity: 0.35;
+  color-scheme: dark;
+}

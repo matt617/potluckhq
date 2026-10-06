@@ -100,11 +100,11 @@ export function ThisWeek() {
               </Empty>
             )}
             {DAY_NAMES.map((day, index) => (
-              <div key={day} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3 week-meal-day">
+              <div key={day} className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-paper wide:px-7 wide:py-[26px] flex flex-col gap-3">
                 <div className="flex items-center gap-2 justify-between">
                   <h3>
                     {day}
-                    {index === today && week === weekStartOf() ? ' · Today' : ''}
+                    {index === today && week === weekStartOf() ? '· Today' : ''}
                   </h3>
                   <Link to={kitchenPath('/plan', c.id, week)}>{d.plan.entries.some((e) => e.day === index) ? 'Edit meals' : 'Choose dinner'}</Link>
                 </div>
@@ -129,7 +129,7 @@ export function ThisWeek() {
                             ?.map((id) => d.diners.find((p) => p.id === id)?.name)
                             .filter(Boolean)
                             .join(', ') || 'Attendance not set'}
-                          {e.leftoverOf ? ' · Leftovers' : ''}
+                          {e.leftoverOf ? '· Leftovers' : ''}
                         </p>
                         {!e.leftoverOf && batchPortions(d.plan.entries, e.id) > e.servings && (
                           <p>
@@ -155,7 +155,7 @@ export function ThisWeek() {
             <h2>Shopping</h2>
             <p>
               {d.list.items.filter((i) => i.checked).length} of {d.list.items.length} items purchased.
-              {d.stale ? ' Your plan changed; review the list update.' : ''}
+              {d.stale ? 'Your plan changed; review the list update.' : ''}
             </p>
             <Link className={buttonVariants({ variant: 'default' })} to={kitchenPath('/shop', c.id, week)}>
               Open shopping list
@@ -193,7 +193,7 @@ export function ThisWeek() {
             {d.ownerName} provides this kitchen’s {d.tier.name} plan. {d.budget.importsLeft} imports remain across their kitchens.
             {d.budget.aiFeatures
               ? ` ${formatUsd(d.budget.allowanceLeftMicros)} of the monthly AI allowance remains; imports and planning both use it.`
-              : ' Manual planning and shopping are included.'}{' '}
+              : 'Manual planning and shopping are included.'}{' '}
             <Link to={kitchenPath('/community', c.id)}>Kitchen settings</Link>
           </p>
         </>

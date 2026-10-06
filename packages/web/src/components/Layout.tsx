@@ -116,7 +116,7 @@ export function Layout() {
         <FooterLinks />
       </footer>
       <nav
-        className="fixed right-3 bottom-[calc(10px+env(safe-area-inset-bottom))] left-3 z-10 grid grid-cols-none auto-cols-fr grid-flow-col gap-0 rounded-xl border border-border bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] p-1.5 shadow-[var(--shadow-pop),inset_0_1px_0_rgb(255_255_255/0.25)] backdrop-blur-[16px] backdrop-saturate-[1.4] wide:hidden"
+        className="fixed right-3 bottom-[calc(10px+env(safe-area-inset-bottom))] left-3 z-10 grid auto-cols-fr grid-flow-col rounded-xl border border-border bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] p-1.5 shadow-[var(--shadow-pop),inset_0_1px_0_rgb(255_255_255/0.25)] backdrop-blur-[16px] backdrop-saturate-[1.4] wide:hidden"
         aria-label="Main"
       >
         {nav.map(({ to, label, Icon }) => (
