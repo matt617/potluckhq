@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 // Cookbook buttons: fully round, 44px tall by default, paprika primary with a warm glow.
 const buttonVariants = cva(
-  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-[7px] rounded-full border text-[0.94rem] font-medium whitespace-nowrap no-underline transition-[background-color,border-color,color,box-shadow,transform] duration-200 ease-smooth outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45 disabled:shadow-none aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 cursor-pointer items-center [font-family:inherit] leading-[inherit] justify-center gap-[7px] rounded-full border text-[0.94rem] font-medium whitespace-nowrap no-underline transition-[background-color,border-color,color,box-shadow,transform] duration-200 ease-smooth outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45 disabled:shadow-none aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {

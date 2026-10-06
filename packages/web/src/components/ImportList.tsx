@@ -4,6 +4,7 @@ import { detectPlatform, type ChannelKind, type ImportJob, type ImportStatus, ty
 import { api } from '../api';
 import { timeAgo } from '../lib/util';
 import { ErrorNote } from './ui';
+import { buttonVariants } from '@/components/ui/button';
 
 export type AlternativeMode = 'photos' | 'text';
 
@@ -132,8 +133,8 @@ export function ImportList({
   const title = failed === imports.length ? (failed === 1 ? "Couldn't import" : `${failed} imports failed`) : failed ? 'Imports' : 'Importing';
 
   return (
-    <section className="card imports-card" aria-labelledby="imports-title">
-      <h2 id="imports-title" className="h3">
+    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] imports-card" aria-labelledby="imports-title">
+      <h2 id="imports-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         {title}
       </h2>
       <ul className="imports" aria-live="polite">
@@ -165,7 +166,7 @@ export function ImportList({
                         <button
                           key={a.label}
                           type="button"
-                          className={a.primary ? 'btn btn-small' : 'btn btn-small btn-ghost'}
+                          className={buttonVariants({ variant: a.primary ? 'outline' : 'ghost', size: 'sm' })}
                           disabled={busy === job.id}
                           onClick={() => void a.run()}
                         >

@@ -6,6 +6,7 @@ import { login } from '../lib/auth';
 import { useAsync } from '../lib/hooks';
 import { useSession } from '../lib/session';
 import { formatDate } from '../lib/util';
+import { buttonVariants } from '@/components/ui/button';
 
 export function InvitePage() {
   const { token = '' } = useParams();
@@ -32,14 +33,14 @@ export function InvitePage() {
 
   return (
     <main className="page narrow">
-      <div className="card stack">
+      <div className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
         {preview.loading && <Spinner />}
         <ErrorNote error={preview.error} />
         {preview.data && (
           <>
             <p className="eyebrow">You're invited</p>
             <h1>Join {preview.data.communityName}</h1>
-            <p className="muted">
+            <p className="text-muted-foreground">
               {preview.data.invitedByName} invited you to{' '}
               {preview.data.kind === 'circle'
                 ? 'exchange recipes in a private circle. Your kitchen, groceries and food profile stay separate.'
@@ -49,11 +50,11 @@ export function InvitePage() {
             {preview.data.full ? (
               <div className="note note-upgrade">This group has reached its member limit. The owner can review membership or kitchen plan options.</div>
             ) : signedIn ? (
-              <button className="btn btn-primary btn-large" disabled={busy} onClick={accept}>
+              <button className={buttonVariants({ variant: 'default', size: 'lg' })} disabled={busy} onClick={accept}>
                 {busy ? 'Joining…' : 'Accept invite'}
               </button>
             ) : (
-              <button className="btn btn-primary btn-large" onClick={() => void login(`/invite/${token}`)}>
+              <button className={buttonVariants({ variant: 'default', size: 'lg' })} onClick={() => void login(`/invite/${token}`)}>
                 Sign in to accept
               </button>
             )}

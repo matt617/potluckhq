@@ -24,7 +24,7 @@ export function AddToPlan({ recipe, servings }: { recipe: Recipe; servings: numb
     [error, setError] = useState<unknown>();
   return (
     <>
-      <button className="btn btn-primary" onClick={() => setOpen(true)} disabled={recipe.archived}>
+      <button className={buttonVariants({ variant: 'default' })} onClick={() => setOpen(true)} disabled={recipe.archived}>
         Cook this week
       </button>
       {open && (
@@ -149,14 +149,14 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
     }
   }
   return (
-    <section className="card stack">
+    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
       <h2>Keep and share</h2>
-      <p className="small muted">Saved copies can be edited independently. Removing an original does not remove copies others already saved.</p>
+      <p className="text-[0.875rem] text-muted-foreground">Saved copies can be edited independently. Removing an original does not remove copies others already saved.</p>
       <ErrorNote error={error} />
       <p role="status">{message}</p>
       {(personal || cid) && (
         <ConfirmButton
-          className="btn"
+          className={buttonVariants()}
           disabled={busy}
           confirmLabel="Share this version with people who saved copies?"
           onConfirm={() => act(() => api.publishRecipe(recipe.id), 'Recipe update published for review')}
@@ -166,7 +166,7 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
       )}
       {!personal && (
         <button
-          className="btn"
+          className={buttonVariants()}
           disabled={busy}
           onClick={() =>
             void act(async () => {
@@ -180,7 +180,7 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
       )}
       {personal && (
         <form
-          className="stack"
+          className="flex flex-col gap-3"
           onSubmit={(e) => {
             e.preventDefault();
             void act(
@@ -199,7 +199,7 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
           <Field label="Private note">
             <textarea value={privateNote ?? annotation?.note ?? ''} onChange={(e) => setPrivateNote(e.target.value)} maxLength={2000} />
           </Field>
-          <button className="btn" disabled={busy}>
+          <button className={buttonVariants()} disabled={busy}>
             Save private notes
           </button>
         </form>
@@ -207,7 +207,7 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
       {(personal || recipe.kitchenId) && recipe.ingredients.length > 0 && (
         <details>
           <summary>Review an ingredient substitution</summary>
-          <div className="stack">
+          <div className="flex flex-col gap-3">
             <Field label="Ingredient to replace">
               <select value={ingredientIndex} onChange={(e) => setIngredientIndex(Number(e.target.value))}>
                 {recipe.ingredients.map((i, n) => (
@@ -220,7 +220,7 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
             <Field label="Replacement ingredient">
               <input value={replacement} onChange={(e) => setReplacement(e.target.value)} maxLength={120} />
             </Field>
-            <div className="form-grid">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] items-end gap-3">
               <Field label="Replacement quantity">
                 <input type="number" min={0} step="any" value={replacementAmount} onChange={(e) => setReplacementAmount(e.target.value)} />
               </Field>
@@ -228,12 +228,12 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
                 <input value={replacementUnit} onChange={(e) => setReplacementUnit(e.target.value)} maxLength={20} />
               </Field>
             </div>
-            <p className="small muted">
+            <p className="text-[0.875rem] text-muted-foreground">
               Review the quantity and cooking steps. This only changes this saved version. Known ingredient conflicts are screened again when planning;
               substitutions are not verified allergy-safe.
             </p>
             <ConfirmButton
-              className="btn"
+              className={buttonVariants()}
               disabled={busy || !replacement.trim() || !replacementAmount || Number(replacementAmount) < 0}
               confirmLabel="Apply this substitution?"
               onConfirm={() =>
@@ -269,11 +269,11 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
           <Field label="Cooking note" hint="Shared with members of this kitchen or circle">
             <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
           </Field>
-          <div className="row wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             {(['want', 'made', 'note'] as const).map((kind) => (
               <button
                 key={kind}
-                className="btn"
+                className={buttonVariants()}
                 disabled={busy || (kind === 'note' && !note.trim())}
                 onClick={() =>
                   void act(async () => {
@@ -299,7 +299,7 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
                 {a.note && <p>{a.note}</p>}
                 {(a.actorId === me?.user.id || community?.role !== 'member') && (
                   <ConfirmAction
-                    className="btn btn-small"
+                    className={buttonVariants({ size: 'sm' })}
                     title="Remove this note?"
                     description="It disappears from this recipe for everyone in the kitchen."
                     confirmLabel="Remove"
@@ -318,7 +318,7 @@ export function RecipeParticipation({ recipe, onUpdated }: { recipe: Recipe; onU
         </>
       )}
       {origin.data?.changed && (
-        <button className="btn" onClick={() => setReview(true)}>
+        <button className={buttonVariants()} onClick={() => setReview(true)}>
           Review changes to the original
         </button>
       )}

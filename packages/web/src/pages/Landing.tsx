@@ -6,6 +6,8 @@ import { ConsentNote, SiteFooter } from '../components/SiteFooter';
 import { login } from '../lib/auth';
 import { useSession } from '../lib/session';
 import { cents } from '../lib/util';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 /** Fade-and-rise content into view once, using IntersectionObserver (never scroll listeners). */
 function useReveal() {
@@ -73,7 +75,7 @@ export function Landing() {
           <a href="#how">How it works</a>
           <a href="#pricing">Pricing</a>
         </nav>
-        <button type="button" className="btn btn-small" onClick={start}>
+        <button type="button" className={cn(buttonVariants({ size: 'sm' }), 'ml-auto min-[720px]:ml-0')} onClick={start}>
           Sign in
         </button>
       </header>
@@ -88,8 +90,8 @@ export function Landing() {
               </span>
             </h1>
             <p className="lp-sub">Save recipes from videos, websites or photos. Plan meals and share a shopping list with your household.</p>
-            <div className="row wrap lp-ctas">
-              <button type="button" className="btn btn-primary btn-large" onClick={start}>
+            <div className="flex items-center flex-wrap lp-ctas">
+              <button type="button" className={buttonVariants({ variant: 'default', size: 'lg' })} onClick={start}>
                 Start free
               </button>
               <a className="lp-textlink" href="#how">
@@ -108,7 +110,7 @@ export function Landing() {
             />
             <article className="lp-recipe" aria-label="Example recipe card">
               <h2 className="lp-recipe-title">Shakshuka with basil</h2>
-              <p className="muted small num">35 min, serves 4, 21 g protein per serving</p>
+              <p className="text-muted-foreground text-[0.875rem] tabular-nums">35 min, serves 4, 21 g protein per serving</p>
               <ul className="ingredients lp-recipe-list">
                 {SAMPLE_INGREDIENTS.map((i) => (
                   <li key={i.name}>
@@ -163,14 +165,14 @@ export function Landing() {
             <div className="lp-tile lp-tile-plan reveal" style={stagger(0)}>
               <h3>Plans that work around your schedule</h3>
               <p>Tell Potluck what the week looks like. It builds a plan from your own recipe book and explains why.</p>
-              <div className="chips" aria-label="Example planning constraints">
+              <div className="mt-auto flex flex-wrap gap-2 pt-2" aria-label="Example planning constraints">
                 {CONSTRAINTS.map((c) => (
                   <span key={c.label} className={`chip${c.on ? ' chip-on' : ''}`}>
                     {c.on && <Check size={14} weight="bold" aria-hidden />} {c.label}
                   </span>
                 ))}
               </div>
-              <p className="small muted">Choose who’s eating, then review the suggested meals before saving.</p>
+              <p className="text-[0.875rem] text-muted-foreground">Choose who’s eating, then review the suggested meals before saving.</p>
             </div>
 
             <div className="lp-tile lp-tile-list reveal" style={stagger(1)}>
@@ -183,15 +185,15 @@ export function Landing() {
                       <Check size={12} weight="bold" />
                     </span>
                     <s>Red onions</s>
-                    <span className="num muted">3</span>
+                    <span className="tabular-nums text-muted-foreground">3</span>
                   </li>
                   <li>
                     <span className="lp-box" aria-hidden />
-                    Flat-leaf parsley<span className="num muted">1 bunch</span>
+                    Flat-leaf parsley<span className="tabular-nums text-muted-foreground">1 bunch</span>
                   </li>
                   <li>
                     <span className="lp-box" aria-hidden />
-                    Feta<span className="num muted">200 g</span>
+                    Feta<span className="tabular-nums text-muted-foreground">200 g</span>
                   </li>
                 </ul>
               </div>
@@ -225,9 +227,9 @@ export function Landing() {
                       {t.name}
                       {featured && <span className="badge badge-ok">most households</span>}
                     </h3>
-                    <p className="lp-price-amount num">
+                    <p className="lp-price-amount tabular-nums">
                       {t.priceCents ? cents(t.priceCents) : '$0'}
-                      <span className="muted small">/month</span>
+                      <span className="text-muted-foreground text-[0.875rem]">/month</span>
                     </p>
                   </div>
                   <ul className="lp-price-features">
@@ -241,7 +243,7 @@ export function Landing() {
                   </ul>
                   <button
                     type="button"
-                    className={`btn ${featured ? 'btn-primary' : ''}`}
+                    className={cn(buttonVariants({ variant: featured ? 'default' : 'outline' }), 'w-full')}
                     onClick={() => void login(t.priceCents ? '/account#billing' : '/book')}
                   >
                     {t.priceCents ? `Choose ${t.name}` : 'Start free'}
@@ -250,8 +252,8 @@ export function Landing() {
               );
             })}
           </div>
-          <div className="reveal stack">
-            <p className="muted small">
+          <div className="reveal flex flex-col gap-3">
+            <p className="text-muted-foreground text-[0.875rem]">
               Each owner’s paid plan includes $2 of monthly AI usage across their kitchens and circles. Imports and AI planning share that allowance; additional
               credits start at $5. Paid plans renew monthly until cancelled.
             </p>
@@ -261,8 +263,8 @@ export function Landing() {
 
         <section className="lp-section lp-final reveal">
           <h2 className="lp-h2">Start with tonight's dinner.</h2>
-          <div className="stack lp-final-cta">
-            <button type="button" className="btn btn-primary btn-large" onClick={start}>
+          <div className="flex flex-col lp-final-cta">
+            <button type="button" className={buttonVariants({ variant: 'default', size: 'lg' })} onClick={start}>
               Start free
             </button>
             <ConsentNote />

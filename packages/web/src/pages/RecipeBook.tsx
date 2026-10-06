@@ -14,6 +14,7 @@ import { useCommunity, useSession } from '../lib/session';
 import { mediaUrl, minutes } from '../lib/util';
 import { kitchenPath } from '../lib/kitchen-context';
 import { toast } from 'sonner';
+import { buttonVariants } from '@/components/ui/button';
 
 /** Stable warm placeholder tone (0-3) for recipes without a thumbnail. */
 function toneOf(id: string): number {
@@ -88,21 +89,21 @@ export function RecipeBook() {
   const techniqueCount = list.filter((r) => r.kind === 'technique').length;
 
   return (
-    <div className="stack-lg">
+    <div className="flex flex-col gap-8">
       <PageHeader
         eyebrow={recipes.data ? `${list.length} ${list.length === 1 ? 'recipe' : 'recipes'} in the book` : 'Recipe book'}
         title={`${community.name}'s recipes`}
       >
-        <button className="btn btn-primary" onClick={() => setAddMode(showAdd ? null : 'link')} aria-expanded={showAdd}>
+        <button className={buttonVariants({ variant: 'default' })} onClick={() => setAddMode(showAdd ? null : 'link')} aria-expanded={showAdd}>
           {showAdd ? <X size={16} weight="bold" aria-hidden /> : <Plus size={16} weight="bold" aria-hidden />}
           {showAdd ? 'Close' : 'Add recipe'}
         </button>
       </PageHeader>
-      <div className="row wrap">
-        <Link to="/library" className="btn">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Link to="/library" className={buttonVariants()}>
           My recipes
         </Link>
-        <Link className="btn" to={kitchenPath('/community', community.id)}>
+        <Link className={buttonVariants()} to={kitchenPath('/community', community.id)}>
           Invite someone
         </Link>
       </div>
@@ -118,12 +119,12 @@ export function RecipeBook() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
-      <label className="check">
+      <label className="flex min-h-[46px] cursor-pointer items-center gap-3">
         <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
         Show archived recipes
       </label>
 
-      <div className="stack">
+      <div className="flex flex-col gap-3">
         <div className="search">
           <MagnifyingGlass size={18} aria-hidden />
           <input type="search" placeholder="Search recipes or tags" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search recipes" />
@@ -138,7 +139,7 @@ export function RecipeBook() {
           </div>
         )}
         {tags.length > 0 && (
-          <div className="chips" aria-label="Filter by tag">
+          <div className="flex flex-wrap gap-2" aria-label="Filter by tag">
             {tags.map((t) => (
               <Chip key={t} active={tag === t} onClick={() => setTag(tag === t ? null : t)}>
                 {t}
@@ -155,7 +156,7 @@ export function RecipeBook() {
         <Empty title="No recipes yet" icon={<CookingPot size={22} weight="duotone" />}>
           <p>Paste a cooking video link, or send one to the Potluck bot from your phone. Recipes usually land in under a minute.</p>
           {!showAdd && (
-            <button className="btn btn-primary" onClick={() => setAddMode('link')}>
+            <button className={buttonVariants({ variant: 'default' })} onClick={() => setAddMode('link')}>
               Add your first recipe
             </button>
           )}
@@ -185,8 +186,8 @@ export function RecipeBook() {
                       {r.title}
                       {r.archived && <span className="badge">Archived</span>}
                     </h3>
-                    <p className="small muted">Added by {members.data?.members.find((m) => m.userId === r.addedBy)?.displayName ?? 'a former member'}</p>
-                    <p className="muted small">
+                    <p className="text-[0.875rem] text-muted-foreground">Added by {members.data?.members.find((m) => m.userId === r.addedBy)?.displayName ?? 'a former member'}</p>
+                    <p className="text-muted-foreground text-[0.875rem]">
                       {(r.kind === 'technique'
                         ? ['Cooking technique']
                         : [minutes(r.totalMin), `${r.servings} servings`, r.proteinG ? `${Math.round(r.proteinG)} g protein` : '']
@@ -210,7 +211,7 @@ export function RecipeBook() {
           })}
         </ul>
       )}
-      {recipes.data && list.length > 0 && filtered.length === 0 && <p className="muted">No recipes match that search.</p>}
+      {recipes.data && list.length > 0 && filtered.length === 0 && <p className="text-muted-foreground">No recipes match that search.</p>}
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Play, Warning } from '@phosphor-icons/react';
 import { formatAmount, type Recipe, type RecipeMedia } from '@potluck/core';
 import { clock, youtubeAt } from '../lib/util';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 /** Play a muted loop only while it is on screen, so a long list of clips stays light. */
 function LoopClip({ src, poster, label, onError }: { src: string; poster?: string; label: string; onError: () => void }) {
@@ -79,13 +81,13 @@ export function TechniqueView({
         ) : (
           thumb && <img className="recipe-hero" src={thumb} alt={recipe.title} />
         )}
-        <div className="stack">
+        <div className="flex flex-col gap-[14px] min-[760px]:pt-6">
           <p className="eyebrow">Cooking technique</p>
           <h1>{recipe.title}</h1>
-          {(t?.summary || recipe.description) && <p className="lead">{t?.summary || recipe.description}</p>}
+          {(t?.summary || recipe.description) && <p className="max-w-[58ch] text-[1.12rem] leading-[1.55] text-foreground-2">{t?.summary || recipe.description}</p>}
           {t && t.appliesTo.length > 0 && (
-            <div className="stack technique-uses">
-              <span className="h4">Use it for</span>
+            <div className="flex flex-col technique-uses">
+              <span className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Use it for</span>
               <div className="tags">
                 {t.appliesTo.map((a) => (
                   <span key={a} className="badge">
@@ -96,7 +98,7 @@ export function TechniqueView({
             </div>
           )}
           {recipe.source.url && (
-            <p className="small">
+            <p className="text-[0.875rem]">
               Source:{' '}
               <a href={recipe.source.url} target="_blank" rel="noreferrer">
                 {recipe.source.author ? `${recipe.source.author} on ${recipe.source.platform}` : recipe.source.platform}
@@ -108,14 +110,14 @@ export function TechniqueView({
 
       {t?.whyItWorks && (
         <section className="technique-why" aria-labelledby="why-title">
-          <h2 id="why-title" className="h3">
+          <h2 id="why-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
             Why it works
           </h2>
           <p>{t.whyItWorks}</p>
         </section>
       )}
 
-      <section className="stack" aria-labelledby="tsteps-title">
+      <section className="flex flex-col gap-3" aria-labelledby="tsteps-title">
         <h2 id="tsteps-title">How to do it</h2>
         <ol className="technique-steps">
           {recipe.steps.map((s, idx) => {
@@ -136,12 +138,12 @@ export function TechniqueView({
                   <p>{s.text}</p>
                   {typeof s.timestampSec === 'number' &&
                     (media ? (
-                      <button type="button" className="btn btn-ghost btn-small technique-seek" onClick={() => watchFrom(s.timestampSec!)}>
+                      <button type="button" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'technique-seek text-accent-foreground')} onClick={() => watchFrom(s.timestampSec!)}>
                         <Play size={14} weight="fill" aria-hidden /> Watch from {clock(s.timestampSec)}
                       </button>
                     ) : (
                       recipe.source.url && (
-                        <a className="small" href={youtubeAt(recipe.source.url, s.timestampSec)} target="_blank" rel="noreferrer">
+                        <a className="text-[0.875rem]" href={youtubeAt(recipe.source.url, s.timestampSec)} target="_blank" rel="noreferrer">
                           ▶ {clock(s.timestampSec)} in video
                         </a>
                       )
@@ -153,10 +155,10 @@ export function TechniqueView({
         </ol>
       </section>
 
-      <div className="recipe-cols">
+      <div className="recipe-cols wide:[&>:first-child]:sticky wide:[&>:first-child]:top-[88px]">
         {recipe.ingredients.length > 0 && (
-          <section className="card stack" aria-labelledby="tused-title">
-            <h2 id="tused-title" className="h3">
+          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="tused-title">
+            <h2 id="tused-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
               What you need
             </h2>
             <ul className="ingredients">
@@ -165,23 +167,23 @@ export function TechniqueView({
                   <span className="amount">{formatAmount(i.quantity, i.unit)}</span>
                   <span>
                     {i.name}
-                    {i.note && <span className="muted">, {i.note}</span>}
+                    {i.note && <span className="text-muted-foreground">, {i.note}</span>}
                   </span>
                 </li>
               ))}
             </ul>
             {recipe.equipment && recipe.equipment.length > 0 && (
-              <p className="small">
+              <p className="text-[0.875rem]">
                 <strong>Equipment:</strong> {recipe.equipment.join(', ')}
               </p>
             )}
           </section>
         )}
         {((t && t.mistakes.length > 0) || (recipe.tips && recipe.tips.length > 0)) && (
-          <section className="card stack" aria-labelledby="tmistakes-title">
+          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="tmistakes-title">
             {t && t.mistakes.length > 0 && (
               <>
-                <h2 id="tmistakes-title" className="h3">
+                <h2 id="tmistakes-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
                   Common mistakes
                 </h2>
                 <ul className="technique-mistakes">
@@ -196,7 +198,7 @@ export function TechniqueView({
             )}
             {recipe.tips && recipe.tips.length > 0 && (
               <>
-                <h3 className="h4">Tips</h3>
+                <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Tips</h3>
                 <ul className="tips">
                   {recipe.tips.map((tip, idx) => (
                     <li key={idx}>{tip}</li>

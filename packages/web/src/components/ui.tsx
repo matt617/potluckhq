@@ -16,7 +16,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Skeleton as SkeletonBlock } from '@/components/ui/skeleton';
@@ -142,7 +142,7 @@ export function ConfirmButton({
   children,
   confirmLabel = 'Tap again to confirm',
   onConfirm,
-  className = 'btn',
+  className = buttonVariants(),
   disabled,
 }: {
   children: ReactNode;
@@ -186,7 +186,7 @@ export function ConfirmAction({
   description,
   confirmLabel,
   onConfirm,
-  className = 'btn btn-danger',
+  className = buttonVariants({ variant: 'destructive' }),
   disabled,
 }: {
   children: ReactNode;

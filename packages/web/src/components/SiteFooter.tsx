@@ -19,7 +19,7 @@ export function SiteFooter() {
 /** One-line consent notice shown near sign-up calls to action. */
 export function ConsentNote() {
   return (
-    <p className="small muted [&_a]:text-inherit">
+    <p className="text-[0.875rem] text-muted-foreground [&_a]:text-inherit">
       By creating an account you agree to the <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy Policy</Link>.
     </p>
   );

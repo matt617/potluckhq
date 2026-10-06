@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { DAY_NAMES, MEAL_SLOTS, PLAN_CONSTRAINTS, formatUsd, type MealSlot, type PlanConstraint, type SuggestPlanResponse, type TierId } from '@potluck/core';
 import { api } from '../api';
 import { Chip, ErrorNote, Field } from './ui';
+import { buttonVariants } from '@/components/ui/button';
 
 interface Props {
   communityId: string;
@@ -27,15 +28,15 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
 
   if (ownerTier === 'free') {
     return (
-      <section className="card note-upgrade stack">
-        <h2 className="h3">Let AI plan your week</h2>
+      <section className="min-w-0 shadow-card note-upgrade flex flex-col gap-3">
+        <h2 className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">Let AI plan your week</h2>
         <p>Choose quick meals, a budget or planned leftovers, and Potluck will suggest a week from your recipe book. AI planning comes with Plus and Pro.</p>
         {isOwner ? (
-          <Link className="btn btn-primary" to="/account#billing">
+          <Link className={buttonVariants({ variant: 'default' })} to="/account#billing">
             See plans
           </Link>
         ) : (
-          <p className="muted small">The kitchen owner can upgrade to unlock AI planning for everyone here.</p>
+          <p className="text-muted-foreground text-[0.875rem]">The kitchen owner can upgrade to unlock AI planning for everyone here.</p>
         )}
       </section>
     );
@@ -66,11 +67,11 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
   }
 
   return (
-    <section className="card stack" aria-labelledby="ai-title">
-      <h2 id="ai-title" className="h3">
+    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="ai-title">
+      <h2 id="ai-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
         Suggest a plan with AI
       </h2>
-      <div className="chips" role="group" aria-label="This week">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="This week">
         {PLAN_CONSTRAINTS.filter((c) => c.id !== 'glp1' && c.id !== 'workout').map((c) => (
           <Chip key={c.id} active={constraints.includes(c.id)} title={c.hint} onClick={() => setConstraints((l) => toggle(l, c.id))}>
             {c.label}
@@ -79,19 +80,19 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
       </div>
       <details>
         <summary>Advanced food preferences</summary>
-        <div className="chips">
+        <div className="flex flex-wrap gap-2">
           {PLAN_CONSTRAINTS.filter((c) => c.id === 'glp1' || c.id === 'workout').map((c) => (
             <Chip key={c.id} active={constraints.includes(c.id)} title={c.hint} onClick={() => setConstraints((l) => toggle(l, c.id))}>
               {c.label}
             </Chip>
           ))}
         </div>
-        <p className="small muted">Applies to this draft. Shared summaries do not include personal health details.</p>
+        <p className="text-[0.875rem] text-muted-foreground">Applies to this draft. Shared summaries do not include personal health details.</p>
       </details>
-      {constraints.includes('glp1') && <p className="small muted">GLP-1 suggestions favor smaller, protein-forward portions. They are not medical advice.</p>}
-      <fieldset className="fieldset">
+      {constraints.includes('glp1') && <p className="text-[0.875rem] text-muted-foreground">GLP-1 suggestions favor smaller, protein-forward portions. They are not medical advice.</p>}
+      <fieldset className="m-0 border-0 p-0 [&_legend]:mb-2 [&_legend]:p-0 [&_legend]:text-[0.9rem] [&_legend]:font-medium">
         <legend>Away or not cooking</legend>
-        <div className="chips">
+        <div className="flex flex-wrap gap-2">
           {DAY_NAMES.map((d, i) => (
             <Chip key={d} active={awayDays.includes(i)} onClick={() => setAwayDays((l) => toggle(l, i))}>
               {d.slice(0, 3)}
@@ -99,9 +100,9 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
           ))}
         </div>
       </fieldset>
-      <fieldset className="fieldset">
+      <fieldset className="m-0 border-0 p-0 [&_legend]:mb-2 [&_legend]:p-0 [&_legend]:text-[0.9rem] [&_legend]:font-medium">
         <legend>Meals to plan</legend>
-        <div className="chips">
+        <div className="flex flex-wrap gap-2">
           {MEAL_SLOTS.map((s) => (
             <Chip key={s} active={slots.includes(s)} onClick={() => setSlots((l) => (l.includes(s) && l.length === 1 ? l : toggle(l, s)))}>
               {s}
@@ -109,11 +110,11 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
           ))}
         </div>
       </fieldset>
-      <div className="form-grid">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] items-end gap-3">
         <Field label="Servings per meal">
           <input type="number" min={1} max={20} value={servings} onChange={(e) => setServings(Math.max(1, Number(e.target.value) || 1))} />
         </Field>
-        <label className="check">
+        <label className="flex min-h-[46px] cursor-pointer items-center gap-3">
           <input type="checkbox" checked={allowNewIdeas} onChange={(e) => setAllowNewIdeas(e.target.checked)} />
           Suggest new dishes to fill gaps
         </label>
@@ -122,11 +123,11 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
         <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
       <ErrorNote error={error} />
-      <div className="row between wrap">
-        <button className="btn btn-primary" disabled={busy} onClick={suggest}>
+      <div className="flex items-center gap-2 justify-between flex-wrap">
+        <button className={buttonVariants({ variant: 'default' })} disabled={busy} onClick={suggest}>
           {busy ? 'Planning…' : 'Suggest plan'}
         </button>
-        {hasEdits && <span className="small muted">This replaces unsaved changes in the grid.</span>}
+        {hasEdits && <span className="text-[0.875rem] text-muted-foreground">This replaces unsaved changes in the grid.</span>}
       </div>
     </section>
   );
@@ -134,10 +135,10 @@ export function AiSuggest({ communityId, week, ownerTier, isOwner, initialConstr
 
 export function AiResult({ res, onDismiss }: { res: SuggestPlanResponse; onDismiss: () => void }) {
   return (
-    <section className="card stack ai-result" aria-live="polite">
-      <div className="row between">
-        <h2 className="h3">AI plan</h2>
-        <button className="btn btn-ghost btn-small" onClick={onDismiss}>
+    <section className="min-w-0 rounded-lg border p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3 ai-result" aria-live="polite">
+      <div className="flex items-center gap-2 justify-between">
+        <h2 className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">AI plan</h2>
+        <button className={buttonVariants({ variant: 'ghost', size: 'sm' })} onClick={onDismiss}>
           Dismiss
         </button>
       </div>
@@ -149,11 +150,11 @@ export function AiResult({ res, onDismiss }: { res: SuggestPlanResponse; onDismi
       ))}
       {res.newIdeas.length > 0 && (
         <>
-          <h3 className="h4">New ideas to find</h3>
+          <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">New ideas to find</h3>
           <ul className="ideas">
             {res.newIdeas.map((idea) => (
               <li key={idea.title}>
-                <strong>{idea.title}.</strong> <span className="muted">{idea.why}</span>{' '}
+                <strong>{idea.title}.</strong> <span className="text-muted-foreground">{idea.why}</span>{' '}
                 <a href={`https://www.tiktok.com/search?q=${encodeURIComponent(idea.searchQuery)}`} target="_blank" rel="noreferrer">
                   TikTok
                 </a>{' '}
@@ -166,7 +167,7 @@ export function AiResult({ res, onDismiss }: { res: SuggestPlanResponse; onDismi
           </ul>
         </>
       )}
-      <p className="small muted">This suggestion cost {formatUsd(res.costMicros)} of AI allowance. Review the grid below, then save.</p>
+      <p className="text-[0.875rem] text-muted-foreground">This suggestion cost {formatUsd(res.costMicros)} of AI allowance. Review the grid below, then save.</p>
     </section>
   );
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { SiteFooter } from '../components/SiteFooter';
 import { login } from '../lib/auth';
 import { useSession } from '../lib/session';
+import { buttonVariants } from '@/components/ui/button';
 
 const EFFECTIVE = 'October 4, 2026';
 const COMPANY = 'Quo Vadimus Incorporated';
@@ -35,11 +36,11 @@ function LegalDoc({ title, intro, sections }: { title: string; intro: ReactNode;
           <span>Potluck</span>
         </Link>
         {signedIn ? (
-          <Link to="/book" className="btn btn-small">
+          <Link to="/book" className={buttonVariants({ size: 'sm' })}>
             Open Potluck
           </Link>
         ) : (
-          <button type="button" className="btn btn-small" onClick={() => void login('/book')}>
+          <button type="button" className={buttonVariants({ size: 'sm' })} onClick={() => void login('/book')}>
             Sign in
           </button>
         )}
@@ -47,11 +48,11 @@ function LegalDoc({ title, intro, sections }: { title: string; intro: ReactNode;
       <main id="main" className="legal">
         <header className="legal-head">
           <h1>{title}</h1>
-          <p className="muted small">Last updated {EFFECTIVE}</p>
+          <p className="text-muted-foreground text-[0.875rem]">Last updated {EFFECTIVE}</p>
           <div className="legal-intro">{intro}</div>
         </header>
         <nav className="legal-toc" aria-label="Contents">
-          <h2 className="h4">Contents</h2>
+          <h2 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Contents</h2>
           <ol>
             {sections.map((s) => (
               <li key={s.id}>

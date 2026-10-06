@@ -5,6 +5,7 @@ import { api } from '../api';
 import { useAsync } from '../lib/hooks';
 import { canAdmin, useCommunity, useSession } from '../lib/session';
 import { ConfirmAction, ConfirmButton, ErrorNote, Field } from './ui';
+import { buttonVariants } from '@/components/ui/button';
 
 export function KitchenAdministration() {
   const c = useCommunity(),
@@ -43,7 +44,7 @@ export function KitchenAdministration() {
       <p role="status">{message}</p>
       {d && (
         <>
-          <section className="card stack">
+          <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
             <h2>Plan and import destination</h2>
             <p>
               <strong>{d.ownerName}</strong> provides the {d.tier.name} plan. {d.budget.importsLeft} imports remain across all kitchens and circles they own.
@@ -57,7 +58,7 @@ export function KitchenAdministration() {
             {c.ownerId === me?.user.id ? (
               <Link to="/account#billing">Manage my plan and usage</Link>
             ) : (
-              <p className="small muted">
+              <p className="text-[0.875rem] text-muted-foreground">
                 If the allowance is exhausted, the owner can add credits. Your personal subscription does not change this kitchen’s allowance.
               </p>
             )}
@@ -69,7 +70,7 @@ export function KitchenAdministration() {
                   does not change that setting.
                 </p>
                 <button
-                  className="btn"
+                  className={buttonVariants()}
                   disabled={busy || me?.user.defaultCommunityId === c.id}
                   onClick={() => void act(() => api.updateMe({ defaultCommunityId: c.id }))}
                 >
@@ -79,20 +80,20 @@ export function KitchenAdministration() {
             )}
           </section>
           {canAdmin(c.role) && (
-            <section className="card stack">
+            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
               <h2>Outstanding invitations</h2>
-              <p className="small muted">
+              <p className="text-[0.875rem] text-muted-foreground">
                 Members can save and edit shared recipes, plan meals and shop. Admins also manage invitations and kitchen settings. The owner manages billing
                 and ownership.
               </p>
               {!d.invites.length && <p>No outstanding invitations.</p>}
               {d.invites.map((i) => (
-                <div className="row between wrap" key={i.token}>
+                <div className="flex items-center gap-2 justify-between flex-wrap" key={i.token}>
                   <span>
                     {i.role} invitation · expires {new Date(i.expiresAt).toLocaleDateString()}
                   </span>
                   <ConfirmAction
-                    className="btn btn-small"
+                    className={buttonVariants({ size: 'sm' })}
                     title="Revoke this invitation?"
                     description="The link stops working. Anyone who hasn’t joined yet will need a new invitation."
                     confirmLabel="Revoke"
@@ -105,7 +106,7 @@ export function KitchenAdministration() {
             </section>
           )}
           {(c.role === 'owner' || d.transfer?.to === me?.user.id) && (
-            <section className="card stack">
+            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
               <h2>Transfer ownership</h2>
               <p>
                 The new owner must accept. Their plan and allowance will support this {c.kind === 'circle' ? 'circle' : 'kitchen'} afterward. Subscriptions and
@@ -120,14 +121,14 @@ export function KitchenAdministration() {
                   {d.transfer.to === me?.user.id && (
                     <ConfirmButton
                       disabled={busy}
-                      className="btn btn-primary"
+                      className={buttonVariants({ variant: 'default' })}
                       confirmLabel="Accept ownership and use my plan?"
                       onConfirm={() => act(() => api.acceptTransfer(c.id))}
                     >
                       Accept ownership
                     </ConfirmButton>
                   )}
-                  <button className="btn" disabled={busy} onClick={() => void act(() => api.cancelTransfer(c.id))}>
+                  <button className={buttonVariants()} disabled={busy} onClick={() => void act(() => api.cancelTransfer(c.id))}>
                     Cancel transfer
                   </button>
                 </>
@@ -146,7 +147,7 @@ export function KitchenAdministration() {
                         ))}
                     </select>
                   </Field>
-                  <button className="btn" disabled={!target || busy} onClick={() => void act(() => api.offerTransfer(c.id, target))}>
+                  <button className={buttonVariants()} disabled={!target || busy} onClick={() => void act(() => api.offerTransfer(c.id, target))}>
                     Offer ownership
                   </button>
                 </>
@@ -154,9 +155,9 @@ export function KitchenAdministration() {
             </section>
           )}
           {canAdmin(c.role) && (
-            <section className="card stack">
+            <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3">
               <h2>Your kitchen’s rhythm</h2>
-              <p className="small muted">
+              <p className="text-[0.875rem] text-muted-foreground">
                 Weeks when you saved recipes, planned and shopped together. Only action flags and participant counts are shown; recipe text and food profiles
                 are never collected for this report.
               </p>

@@ -46,7 +46,7 @@ export function Layout() {
   }
   if (requested && !me.communities.some((c) => c.id === requested))
     return (
-      <main className="page stack">
+      <main className="page flex flex-col gap-3">
         <ErrorNote error={new Error('You no longer have access to this kitchen or circle.')} />
         <Link to="/library">Open My recipes</Link>
       </main>

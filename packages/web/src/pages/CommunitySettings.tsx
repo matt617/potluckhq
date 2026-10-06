@@ -9,6 +9,7 @@ import { copyText, formatDate } from '../lib/util';
 import { Diners } from '../components/Diners';
 import { KitchenAdministration } from '../components/KitchenAdministration';
 import { toast } from 'sonner';
+import { buttonVariants } from '@/components/ui/button';
 
 export function CommunitySettings() {
   const community = useCommunity();
@@ -71,17 +72,17 @@ export function CommunitySettings() {
   if (detail.loading && !detail.data) return <Spinner />;
 
   return (
-    <div className="stack-lg">
+    <div className="flex flex-col gap-8">
       <h1>{community.name}</h1>
       <ErrorNote error={detail.error} onRetry={() => void detail.reload()} />
       <ErrorNote error={error} />
 
-      <section className="card stack" aria-labelledby="members-title">
-        <div className="row between wrap">
-          <h2 id="members-title" className="h3">
+      <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="members-title">
+        <div className="flex items-center gap-2 justify-between flex-wrap">
+          <h2 id="members-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
             Members
           </h2>
-          <span className="muted small">
+          <span className="text-muted-foreground text-[0.875rem]">
             {members.length} of {memberLimit} on {limits.name}
           </span>
         </div>
@@ -92,7 +93,7 @@ export function CommunitySettings() {
               <li key={m.userId}>
                 <span>
                   {m.displayName || 'Member'}
-                  {self && <span className="muted"> (you)</span>}
+                  {self && <span className="text-muted-foreground"> (you)</span>}
                 </span>
                 {isOwner && m.role !== 'owner' ? (
                   <select
@@ -117,7 +118,7 @@ export function CommunitySettings() {
                 )}
                 {admin && !self && m.role !== 'owner' && (role === 'owner' || m.role === 'member') && (
                   <ConfirmAction
-                    className="btn btn-ghost btn-small"
+                    className={buttonVariants({ variant: 'ghost', size: 'sm' })}
                     title={`Remove ${m.displayName}?`}
                     description="They lose access to this space’s recipes and plans. You can invite them again later."
                     confirmLabel="Remove"
@@ -141,22 +142,22 @@ export function CommunitySettings() {
         </ul>
 
         {admin && (
-          <div className="stack invite-box">
-            <h3 className="h4">Invite someone</h3>
+          <div className="flex flex-col gap-3 invite-box">
+            <h3 className="mb-1 font-sans text-[0.8rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">Invite someone</h3>
             {full ? (
-              <p className="muted small">
+              <p className="text-muted-foreground text-[0.875rem]">
                 {community.kind === 'circle'
                   ? 'This circle has reached its 20-member limit.'
                   : 'This kitchen is full. The owner can upgrade the plan to add more people.'}
               </p>
             ) : (
-              <div className="row wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <select aria-label="Invite role" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as 'member' | 'admin')}>
                   <option value="member">as member</option>
                   <option value="admin">as admin</option>
                 </select>
                 <button
-                  className="btn btn-primary"
+                  className={buttonVariants({ variant: 'default' })}
                   disabled={busy === 'invite'}
                   onClick={() => act('invite', async () => setInvite(await api.createInvite(community.id, { role: inviteRole })))}
                 >
@@ -165,16 +166,16 @@ export function CommunitySettings() {
               </div>
             )}
             {invite && (
-              <div className="stack">
+              <div className="flex flex-col gap-3">
                 <input readOnly value={invite.url} aria-label="Invite link" onFocus={(e) => e.currentTarget.select()} />
-                <div className="row wrap">
-                  <button className="btn" onClick={async () => toast((await copyText(invite.url)) ? 'Copied' : 'Copy failed')}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button className={buttonVariants()} onClick={async () => toast((await copyText(invite.url)) ? 'Copied' : 'Copy failed')}>
                     Copy link
                   </button>
-                  <button className="btn" onClick={() => void shareInvite()}>
+                  <button className={buttonVariants()} onClick={() => void shareInvite()}>
                     Share…
                   </button>
-                  <span className="muted small">Expires {formatDate(invite.expiresAt)}</span>
+                  <span className="text-muted-foreground text-[0.875rem]">Expires {formatDate(invite.expiresAt)}</span>
                 </div>
               </div>
             )}
@@ -185,8 +186,8 @@ export function CommunitySettings() {
       {community.kind !== 'circle' && <Diners />}
       <KitchenAdministration />
       {admin && (
-        <section className="card stack" aria-labelledby="settings-title">
-          <h2 id="settings-title" className="h3">
+        <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="settings-title">
+          <h2 id="settings-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
             Settings
           </h2>
           <Field label="Name">
@@ -201,7 +202,7 @@ export function CommunitySettings() {
             </Field>
           )}
           <button
-            className="btn btn-primary"
+            className={buttonVariants({ variant: 'default' })}
             disabled={busy === 'save' || !name.trim()}
             onClick={() =>
               act(
@@ -226,13 +227,13 @@ export function CommunitySettings() {
         </section>
       )}
 
-      <section className="card stack danger-zone" aria-labelledby="danger-title">
-        <h2 id="danger-title" className="h3">
+      <section className="min-w-0 rounded-lg border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3 danger-zone" aria-labelledby="danger-title">
+        <h2 id="danger-title" className="font-serif text-[1.25rem] font-[550] tracking-[-0.012em] [font-variation-settings:'SOFT'_50,'WONK'_0]">
           {isOwner ? 'Delete this kitchen or circle' : 'Leave this kitchen or circle'}
         </h2>
         {isOwner ? (
           <>
-            <p className="muted small">
+            <p className="text-muted-foreground text-[0.875rem]">
               Deletes this shared space and its plans, shopping lists and local recipe versions. Personal saves and independent copies elsewhere remain.
               Transfer ownership above to let the group continue.
             </p>

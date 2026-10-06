@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { api, uploadToPresigned } from '../api';
 import { useSession } from '../lib/session';
 import { ErrorNote, Field } from './ui';
+import { buttonVariants } from '@/components/ui/button';
 
 export type AddMode = 'link' | 'photos' | 'text';
 
@@ -56,8 +57,8 @@ export function AddRecipe({ communityId, initialMode = 'link', onQueued }: { com
   const tg = publicConfig?.telegramBotUsername;
 
   return (
-    <section className="card stack" aria-labelledby="add-recipe-title">
-      <div className="row between wrap">
+    <section className="min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px] flex flex-col gap-3" aria-labelledby="add-recipe-title">
+      <div className="flex items-center gap-2 justify-between flex-wrap">
         <h2 id="add-recipe-title">Add a recipe</h2>
         <div className="segmented" role="tablist" aria-label="Import type">
           {(['link', 'photos', 'text'] as AddMode[]).map((m) => (
@@ -67,8 +68,8 @@ export function AddRecipe({ communityId, initialMode = 'link', onQueued }: { com
           ))}
         </div>
       </div>
-      <form className="stack" onSubmit={submit}>
-        <p className="small muted">
+      <form className="flex flex-col gap-3" onSubmit={submit}>
+        <p className="text-[0.875rem] text-muted-foreground">
           Saving to <strong>{me?.communities.find((c) => c.id === communityId)?.name}</strong> and My recipes. Imports use this group owner’s account allowance.
         </p>
         {mode === 'link' && (
@@ -96,12 +97,12 @@ export function AddRecipe({ communityId, initialMode = 'link', onQueued }: { com
           </Field>
         )}
         <ErrorNote error={error} />
-        <div className="row between wrap">
-          <button className="btn btn-primary" disabled={busy || !valid}>
+        <div className="flex items-center gap-2 justify-between flex-wrap">
+          <button className={buttonVariants({ variant: 'default' })} disabled={busy || !valid}>
             {busy ? progress || 'Sending…' : 'Import recipe'}
           </button>
           {tg && (
-            <a className="muted small" href={`https://t.me/${tg}`} target="_blank" rel="noreferrer">
+            <a className="text-muted-foreground text-[0.875rem]" href={`https://t.me/${tg}`} target="_blank" rel="noreferrer">
               Tip: send links to @{tg} on Telegram
             </a>
           )}

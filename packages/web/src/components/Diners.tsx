@@ -4,7 +4,7 @@ import { api } from '../api';
 import { useAsync } from '../lib/hooks';
 import { useSession, canAdmin, useCommunity } from '../lib/session';
 import { newId } from '../lib/util';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,9 +39,9 @@ export function Diners() {
     });
   }
   return (
-    <section className="stack card">
+    <section className="flex flex-col gap-3 min-w-0 rounded-lg border border-border bg-card p-5 shadow-card wide:px-7 wide:py-[26px]">
       <h2>Who eats here?</h2>
-      <p className="muted">
+      <p className="text-muted-foreground">
         Diners are separate from members. Children and guests don’t need an account. Only the food requirements you enter here are shared with this kitchen and
         used for its meal suggestions.
       </p>
@@ -53,9 +53,9 @@ export function Diners() {
               {d.name} · {d.portions} portions{d.usual ? ' · Usually eating' : ''}
             </span>
             {(d.userId === me?.user.id || (!d.userId && canAdmin(c.role))) && (
-              <div className="row">
+              <div className="flex items-center gap-2">
                 <button
-                  className="btn btn-small"
+                  className={buttonVariants({ size: 'sm' })}
                   onClick={() => {
                     setIsNew(false);
                     setEditing(d);
@@ -64,7 +64,7 @@ export function Diners() {
                   Edit
                 </button>
                 <ConfirmAction
-                  className="btn btn-small"
+                  className={buttonVariants({ size: 'sm' })}
                   title={`Remove ${d.name}?`}
                   description="Their portions and food requirements stop being used for this kitchen’s plans and suggestions."
                   confirmLabel="Remove profile"
@@ -84,14 +84,14 @@ export function Diners() {
           </li>
         ))}
       </ul>
-      <div className="row wrap">
+      <div className="flex items-center gap-2 flex-wrap">
         {!own && (
-          <button className="btn" onClick={() => add(true)}>
+          <button className={buttonVariants()} onClick={() => add(true)}>
             Add me as a diner
           </button>
         )}
         {canAdmin(c.role) && (
-          <button className="btn" onClick={() => add(false)}>
+          <button className={buttonVariants()} onClick={() => add(false)}>
             Add a child or guest
           </button>
         )}

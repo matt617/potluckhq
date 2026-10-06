@@ -18,7 +18,8 @@ import { api } from '../api';
 import { AiResult, AiSuggest } from '../components/AiSuggest';
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { ErrorNote, Field, FormDialog, PageHeader, Skeleton } from '../components/ui';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +31,9 @@ import { kitchenPath, useWeek } from '../lib/kitchen-context';
 import { readStore, writeStore } from '../lib/storage';
 import { toast } from 'sonner';
 
+
+/** Borderless arrows in the week switcher; they lift onto the surface on hover. */
+const WEEK_NAV_BUTTON = 'min-w-9 border-0 bg-transparent px-2.5 py-0 hover:bg-card hover:shadow-card';
 export function Planner() {
   const community = useCommunity();
   const { me } = useSession();
@@ -171,29 +175,29 @@ export function Planner() {
 
   if (community.kind === 'circle')
     return (
-      <div className="stack">
+      <div className="flex flex-col gap-3">
         <h1>Circles exchange recipes</h1>
         <p>Choose a kitchen to plan meals.</p>
-        <Link className="btn" to="/circles">
+        <Link className={buttonVariants()} to="/circles">
           Recipe circles
         </Link>
       </div>
     );
   return (
-    <div className="stack-lg">
+    <div className="flex flex-col gap-8">
       <PageHeader eyebrow={week === thisWeek ? 'This week' : week < thisWeek ? 'Past week' : 'Coming up'} title="Meal plan">
-        <div className="row week-nav">
-          <button className="btn btn-small" aria-label="Previous week" onClick={() => setWeek(addDays(week, -7))}>
+        <div className="flex items-center week-nav">
+          <button className={cn(buttonVariants({ size: 'sm' }), WEEK_NAV_BUTTON)} aria-label="Previous week" onClick={() => setWeek(addDays(week, -7))}>
             <CaretLeft size={16} weight="bold" aria-hidden />
           </button>
           <span className="week-label">
             {formatDate(week)} to {formatDate(addDays(week, 6))}
           </span>
-          <button className="btn btn-small" aria-label="Next week" onClick={() => setWeek(addDays(week, 7))}>
+          <button className={cn(buttonVariants({ size: 'sm' }), WEEK_NAV_BUTTON)} aria-label="Next week" onClick={() => setWeek(addDays(week, 7))}>
             <CaretRight size={16} weight="bold" aria-hidden />
           </button>
           {week !== thisWeek && (
-            <button className="btn btn-ghost btn-small" onClick={() => setWeek(thisWeek)}>
+            <button className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), WEEK_NAV_BUTTON)} onClick={() => setWeek(thisWeek)}>
               This week
             </button>
           )}
@@ -223,11 +227,11 @@ export function Planner() {
       {planState.loading && !plan && <Skeleton label="Loading meal plan" />}
       <ErrorNote error={planState.error} onRetry={() => void planState.reload()} />
       {recoverable && !dirty && (
-        <section className="note stack">
+        <section className="note flex flex-col gap-3">
           <p>You have an unsaved draft for this week.</p>
-          <div className="row">
+          <div className="flex items-center gap-2">
             <button
-              className="btn"
+              className={buttonVariants()}
               onClick={() => {
                 setEntries(recoverable.entries);
                 setDraftRevision(recoverable.revision);
@@ -238,7 +242,7 @@ export function Planner() {
               Restore draft
             </button>
             <button
-              className="btn"
+              className={buttonVariants()}
               onClick={() => {
                 writeStore(draftKey, null, 'session');
                 setRecoverable(null);
@@ -249,7 +253,7 @@ export function Planner() {
           </div>
         </section>
       )}
-      <label className="check">
+      <label className="flex min-h-[46px] cursor-pointer items-center gap-3">
         <input
           type="checkbox"
           checked={showAll}
@@ -260,7 +264,7 @@ export function Planner() {
         />
         Show breakfast, lunch and snacks
       </label>
-      {!showAll && entries.some((e) => e.slot !== 'dinner') && <p className="small muted">Other meals are planned. Show all meals to see them.</p>}
+      {!showAll && entries.some((e) => e.slot !== 'dinner') && <p className="text-[0.875rem] text-muted-foreground">Other meals are planned. Show all meals to see them.</p>}
 
       {plan && (
         <>
@@ -280,14 +284,14 @@ export function Planner() {
                       {cell.map((e) => (
                         <button key={e.id} className={`plan-entry${e.leftoverOf ? ' leftover' : ''}`} onClick={() => setEditing({ entry: e, isNew: false })}>
                           <span>{entryTitle(e)}</span>
-                          <span className="muted small">×{e.servings}</span>
+                          <span className="text-muted-foreground text-[0.875rem]">×{e.servings}</span>
                           {!e.leftoverOf && batchPortions(entries, e.id) > e.servings && (
-                            <span className="small">
+                            <span className="text-[0.875rem]">
                               Cook {batchPortions(entries, e.id)} portions; eat {e.servings}, save {batchPortions(entries, e.id) - e.servings}
                             </span>
                           )}
                           {e.cookId && (
-                            <span className="small">Cook: {detail.data?.members.find((m) => m.userId === e.cookId)?.displayName ?? 'Former member'}</span>
+                            <span className="text-[0.875rem]">Cook: {detail.data?.members.find((m) => m.userId === e.cookId)?.displayName ?? 'Former member'}</span>
                           )}
                         </button>
                       ))}
@@ -318,18 +322,18 @@ export function Planner() {
           </div>
           <div className="savebar">
             <ErrorNote error={error} />
-            <div className="row between wrap">
-              <span className="muted small">{dirty ? 'Unsaved changes' : plan.updatedAt ? 'All changes saved' : 'Nothing planned yet'}</span>
-              <div className="row">
-                <Link to={kitchenPath('/shop', community.id, week)} className="btn">
+            <div className="flex items-center gap-2 justify-between flex-wrap">
+              <span className="text-muted-foreground text-[0.875rem]">{dirty ? 'Unsaved changes' : plan.updatedAt ? 'All changes saved' : 'Nothing planned yet'}</span>
+              <div className="flex items-center gap-2">
+                <Link to={kitchenPath('/shop', community.id, week)} className={buttonVariants()}>
                   Shopping list
                 </Link>
-                <button className="btn btn-primary" disabled={!dirty || saving} onClick={save}>
+                <button className={buttonVariants({ variant: 'default' })} disabled={!dirty || saving} onClick={save}>
                   {saving ? 'Saving…' : 'Save plan'}
                 </button>
                 {!!error && (
                   <button
-                    className="btn"
+                    className={buttonVariants()}
                     onClick={() => {
                       if (window.confirm('Discard this draft and load the latest saved plan?')) {
                         writeStore(draftKey, null, 'session');
