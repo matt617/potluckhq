@@ -24,15 +24,15 @@
     "lint:classes": "node --experimental-strip-types scripts/lint-classes.ts"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.13.0",
-    "@types/node": "^24.19.1",
+    "@axe-core/playwright": "^4.14.0",
+    "@types/node": "^24.19.2",
     "pixelmatch": "^7.2.0",
-    "playwright": "^1.63.0",
+    "playwright": "^1.64.1",
     "pngjs": "^7.0.0",
-    "prettier": "^3.9.9",
+    "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.5"
   },
   "engines": {
     "node": ">=24"
